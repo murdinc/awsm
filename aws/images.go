@@ -73,7 +73,7 @@ func GetRegionImages(region *string, imgList *Images) error {
 		img[i] = Image{
 			Name:         GetTagValue("Name", image.Tags),
 			Class:        GetTagValue("Class", image.Tags),
-			CreationDate: *image.CreationDate,
+			CreationDate: aws.StringValue(image.CreationDate),
 			ImageId:      aws.StringValue(image.ImageId),
 			State:        aws.StringValue(image.State),
 			Root:         root,

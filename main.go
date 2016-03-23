@@ -258,7 +258,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all Launch Configurations",
 			Action: func(c *cli.Context) {
-				// anotha one
+				launchConfigs, err := aws.GetLaunchConfigurations()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Launch Configurations!", err.Error())
+				} else {
+					launchConfigs.PrintTable()
+				}
 			},
 		},
 		{
@@ -267,7 +272,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all Elastic Load Balancers",
 			Action: func(c *cli.Context) {
-				// anotha one
+				loadBalancers, err := aws.GetLoadBalancers()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Load Balancers!", err.Error())
+				} else {
+					loadBalancers.PrintTable()
+				}
 			},
 		},
 		{
