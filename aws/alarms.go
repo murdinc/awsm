@@ -64,8 +64,8 @@ func GetRegionAlarms(region *string, alList *Alarms) error {
 			Description: aws.StringValue(alarm.AlarmDescription),
 			State:       aws.StringValue(alarm.StateValue),
 			Trigger:     aws.StringValue(alarm.MetricName),
-			Period:      string(aws.Int64Value(alarm.Period)),
-			EvalPeriods: string(*alarm.EvaluationPeriods),
+			Period:      fmt.Sprint(aws.Int64Value(alarm.Period)),
+			EvalPeriods: fmt.Sprint(aws.Int64Value(alarm.EvaluationPeriods)),
 			//Actions:     fmt.Sprint(*alarm.AlarmActions), // TODO
 			//Dimensions: *alarm.Dimensions, // TODO
 			Namespace: aws.StringValue(alarm.Namespace),
