@@ -38,12 +38,12 @@ listAutoScaleGroups - "Lists all AutoScale Groups"
 ~~listInstances - "Lists all AWS EC2 Instances"~~
 ~~listLaunchConfigurations - "List all Launch Configurations"~~
 ~~listLoadBalancers - "Lists all Elastic Load Balancers"~~
-listScalingPolicies - "Lists all Scaling Policies"
-listSecurityGroups - "Lists all Security Groups"
-listSnapshots - "Lists all AWS EBS Snapshots"
-listSubnets - "Lists all AWS Subnets"
-listVolumes - "Lists all AWS EBS Volumes"
-listVpcs - "Lists all AWS Vpcs"
+~~listScalingPolicies - "Lists all Scaling Policies"~~
+~~listSecurityGroups - "Lists all Security Groups"~~
+~~listSnapshots - "Lists all AWS EBS Snapshots"~~
+~~listSubnets - "Lists all AWS Subnets"~~
+~~listVolumes - "Lists all AWS EBS Volumes"~~
+~~listVpcs - "Lists all AWS Vpcs"~~
 resumeProcesses - "Resume all autoscaling processes on a specific autoscaling group"
 runCommand - "Run a command on a set of instances"
 suspendProcesses - "Stop all autoscaling processes on a specific autoscaling group"

@@ -203,7 +203,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all AWS Elastic IP Addresses",
 			Action: func(c *cli.Context) {
-				// anotha one
+				addresses, err := aws.GetAddresses()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Elastic IP Addresses!", err.Error())
+				} else {
+					addresses.PrintTable()
+				}
 			},
 		},
 		{
@@ -212,7 +217,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all CloudWatch Alarms",
 			Action: func(c *cli.Context) {
-				// anotha one
+				alarms, err := aws.GetAlarms()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Alarms!", err.Error())
+				} else {
+					alarms.PrintTable()
+				}
 			},
 		},
 		{
@@ -221,7 +231,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all AutoScale Groups",
 			Action: func(c *cli.Context) {
-				// anotha one
+				groups, err := aws.GetAutoScaleGroups()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Auto Scale Groups!", err.Error())
+				} else {
+					groups.PrintTable()
+				}
 			},
 		},
 		{
@@ -286,7 +301,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all Scaling Policies",
 			Action: func(c *cli.Context) {
-				// anotha one
+				policies, err := aws.GetScalingPolicies()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Auto Scaling Policies!", err.Error())
+				} else {
+					policies.PrintTable()
+				}
 			},
 		},
 		{
@@ -295,7 +315,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all Security Groups",
 			Action: func(c *cli.Context) {
-				// anotha one
+				groups, err := aws.GetSecurityGroups()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Security Groups!", err.Error())
+				} else {
+					groups.PrintTable()
+				}
 			},
 		},
 		{
@@ -304,7 +329,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all AWS EBS Snapshots",
 			Action: func(c *cli.Context) {
-				// anotha one
+				snapshots, err := aws.GetSnapshots()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Snapshots!", err.Error())
+				} else {
+					snapshots.PrintTable()
+				}
 			},
 		},
 		{
@@ -313,7 +343,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all AWS Subnets",
 			Action: func(c *cli.Context) {
-				// anotha one
+				subnets, err := aws.GetSubnets()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Subnets!", err.Error())
+				} else {
+					subnets.PrintTable()
+				}
 			},
 		},
 		{
@@ -322,7 +357,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all AWS EBS Volumes",
 			Action: func(c *cli.Context) {
-				// anotha one
+				volumes, err := aws.GetVolumes()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing Volumes!", err.Error())
+				} else {
+					volumes.PrintTable()
+				}
 			},
 		},
 		{
@@ -331,7 +371,12 @@ func main() {
 			Example:     "",
 			Description: "Lists all AWS Vpcs",
 			Action: func(c *cli.Context) {
-				// anotha one
+				vpcs, err := aws.GetVpcs()
+				if err != nil {
+					cli.ShowErrorMessage("Error Listing VPCs!", err.Error())
+				} else {
+					vpcs.PrintTable()
+				}
 			},
 		},
 		{
