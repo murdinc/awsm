@@ -20,11 +20,12 @@ type Instance struct {
 	AMI              string
 	Root             string
 	Size             string
+	Virtualization   string
+	State            string
 	KeyPair          string
 	AvailabilityZone string
 	VPC              string
 	Subnet           string
-	State            string
 }
 
 func GetInstances() (*Instances, error) {
@@ -70,10 +71,11 @@ func GetRegionInstances(region *string, instList *Instances) error {
 				AMI:              aws.StringValue(instance.ImageId),
 				Root:             aws.StringValue(instance.RootDeviceType),
 				Size:             aws.StringValue(instance.InstanceType),
+				Virtualization:   aws.StringValue(instance.VirtualizationType),
+				State:            aws.StringValue(instance.State.Name),
 				KeyPair:          aws.StringValue(instance.KeyName),
 				VPC:              aws.StringValue(instance.VpcId),
 				Subnet:           aws.StringValue(instance.SubnetId),
-				State:            instance.State.GoString(),
 			}
 		}
 		*instList = append(*instList, inst[:]...)
@@ -82,7 +84,7 @@ func GetRegionInstances(region *string, instList *Instances) error {
 }
 
 func (i *Instances) PrintTable() {
-	collumns := []string{"Name", "Private IP", "Public IP", "Instance Id", "AMI", "Root", "Size", "Key Pair", "Availability Zone", "VPC", "Subnet"}
+	collumns := []string{"Name", "Private IP", "Public IP", "Instance Id", "AMI", "Root", "Size", "Virtualization", "State", "Key Pair", "Availability Zone", "VPC", "Subnet"}
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -94,6 +96,8 @@ func (i *Instances) PrintTable() {
 			val.AMI,
 			val.Root,
 			val.Size,
+			val.Virtualization,
+			val.State,
 			val.KeyPair,
 			val.AvailabilityZone,
 			val.VPC,
