@@ -1,13 +1,16 @@
 package aws
 
 import (
+	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type ScalingPolicies []ScalingPolicy
@@ -35,7 +38,7 @@ func GetScalingPolicies() (*ScalingPolicies, error) {
 			defer wg.Done()
 			err := GetRegionScalingPolicies(region.RegionName, spList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering ScalingPolicy list", err.Error())
+				terminal.ShowErrorMessage("Error gathering ScalingPolicy list", err.Error())
 			}
 		}(region)
 	}
@@ -57,8 +60,8 @@ func GetRegionScalingPolicies(region *string, spList *ScalingPolicies) error {
 		sp[i] = ScalingPolicy{
 			Name:               aws.StringValue(scalingpolicy.PolicyName),
 			AdjustmentType:     aws.StringValue(scalingpolicy.AdjustmentType),
-			Adjustment:         string(aws.Int64Value(scalingpolicy.ScalingAdjustment)),
-			Cooldown:           string(aws.Int64Value(scalingpolicy.Cooldown)),
+			Adjustment:         fmt.Sprint(aws.Int64Value(scalingpolicy.ScalingAdjustment)),
+			Cooldown:           fmt.Sprint(aws.Int64Value(scalingpolicy.Cooldown)),
 			AutoScaleGroupName: aws.StringValue(scalingpolicy.AutoScalingGroupName),
 			//Alarms:             strings.Join(aws.StringValueSlice(scalingpolicy.Alarms), ","), // TODO
 			Region: *region,
@@ -70,7 +73,7 @@ func GetRegionScalingPolicies(region *string, spList *ScalingPolicies) error {
 }
 
 func (i *ScalingPolicies) PrintTable() {
-	collumns := []string{"Name", "Adjustment Type", "Adjustment", "Cooldown", "AutoScaling Group Name", "Alarms", "Region"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -85,5 +88,8 @@ func (i *ScalingPolicies) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "Adjustment Type", "Adjustment", "Cooldown", "AutoScaling Group Name", "Alarms", "Region"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

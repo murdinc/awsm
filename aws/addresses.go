@@ -2,12 +2,15 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/codegangsta/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type Addresses []Address
@@ -25,6 +28,7 @@ func GetAddresses() (*Addresses, error) {
 
 	ipList := new(Addresses)
 	regions := GetRegionList()
+	errs := new(cli.MultiError)
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -33,13 +37,13 @@ func GetAddresses() (*Addresses, error) {
 			defer wg.Done()
 			err := GetRegionAddresses(region.RegionName, ipList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering address list", err.Error())
+				terminal.ShowErrorMessage("Error gathering address list", err.Error())
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return ipList, nil
+	return ipList, errs
 }
 
 func GetRegionAddresses(region *string, adrList *Addresses) error {
@@ -67,7 +71,7 @@ func GetRegionAddresses(region *string, adrList *Addresses) error {
 }
 
 func (i *Addresses) PrintTable() {
-	collumns := []string{"Public IP", "Private IP", "Domain", "Instance Id", "Region"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -80,5 +84,8 @@ func (i *Addresses) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Public IP", "Private IP", "Domain", "Instance Id", "Region"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

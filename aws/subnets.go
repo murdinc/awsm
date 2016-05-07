@@ -2,12 +2,14 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type Subnets []Subnet
@@ -37,7 +39,7 @@ func GetSubnets() (*Subnets, error) {
 			defer wg.Done()
 			err := GetRegionSubnets(region.RegionName, subList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering Subnet list", err.Error())
+				terminal.ShowErrorMessage("Error gathering Subnet list", err.Error())
 			}
 		}(region)
 	}
@@ -74,7 +76,7 @@ func GetRegionSubnets(region *string, subList *Subnets) error {
 }
 
 func (i *Subnets) PrintTable() {
-	collumns := []string{"Name", "Subnet Id", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -91,5 +93,8 @@ func (i *Subnets) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "Subnet Id", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

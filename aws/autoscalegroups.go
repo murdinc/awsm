@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -8,7 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type AutoScaleGroups []AutoScaleGroup
@@ -41,7 +44,7 @@ func GetAutoScaleGroups() (*AutoScaleGroups, error) {
 			defer wg.Done()
 			err := GetRegionAutoScaleGroups(region.RegionName, asgList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering AutoScaleGroup list", err.Error())
+				terminal.ShowErrorMessage("Error gathering AutoScaleGroup list", err.Error())
 			}
 		}(region)
 	}
@@ -66,11 +69,11 @@ func GetRegionAutoScaleGroups(region *string, asgList *AutoScaleGroups) error {
 			HealthCheck:      aws.StringValue(autoscalegroup.HealthCheckType),
 			LaunchConfig:     aws.StringValue(autoscalegroup.LaunchConfigurationName),
 			LoadBalancer:     strings.Join(aws.StringValueSlice(autoscalegroup.LoadBalancerNames), ","),
-			Instances:        string(len(autoscalegroup.Instances)),
-			DesiredCapacity:  string(aws.Int64Value(autoscalegroup.DesiredCapacity)),
-			MinSize:          string(aws.Int64Value(autoscalegroup.MinSize)),
-			MaxSize:          string(aws.Int64Value(autoscalegroup.MaxSize)),
-			Cooldown:         string(aws.Int64Value(autoscalegroup.DefaultCooldown)),
+			Instances:        fmt.Sprint(len(autoscalegroup.Instances)),
+			DesiredCapacity:  fmt.Sprint(aws.Int64Value(autoscalegroup.DesiredCapacity)),
+			MinSize:          fmt.Sprint(aws.Int64Value(autoscalegroup.MinSize)),
+			MaxSize:          fmt.Sprint(aws.Int64Value(autoscalegroup.MaxSize)),
+			Cooldown:         fmt.Sprint(aws.Int64Value(autoscalegroup.DefaultCooldown)),
 			AvailabilityZone: strings.Join(aws.StringValueSlice(autoscalegroup.AvailabilityZones), ","),
 			//Subnets: aws.StringValue(autoscalegroup.PlacementGroup), // TODO
 		}
@@ -81,7 +84,7 @@ func GetRegionAutoScaleGroups(region *string, asgList *AutoScaleGroups) error {
 }
 
 func (i *AutoScaleGroups) PrintTable() {
-	collumns := []string{"Name", "Class", "Health Check", "Launch Config", "Load Balancers", "Instances", "Desired Capacity", "Min Size", "Max Size", "Cooldown", "Availability Zone", "Subnets"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -101,5 +104,8 @@ func (i *AutoScaleGroups) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "Class", "Health Check", "Launch Config", "Load Balancers", "Instances", "Desired Capacity", "Min Size", "Max Size", "Cooldown", "Availability Zone", "Subnets"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

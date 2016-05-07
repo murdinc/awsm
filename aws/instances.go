@@ -1,12 +1,14 @@
 package aws
 
 import (
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type Instances []Instance
@@ -41,7 +43,7 @@ func GetInstances() (*Instances, error) {
 			defer wg.Done()
 			err := GetRegionInstances(region.RegionName, instList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering instance list", err.Error())
+				terminal.ShowErrorMessage("Error gathering instance list", err.Error())
 			}
 		}(region)
 	}
@@ -84,7 +86,7 @@ func GetRegionInstances(region *string, instList *Instances) error {
 }
 
 func (i *Instances) PrintTable() {
-	collumns := []string{"Name", "Private IP", "Public IP", "Instance Id", "AMI", "Root", "Size", "Virtualization", "State", "Key Pair", "Availability Zone", "VPC", "Subnet"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -105,5 +107,8 @@ func (i *Instances) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "Private IP", "Public IP", "Instance Id", "AMI", "Root", "Size", "Virtualization", "State", "Key Pair", "Availability Zone", "VPC", "Subnet"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

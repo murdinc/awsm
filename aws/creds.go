@@ -5,7 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
 	"gopkg.in/ini.v1"
 )
 
@@ -29,9 +29,9 @@ func CheckCreds() bool {
 		if err != nil || len(cfg.Profiles) == 0 {
 
 			// No Config Found, ask if we want to create one
-			create := cli.BoxPromptBool("No AWS Credentials found!", "Do you want to add them now?")
+			create := terminal.BoxPromptBool("No AWS Credentials found!", "Do you want to add them now?")
 			if !create {
-				cli.Information("Ok then, maybe next time.. ")
+				terminal.Information("Ok then, maybe next time.. ")
 				return false
 			}
 			cfg.addCredsDialog()
@@ -42,8 +42,8 @@ func CheckCreds() bool {
 
 // addCredsDialog is the dialog for the new creds setup
 func (a *awsmConfig) addCredsDialog() {
-	accessKey := cli.PromptString("What is your AWS Access Key Id?")
-	secretKey := cli.PromptString("What is your AWS Secret Access Key?")
+	accessKey := terminal.PromptString("What is your AWS Access Key Id?")
+	secretKey := terminal.PromptString("What is your AWS Secret Access Key?")
 
 	// Add Credentials to the ~/.aws/credentials file
 	profile := Profile{Name: "default", AccessKeyId: accessKey, SecretAccessKey: secretKey}
@@ -51,12 +51,12 @@ func (a *awsmConfig) addCredsDialog() {
 
 	err := a.SaveConfig()
 	if err != nil {
-		cli.Information("There was a problem saving the config to [~/.aws/credentials]!")
+		terminal.Information("There was a problem saving the config to [~/.aws/credentials]!")
 	}
 
 	creds, err := testCreds()
 	if err != nil || len(creds.ProviderName) == 0 {
-		cli.Information("There was a problem with auth, please try again.")
+		terminal.Information("There was a problem with auth, please try again.")
 		a.addCredsDialog()
 	}
 }

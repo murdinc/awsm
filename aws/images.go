@@ -2,12 +2,14 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type Images []Image
@@ -37,7 +39,7 @@ func GetImages() (*Images, error) {
 			defer wg.Done()
 			err := GetRegionImages(region.RegionName, imgList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering image list", err.Error())
+				terminal.ShowErrorMessage("Error gathering image list", err.Error())
 			}
 		}(region)
 	}
@@ -88,7 +90,7 @@ func GetRegionImages(region *string, imgList *Images) error {
 }
 
 func (i *Images) PrintTable() {
-	collumns := []string{"Name", "Class", "Creation Date", "Image Id", "State", "Root", "Snapshot Id", "Volume Size", "Region"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -105,5 +107,8 @@ func (i *Images) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "Class", "Creation Date", "Image Id", "State", "Root", "Snapshot Id", "Volume Size", "Region"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

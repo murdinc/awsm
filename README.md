@@ -1,8 +1,8 @@
 # awsm
-> AWS Improved Workflow
+> AWS iMproved CLI
 
 ## Intro
-**awsm** is an alternative interface for Amazon Web Services. It is intended to streamline many of the tasks with setting up and scaling a web application on AWS.
+**awsm** is an alternative interface for Amazon Web Services. It is intended to streamline many of the tasks involved with setting up and scaling a web application on AWS.
 
 ## Requirements
 

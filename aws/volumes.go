@@ -1,12 +1,15 @@
 package aws
 
 import (
+	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type Volumes []Volume
@@ -38,7 +41,7 @@ func GetVolumes() (*Volumes, error) {
 			defer wg.Done()
 			err := GetRegionVolumes(region.RegionName, volList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering Volume list", err.Error())
+				terminal.ShowErrorMessage("Error gathering Volume list", err.Error())
 			}
 		}(region)
 	}
@@ -61,9 +64,9 @@ func GetRegionVolumes(region *string, volList *Volumes) error {
 		vol[i] = Volume{
 			Name:     GetTagValue("Name", volume.Tags),
 			VolumeId: GetTagValue("Class", volume.Tags),
-			Size:     string(aws.Int64Value(volume.Size)),
+			Size:     fmt.Sprint(aws.Int64Value(volume.Size)),
 			State:    aws.StringValue(volume.State),
-			Iops:     string(aws.Int64Value(volume.Iops)),
+			Iops:     fmt.Sprint(aws.Int64Value(volume.Iops)),
 			//Attachments:  aws.StringValue(volume.Attachments), // TODO
 			CreationTime: aws.TimeValue(volume.CreateTime).String(),
 			VolumeType:   aws.StringValue(volume.VolumeType),
@@ -78,7 +81,7 @@ func GetRegionVolumes(region *string, volList *Volumes) error {
 }
 
 func (i *Volumes) PrintTable() {
-	collumns := []string{"Name", "Volume Id", "Size", "State", "Attachment", "Creation Time", "Volume Type", "Snapshot Id", "Delete on Termination", "Availability Zone"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -96,5 +99,8 @@ func (i *Volumes) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "Volume Id", "Size", "State", "Attachment", "Creation Time", "Volume Type", "Snapshot Id", "Delete on Termination", "Availability Zone"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

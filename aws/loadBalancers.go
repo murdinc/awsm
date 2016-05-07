@@ -2,13 +2,15 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type LoadBalancers []LoadBalancer
@@ -32,7 +34,7 @@ func GetLoadBalancers() (*LoadBalancers, error) {
 			defer wg.Done()
 			err := GetRegionLoadBalancers(region.RegionName, lbList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering launch config list", err.Error())
+				terminal.ShowErrorMessage("Error gathering launch config list", err.Error())
 			}
 		}(region)
 	}
@@ -64,7 +66,7 @@ func GetRegionLoadBalancers(region *string, lbList *LoadBalancers) error {
 }
 
 func (i *LoadBalancers) PrintTable() {
-	collumns := []string{"Name", "DNS Name", "Region"}
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -75,5 +77,8 @@ func (i *LoadBalancers) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "DNS Name", "Region"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }

@@ -2,12 +2,14 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/cli"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/olekukonko/tablewriter"
 )
 
 type Snapshots []Snapshot
@@ -38,7 +40,7 @@ func GetSnapshots() (*Snapshots, error) {
 			defer wg.Done()
 			err := GetRegionSnapshots(region.RegionName, snapList)
 			if err != nil {
-				cli.ShowErrorMessage("Error gathering Snapshot list", err.Error())
+				terminal.ShowErrorMessage("Error gathering Snapshot list", err.Error())
 			}
 		}(region)
 	}
@@ -49,7 +51,7 @@ func GetSnapshots() (*Snapshots, error) {
 
 func GetRegionSnapshots(region *string, snapList *Snapshots) error {
 	svc := ec2.New(session.New(&aws.Config{Region: region}))
-	result, err := svc.DescribeSnapshots(&ec2.DescribeSnapshotsInput{})
+	result, err := svc.DescribeSnapshots(&ec2.DescribeSnapshotsInput{OwnerIds: []*string{aws.String("self")}})
 
 	if err != nil {
 		return err
@@ -66,7 +68,7 @@ func GetRegionSnapshots(region *string, snapList *Snapshots) error {
 			State:       aws.StringValue(snapshot.State),
 			StartTime:   aws.TimeValue(snapshot.StartTime).String(),
 			Progress:    aws.StringValue(snapshot.Progress),
-			VolumeSize:  string(aws.Int64Value(snapshot.VolumeSize)),
+			VolumeSize:  fmt.Sprint(aws.Int64Value(snapshot.VolumeSize)),
 			Region:      fmt.Sprintf(*region),
 		}
 	}
@@ -76,9 +78,7 @@ func GetRegionSnapshots(region *string, snapList *Snapshots) error {
 }
 
 func (i *Snapshots) PrintTable() {
-	collumns := []string{"Name", "Class", "Description", "Snapshot Id", "Volume Id", "State", "Start Time", "Progress", "Volume Size", "Region"}
-
-	// "Name", "Class", "Description", "Snapshot Id", "Volume Id", "State", "Start Time", "Progress", "Volume Size", "Region"
+	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))
 	for index, val := range *i {
@@ -96,5 +96,8 @@ func (i *Snapshots) PrintTable() {
 		}
 	}
 
-	printTable(collumns, rows)
+	table.SetHeader([]string{"Name", "Class", "Description", "Snapshot Id", "Volume Id", "State", "Start Time", "Progress", "Volume Size", "Region"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }
