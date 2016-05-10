@@ -9,7 +9,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-type awsmConfig struct {
+type awsmCreds struct {
 	Profiles []Profile
 }
 
@@ -25,7 +25,7 @@ func CheckCreds() bool {
 	creds, err := testCreds()
 	if err != nil || len(creds.ProviderName) == 0 {
 		// Try to read the config file
-		cfg, err := ReadConfig()
+		cfg, err := ReadCreds()
 		if err != nil || len(cfg.Profiles) == 0 {
 
 			// No Config Found, ask if we want to create one
@@ -41,7 +41,7 @@ func CheckCreds() bool {
 }
 
 // addCredsDialog is the dialog for the new creds setup
-func (a *awsmConfig) addCredsDialog() {
+func (a *awsmCreds) addCredsDialog() {
 	accessKey := terminal.PromptString("What is your AWS Access Key Id?")
 	secretKey := terminal.PromptString("What is your AWS Secret Access Key?")
 
@@ -49,7 +49,7 @@ func (a *awsmConfig) addCredsDialog() {
 	profile := Profile{Name: "default", AccessKeyId: accessKey, SecretAccessKey: secretKey}
 	a.Profiles = append(a.Profiles, profile)
 
-	err := a.SaveConfig()
+	err := a.SaveCreds()
 	if err != nil {
 		terminal.Information("There was a problem saving the config to [~/.aws/credentials]!")
 	}
@@ -68,10 +68,10 @@ func testCreds() (credentials.Value, error) {
 	return sess.Config.Credentials.Get()
 }
 
-// Reads in the config and returns a awsmConfig struct
-func ReadConfig() (*awsmConfig, error) {
+// Reads in the config and returns a awsmCreds struct
+func ReadCreds() (*awsmCreds, error) {
 	// Reads in our config file
-	config := new(awsmConfig)
+	config := new(awsmCreds)
 
 	currentUser, _ := user.Current()
 	configLocation := currentUser.HomeDir + "/.aws/credentials"
@@ -105,7 +105,7 @@ func ReadConfig() (*awsmConfig, error) {
 }
 
 // Save our list of profile into the config file
-func (a *awsmConfig) SaveConfig() error {
+func (a *awsmCreds) SaveCreds() error {
 	// Saves our config file
 	currentUser, _ := user.Current()
 	configLocation := currentUser.HomeDir + "/.aws/credentials"

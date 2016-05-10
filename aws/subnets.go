@@ -58,7 +58,6 @@ func GetRegionSubnets(region *string, subList *Subnets) error {
 
 	sub := make(Subnets, len(result.Subnets))
 	for i, subnet := range result.Subnets {
-		//"Name", "Subnet Id", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"
 		sub[i] = Subnet{
 			Name:             GetTagValue("Name", subnet.Tags),
 			SubnetId:         aws.StringValue(subnet.SubnetId),
@@ -73,6 +72,15 @@ func GetRegionSubnets(region *string, subList *Subnets) error {
 	*subList = append(*subList, sub[:]...)
 
 	return nil
+}
+
+func (i *Subnets) GetSubnetName(id string) string {
+	for _, subnet := range *i {
+		if subnet.SubnetId == id && subnet.Name != "" {
+			return subnet.Name
+		}
+	}
+	return id
 }
 
 func (i *Subnets) PrintTable() {

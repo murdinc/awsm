@@ -174,17 +174,21 @@ func PromptBool(message string) bool {
 }
 
 func Information(message string) {
+	message = strings.Replace(message, "\n", " ", -1)
 	message = padStringRight(message, 100)
 	PrintAnsi(InformationTemplate, message)
 }
 
 func ErrorLine(message string) {
+	message = strings.Replace(message, "\n", " ", -1)
 	message = padStringRight(message, 100)
 	PrintAnsi(ErrorLineTemplate, message)
 }
 
 // formats and prints a title and message in a template block
 func prepMessage(title string, message string) boxMessage {
+
+	message = strings.Replace(message, "\n", " ", -1)
 
 	title = fmt.Sprintf("[%s]", title)
 

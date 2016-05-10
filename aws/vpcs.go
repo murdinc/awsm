@@ -75,6 +75,15 @@ func GetRegionVpcs(region *string, vpcList *Vpcs) error {
 	return nil
 }
 
+func (i *Vpcs) GetVpcName(id string) string {
+	for _, vpc := range *i {
+		if vpc.VpcId == id && vpc.Name != "" {
+			return vpc.Name
+		}
+	}
+	return id
+}
+
 func (i *Vpcs) PrintTable() {
 	table := tablewriter.NewWriter(os.Stdout)
 
@@ -92,7 +101,7 @@ func (i *Vpcs) PrintTable() {
 		}
 	}
 
-	table.SetHeader([]string{"Name", "VPC Id", "State", "Default", "CIDR Block", "DHCP Options ID", "Tenancy"})
+	table.SetHeader([]string{"Name", "VPC Id", "State", "Default", "CIDR Block", "DHCP Options ID", "Tenancy", "Region"})
 
 	table.AppendBulk(rows)
 	table.Render()

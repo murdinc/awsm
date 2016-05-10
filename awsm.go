@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/codegangsta/cli"
 	"github.com/murdinc/awsm/aws"
+	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/cli"
 )
 
 // Main Function
@@ -16,6 +17,8 @@ func main() {
 		return
 	}
 
+	var dryRun bool
+
 	app := cli.NewApp()
 	app.Name = "awsm"
 	app.Usage = "AWS iMproved CLI"
@@ -24,178 +27,251 @@ func main() {
 	app.Email = "send@ahmad.pizza"
 	app.EnableBashCompletion = true
 
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:        "dry-run",
+			Destination: &dryRun,
+			Usage:       "dry-run (Don't make any real changes)",
+		},
+	}
+
 	app.Commands = []cli.Command{
 		{
-			Name:        "attachVolume",
-			ShortName:   "",
-			Description: "Attach an AWS EBS Volume",
+			Name:  "test",
+			Usage: "TEST",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
+				//config.CheckConfig()
 				return nil
 			},
 		},
 		{
-			Name:        "copyImage",
-			ShortName:   "",
-			Description: "Copy an AWS Machine Image to another region",
+			Name:  "attachVolume",
+			Usage: "Attach an AWS EBS Volume",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "copySnapshot",
-			ShortName:   "",
-			Description: "Copy an AWS EBS Snapshot to another region",
+			Name:  "copyImage",
+			Usage: "Copy an AWS Machine Image to another region",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "createAddress",
-			ShortName:   "",
-			Description: "Create an AWS Elastic IP Address (for use in a VPC or EC2-Classic)",
+			Name:  "copySnapshot",
+			Usage: "Copy an AWS EBS Snapshot to another region",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "createAutoScaleGroup",
-			ShortName:   "",
-			Description: "Create an AWS AutoScaling Group",
+			Name:  "createAddress",
+			Usage: "Create an AWS Elastic IP Address (for use in a VPC or EC2-Classic)",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "createImage",
-			ShortName:   "",
-			Description: "Create an AWS Machine Image from a running instance",
+			Name:  "createAutoScaleGroup",
+			Usage: "Create an AWS AutoScaling Group",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "createLaunchConfiguration",
-			ShortName:   "",
-			Description: "Create an AWS AutoScaling Launch Configuration",
+			Name:  "createImage",
+			Usage: "Create an AWS Machine Image from a running instance",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "createSnapshot",
-			ShortName:   "",
-			Description: "Create an AWS EBS snapshot of a volume",
+			Name:  "createLaunchConfiguration",
+			Usage: "Create an AWS AutoScaling Launch Configuration",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "createVolume",
-			ShortName:   "",
-			Description: "Create an AWS EBS volume (from a class snapshot or blank)",
+			Name:  "createSimpleDBDomain",
+			Usage: "Create an AWS SimpleDB Domain",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "domain",
+					Description: "The domain of the db",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the db",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// anotha one
+				err := aws.CreateSimpleDBDomain(c.NamedArg("domain"), c.NamedArg("region"))
+				if err != nil {
+					terminal.ShowErrorMessage("Error", err.Error())
+				}
 				return nil
 			},
 		},
 		{
-			Name:        "deleteAutoScaleGroup",
-			ShortName:   "",
-			Description: "Delete an AWS AutoScaling Group",
+			Name:  "createSnapshot",
+			Usage: "Create an AWS EBS snapshot of a volume",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "deleteImage",
-			ShortName:   "",
-			Description: "Delete an AWS Machine Image",
+			Name:  "createVolume",
+			Usage: "Create an AWS EBS volume (from a class snapshot or blank)",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "deleteLaunchConfiguration",
-			ShortName:   "",
-			Description: "Delete an AWS AutoScaling Launch Configuration",
+			Name:  "deleteAutoScaleGroup",
+			Usage: "Delete an AWS AutoScaling Group",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "deleteSnapshot",
-			ShortName:   "",
-			Description: "Delete an AWS EBS Snapshot",
+			Name:  "deleteImage",
+			Usage: "Delete an AWS Machine Image",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "deleteVolume",
-			ShortName:   "",
-			Description: "Delete an AWS EBS Volume",
+			Name:  "deleteLaunchConfiguration",
+			Usage: "Delete an AWS AutoScaling Launch Configuration",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "detachVolume",
-			ShortName:   "",
-			Description: "Detach an AWS EBS Volume",
+			Name:  "deleteSnapshot",
+			Usage: "Delete an AWS EBS Snapshot",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
+				return nil
+			},
+		},
+		{
+			Name:  "deleteSimpleDBDomains",
+			Usage: "Delete an AWS SimpleDB Domain",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "domain",
+					Description: "The domain of the db",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the db (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteSimpleDBDomain(c.NamedArg("domain"), c.NamedArg("region"))
+				if err != nil {
+					terminal.ShowErrorMessage("Error", err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "deleteVolume",
+			Usage: "Delete an AWS EBS Volume",
+			Action: func(c *cli.Context) error {
+				// TODO
+				return nil
+			},
+		},
+		{
+			Name:  "detachVolume",
+			Usage: "Detach an AWS EBS Volume",
+			Action: func(c *cli.Context) error {
+				// TODO
 
 				return nil
 			},
 		},
 		{
-			Name:        "stopInstances",
-			ShortName:   "",
-			Description: "Stop AWS instance(s)",
+			Name:  "stopInstances",
+			Usage: "Stop AWS instance(s)",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "pauseInstances",
-			ShortName:   "",
-			Description: "Pause AWS instance(s)",
+			Name:  "pauseInstances",
+			Usage: "Pause AWS instance(s)",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "launchInstance",
-			ShortName:   "",
-			Description: "Launch an EC2 instance",
+			Name:  "killInstances",
+			Usage: "Kill AWS instance(s)",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "listAddresses",
-			ShortName:   "",
-			Description: "Lists all AWS Elastic IP Addresses",
+			Name:  "launchInstance",
+			Usage: "Launch an EC2 instance",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of the instance (dev, stage, etc)",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "sequence",
+					Description: "The sequence of the instance (1...100)",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "az",
+					Description: "The availability zone to launch the instance in (us-west-2a, us-east-1a, etc)",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.LaunchInstance(c.NamedArg("class"), c.NamedArg("sequence"), c.NamedArg("az"), dryRun)
+				if err != nil {
+					terminal.ShowErrorMessage("Error", err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "listAddresses",
+			Usage: "Lists all AWS Elastic IP Addresses",
 			Action: func(c *cli.Context) error {
 				addresses, err := aws.GetAddresses()
 				if err != nil {
-					return cli.NewExitError("Error Listing Elastic IP Addresses!", 1)
+					terminal.ShowErrorMessage("Error", err.Error())
+					return nil
 				} else {
 					addresses.PrintTable()
 				}
@@ -203,9 +279,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listAlarms",
-			ShortName:   "",
-			Description: "Lists all CloudWatch Alarms",
+			Name:  "listAlarms",
+			Usage: "Lists all CloudWatch Alarms",
 			Action: func(c *cli.Context) error {
 				alarms, err := aws.GetAlarms()
 				if err != nil {
@@ -217,9 +292,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listAutoScaleGroups",
-			ShortName:   "",
-			Description: "Lists all AutoScale Groups",
+			Name:  "listAutoScaleGroups",
+			Usage: "Lists all AutoScale Groups",
 			Action: func(c *cli.Context) error {
 				groups, err := aws.GetAutoScaleGroups()
 				if err != nil {
@@ -231,9 +305,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listImages",
-			ShortName:   "",
-			Description: "Lists all AWS Machine Images owned by us",
+			Name:  "listImages",
+			Usage: "Lists all AWS Machine Images owned by us",
 			Action: func(c *cli.Context) error {
 				images, err := aws.GetImages()
 				if err != nil {
@@ -245,11 +318,17 @@ func main() {
 			},
 		},
 		{
-			Name:        "listInstances",
-			ShortName:   "",
-			Description: "Lists all AWS EC2 Instances",
+			Name:  "listInstances",
+			Usage: "Lists all AWS EC2 Instances",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				instances, err := aws.GetInstances()
+				instances, err := aws.GetInstances(c.NamedArg("search"))
 				if err != nil {
 					return cli.NewExitError("Error Listing Instances!", 1)
 				} else {
@@ -259,9 +338,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listLaunchConfigurations",
-			ShortName:   "",
-			Description: "Lists all Launch Configurations",
+			Name:  "listLaunchConfigurations",
+			Usage: "Lists all Launch Configurations",
 			Action: func(c *cli.Context) error {
 				launchConfigs, err := aws.GetLaunchConfigurations()
 				if err != nil {
@@ -273,9 +351,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listLoadBalancers",
-			ShortName:   "",
-			Description: "Lists all Elastic Load Balancers",
+			Name:  "listLoadBalancers",
+			Usage: "Lists all Elastic Load Balancers",
 			Action: func(c *cli.Context) error {
 				loadBalancers, err := aws.GetLoadBalancers()
 				if err != nil {
@@ -287,9 +364,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listScalingPolicies",
-			ShortName:   "",
-			Description: "Lists all Scaling Policies",
+			Name:  "listScalingPolicies",
+			Usage: "Lists all Scaling Policies",
 			Action: func(c *cli.Context) error {
 				policies, err := aws.GetScalingPolicies()
 				if err != nil {
@@ -301,9 +377,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listSecurityGroups",
-			ShortName:   "",
-			Description: "Lists all Security Groups",
+			Name:  "listSecurityGroups",
+			Usage: "Lists all Security Groups",
 			Action: func(c *cli.Context) error {
 				groups, err := aws.GetSecurityGroups()
 				if err != nil {
@@ -315,9 +390,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listSnapshots",
-			ShortName:   "",
-			Description: "Lists all AWS EBS Snapshots",
+			Name:  "listSnapshots",
+			Usage: "Lists all AWS EBS Snapshots",
 			Action: func(c *cli.Context) error {
 				snapshots, err := aws.GetSnapshots()
 				if err != nil {
@@ -329,9 +403,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listSubnets",
-			ShortName:   "",
-			Description: "Lists all AWS Subnets",
+			Name:  "listSubnets",
+			Usage: "Lists all AWS Subnets",
 			Action: func(c *cli.Context) error {
 				subnets, err := aws.GetSubnets()
 				if err != nil {
@@ -343,9 +416,28 @@ func main() {
 			},
 		},
 		{
-			Name:        "listVolumes",
-			ShortName:   "",
-			Description: "Lists all AWS EBS Volumes",
+			Name:  "listSimpleDBDomains",
+			Usage: "Lists all AWS SimpleDB Domains",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				domains, err := aws.GetSimpleDBDomains(c.NamedArg("search"))
+				if err != nil {
+					return cli.NewExitError("Error Listing Simple DB Domains!", 1)
+				} else {
+					domains.PrintTable()
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "listVolumes",
+			Usage: "Lists all AWS EBS Volumes",
 			Action: func(c *cli.Context) error {
 				volumes, err := aws.GetVolumes()
 				if err != nil {
@@ -357,9 +449,8 @@ func main() {
 			},
 		},
 		{
-			Name:        "listVpcs",
-			ShortName:   "",
-			Description: "Lists all AWS Vpcs",
+			Name:  "listVpcs",
+			Usage: "Lists all AWS Vpcs",
 			Action: func(c *cli.Context) error {
 				vpcs, err := aws.GetVpcs()
 				if err != nil {
@@ -371,38 +462,34 @@ func main() {
 			},
 		},
 		{
-			Name:        "resumeProcesses",
-			ShortName:   "",
-			Description: "Resume all autoscaling processes on a specific autoscaling group",
+			Name:  "resumeProcesses",
+			Usage: "Resume all autoscaling processes on a specific autoscaling group",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "runCommand",
-			ShortName:   "",
-			Description: "Run a command on a set of instances",
+			Name:  "runCommand",
+			Usage: "Run a command on a set of instances",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "suspendProcesses",
-			ShortName:   "",
-			Description: "Stop all autoscaling processes on a specific autoscaling group",
+			Name:  "suspendProcesses",
+			Usage: "Stop all autoscaling processes on a specific autoscaling group",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
 		{
-			Name:        "updateAutoScaleGroup",
-			ShortName:   "",
-			Description: "Update an AWS AutoScaling Group",
+			Name:  "updateAutoScaleGroup",
+			Usage: "Update an AWS AutoScaling Group",
 			Action: func(c *cli.Context) error {
-				// anotha one
+				// TODO
 				return nil
 			},
 		},
@@ -410,23 +497,3 @@ func main() {
 
 	app.Run(os.Args)
 }
-
-/*
-func getConfig() *config.CrusherConfig {
-	// Check Config
-	cfg, err := config.ReadConfig()
-	if err != nil || len(cfg.Servers) == 0 {
-		// No Config Found, ask if we want to create one
-		create := cli.BoxPromptBool("Crusher configuration file not found or empty!", "Do you want to add some servers now?")
-		if !create {
-			cli.Information("Alright then, maybe next time.. ")
-			os.Exit(0)
-		}
-		// Add Some Servers to our config
-		cfg.AddServer()
-		os.Exit(0)
-	}
-
-	return cfg
-}
-*/
