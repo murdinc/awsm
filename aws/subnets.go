@@ -26,8 +26,13 @@ type Subnet struct {
 	MapPublicIp      string
 }
 
-func GetSubnets() (*Subnets, error) {
+func GetSubnetId(name string) (Subnet, error) {
+	return Subnet{}, nil
+}
+
+func GetSubnets() (*Subnets, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	subList := new(Subnets)
 	regions := GetRegionList()
@@ -39,13 +44,14 @@ func GetSubnets() (*Subnets, error) {
 			defer wg.Done()
 			err := GetRegionSubnets(region.RegionName, subList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering Subnet list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering subnet list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return subList, nil
+	return subList, errs
 }
 
 func GetRegionSubnets(region *string, subList *Subnets) error {

@@ -37,15 +37,6 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:  "test",
-			Usage: "TEST",
-			Action: func(c *cli.Context) error {
-				// TODO
-				//config.CheckConfig()
-				return nil
-			},
-		},
-		{
 			Name:  "attachVolume",
 			Usage: "Attach an AWS EBS Volume",
 			Action: func(c *cli.Context) error {
@@ -82,6 +73,29 @@ func main() {
 			Usage: "Create an AWS AutoScaling Group",
 			Action: func(c *cli.Context) error {
 				// TODO
+				return nil
+			},
+		},
+		{
+			Name:  "createIAMUser",
+			Usage: "Create an IAM User",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "username",
+					Description: "The username for this IAM user",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "path",
+					Description: "The optional path for the user",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.CreateIAMUser(c.NamedArg("username"), c.NamedArg("path"))
+				if err != nil {
+					terminal.ShowErrorMessage("Error", err.Error())
+				}
 				return nil
 			},
 		},
@@ -145,6 +159,24 @@ func main() {
 			Usage: "Delete an AWS AutoScaling Group",
 			Action: func(c *cli.Context) error {
 				// TODO
+				return nil
+			},
+		},
+		{
+			Name:  "deleteIAMUser",
+			Usage: "Delete an AWS Machine Image",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "username",
+					Description: "The of the IAM User to delete",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteIAMUser(c.NamedArg("username"))
+				if err != nil {
+					terminal.ShowErrorMessage("Error", err.Error())
+				}
 				return nil
 			},
 		},
@@ -268,10 +300,9 @@ func main() {
 			Name:  "listAddresses",
 			Usage: "Lists all AWS Elastic IP Addresses",
 			Action: func(c *cli.Context) error {
-				addresses, err := aws.GetAddresses()
-				if err != nil {
-					terminal.ShowErrorMessage("Error", err.Error())
-					return nil
+				addresses, errs := aws.GetAddresses()
+				if errs != nil {
+					return cli.NewExitError("Error Listing Addresses!", 1)
 				} else {
 					addresses.PrintTable()
 				}
@@ -282,8 +313,8 @@ func main() {
 			Name:  "listAlarms",
 			Usage: "Lists all CloudWatch Alarms",
 			Action: func(c *cli.Context) error {
-				alarms, err := aws.GetAlarms()
-				if err != nil {
+				alarms, errs := aws.GetAlarms()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Alarms!", 1)
 				} else {
 					alarms.PrintTable()
@@ -295,8 +326,8 @@ func main() {
 			Name:  "listAutoScaleGroups",
 			Usage: "Lists all AutoScale Groups",
 			Action: func(c *cli.Context) error {
-				groups, err := aws.GetAutoScaleGroups()
-				if err != nil {
+				groups, errs := aws.GetAutoScaleGroups()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Auto Scale Groups!", 1)
 				} else {
 					groups.PrintTable()
@@ -305,11 +336,38 @@ func main() {
 			},
 		},
 		{
+			Name:  "listIAMUsers",
+			Usage: "Lists all IAM Users",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				iam, errs := aws.GetIAMUsers(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing IAM Users!", 1)
+				} else {
+					iam.PrintTable()
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "listImages",
 			Usage: "Lists all AWS Machine Images owned by us",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				images, err := aws.GetImages()
-				if err != nil {
+				images, errs := aws.GetImages(c.NamedArg("search"))
+				if errs != nil {
 					return cli.NewExitError("Error Listing Images!", 1)
 				} else {
 					images.PrintTable()
@@ -328,8 +386,8 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				instances, err := aws.GetInstances(c.NamedArg("search"))
-				if err != nil {
+				instances, errs := aws.GetInstances(c.NamedArg("search"))
+				if errs != nil {
 					return cli.NewExitError("Error Listing Instances!", 1)
 				} else {
 					instances.PrintTable()
@@ -341,8 +399,8 @@ func main() {
 			Name:  "listLaunchConfigurations",
 			Usage: "Lists all Launch Configurations",
 			Action: func(c *cli.Context) error {
-				launchConfigs, err := aws.GetLaunchConfigurations()
-				if err != nil {
+				launchConfigs, errs := aws.GetLaunchConfigurations()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Launch Configurations!", 1)
 				} else {
 					launchConfigs.PrintTable()
@@ -354,8 +412,8 @@ func main() {
 			Name:  "listLoadBalancers",
 			Usage: "Lists all Elastic Load Balancers",
 			Action: func(c *cli.Context) error {
-				loadBalancers, err := aws.GetLoadBalancers()
-				if err != nil {
+				loadBalancers, errs := aws.GetLoadBalancers()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Load Balancers!", 1)
 				} else {
 					loadBalancers.PrintTable()
@@ -367,8 +425,8 @@ func main() {
 			Name:  "listScalingPolicies",
 			Usage: "Lists all Scaling Policies",
 			Action: func(c *cli.Context) error {
-				policies, err := aws.GetScalingPolicies()
-				if err != nil {
+				policies, errs := aws.GetScalingPolicies()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Auto Scaling Policies!", 1)
 				} else {
 					policies.PrintTable()
@@ -380,8 +438,8 @@ func main() {
 			Name:  "listSecurityGroups",
 			Usage: "Lists all Security Groups",
 			Action: func(c *cli.Context) error {
-				groups, err := aws.GetSecurityGroups()
-				if err != nil {
+				groups, errs := aws.GetSecurityGroups()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Security Groups!", 1)
 				} else {
 					groups.PrintTable()
@@ -393,8 +451,8 @@ func main() {
 			Name:  "listSnapshots",
 			Usage: "Lists all AWS EBS Snapshots",
 			Action: func(c *cli.Context) error {
-				snapshots, err := aws.GetSnapshots()
-				if err != nil {
+				snapshots, errs := aws.GetSnapshots()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Snapshots!", 1)
 				} else {
 					snapshots.PrintTable()
@@ -406,8 +464,8 @@ func main() {
 			Name:  "listSubnets",
 			Usage: "Lists all AWS Subnets",
 			Action: func(c *cli.Context) error {
-				subnets, err := aws.GetSubnets()
-				if err != nil {
+				subnets, errs := aws.GetSubnets()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Subnets!", 1)
 				} else {
 					subnets.PrintTable()
@@ -426,8 +484,8 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				domains, err := aws.GetSimpleDBDomains(c.NamedArg("search"))
-				if err != nil {
+				domains, errs := aws.GetSimpleDBDomains(c.NamedArg("search"))
+				if errs != nil {
 					return cli.NewExitError("Error Listing Simple DB Domains!", 1)
 				} else {
 					domains.PrintTable()
@@ -439,8 +497,8 @@ func main() {
 			Name:  "listVolumes",
 			Usage: "Lists all AWS EBS Volumes",
 			Action: func(c *cli.Context) error {
-				volumes, err := aws.GetVolumes()
-				if err != nil {
+				volumes, errs := aws.GetVolumes()
+				if errs != nil {
 					return cli.NewExitError("Error Listing Volumes!", 1)
 				} else {
 					volumes.PrintTable()
@@ -452,8 +510,8 @@ func main() {
 			Name:  "listVpcs",
 			Usage: "Lists all AWS Vpcs",
 			Action: func(c *cli.Context) error {
-				vpcs, err := aws.GetVpcs()
-				if err != nil {
+				vpcs, errs := aws.GetVpcs()
+				if errs != nil {
 					return cli.NewExitError("Error Listing VPCs!", 1)
 				} else {
 					vpcs.PrintTable()

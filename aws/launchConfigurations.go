@@ -25,8 +25,9 @@ type LaunchConfig struct {
 	Region         string
 }
 
-func GetLaunchConfigurations() (*LaunchConfigs, error) {
+func GetLaunchConfigurations() (*LaunchConfigs, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	lcList := new(LaunchConfigs)
 	regions := GetRegionList()
@@ -38,13 +39,14 @@ func GetLaunchConfigurations() (*LaunchConfigs, error) {
 			defer wg.Done()
 			err := GetRegionLaunchConfigurations(region.RegionName, lcList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering launch config list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering launch config list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return lcList, nil
+	return lcList, errs
 }
 
 func GetRegionLaunchConfigurations(region *string, lcList *LaunchConfigs) error {

@@ -175,12 +175,14 @@ func PromptBool(message string) bool {
 
 func Information(message string) {
 	message = strings.Replace(message, "\n", " ", -1)
+	message = strings.Replace(message, "\t", " ", -1)
 	message = padStringRight(message, 100)
 	PrintAnsi(InformationTemplate, message)
 }
 
 func ErrorLine(message string) {
 	message = strings.Replace(message, "\n", " ", -1)
+	message = strings.Replace(message, "\t", " ", -1)
 	message = padStringRight(message, 100)
 	PrintAnsi(ErrorLineTemplate, message)
 }
@@ -189,6 +191,7 @@ func ErrorLine(message string) {
 func prepMessage(title string, message string) boxMessage {
 
 	message = strings.Replace(message, "\n", " ", -1)
+	message = strings.Replace(message, "\t", " ", -1)
 
 	title = fmt.Sprintf("[%s]", title)
 

@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/codegangsta/cli"
 	"github.com/murdinc/awsm/terminal"
 	"github.com/olekukonko/tablewriter"
 )
@@ -23,12 +22,12 @@ type Address struct {
 	Region     string
 }
 
-func GetAddresses() (*Addresses, error) {
+func GetAddresses() (*Addresses, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	ipList := new(Addresses)
 	regions := GetRegionList()
-	errs := new(cli.MultiError)
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -37,7 +36,8 @@ func GetAddresses() (*Addresses, error) {
 			defer wg.Done()
 			err := GetRegionAddresses(region.RegionName, ipList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering address list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering address list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}

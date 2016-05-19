@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,8 +18,9 @@ type AZ struct {
 	State  string
 }
 
-func GetAZs() (*AZs, error) {
+func GetAZs() (*AZs, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	azList := new(AZs)
 	regions := GetRegionList()
@@ -30,14 +32,15 @@ func GetAZs() (*AZs, error) {
 			defer wg.Done()
 			err := GetRegionAZs(region.RegionName, azList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering instance list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering az list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 
 	wg.Wait()
 
-	return azList, nil
+	return azList, errs
 
 }
 
@@ -70,4 +73,13 @@ func (a *AZs) ValidateAZ(az string) bool {
 		}
 	}
 	return false
+}
+
+func (a *AZs) GetRegion(az string) string {
+	for _, vaz := range *a {
+		if az == vaz.Name {
+			return vaz.Region
+		}
+	}
+	return ""
 }

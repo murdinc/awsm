@@ -27,8 +27,9 @@ type Vpc struct {
 	Region    string
 }
 
-func GetVpcs() (*Vpcs, error) {
+func GetVpcs() (*Vpcs, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	vpcList := new(Vpcs)
 	regions := GetRegionList()
@@ -40,13 +41,14 @@ func GetVpcs() (*Vpcs, error) {
 			defer wg.Done()
 			err := GetRegionVpcs(region.RegionName, vpcList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering Vpc list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering vpc list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return vpcList, nil
+	return vpcList, errs
 }
 
 func GetRegionVpcs(region *string, vpcList *Vpcs) error {

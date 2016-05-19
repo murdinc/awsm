@@ -15,6 +15,7 @@ import (
 type Volumes []Volume
 
 type Volume struct {
+	Class            string
 	Name             string
 	VolumeId         string
 	Size             string
@@ -28,8 +29,9 @@ type Volume struct {
 	AvailabilityZone string
 }
 
-func GetVolumes() (*Volumes, error) {
+func GetVolumes() (*Volumes, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	volList := new(Volumes)
 	regions := GetRegionList()
@@ -41,13 +43,14 @@ func GetVolumes() (*Volumes, error) {
 			defer wg.Done()
 			err := GetRegionVolumes(region.RegionName, volList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering Volume list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering volume list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return volList, nil
+	return volList, errs
 }
 
 func GetRegionVolumes(region *string, volList *Volumes) error {

@@ -3,7 +3,11 @@ package aws
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"regexp"
+	"sort"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -26,8 +30,22 @@ type Image struct {
 	Region       string
 }
 
-func GetImages() (*Images, error) {
+func GetLatestImage(class, region string) (Image, error) {
+	imgList := new(Images)
+
+	err := GetRegionImages(aws.String(region), imgList, class, true)
+	if err != nil {
+		return Image{}, err
+	}
+
+	sort.Sort(imgList)
+
+	return (*imgList)[0], nil
+}
+
+func GetImages(search string) (*Images, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	imgList := new(Images)
 	regions := GetRegionList()
@@ -37,18 +55,19 @@ func GetImages() (*Images, error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionImages(region.RegionName, imgList)
+			err := GetRegionImages(region.RegionName, imgList, search, false)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering image list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering image list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return imgList, nil
+	return imgList, errs
 }
 
-func GetRegionImages(region *string, imgList *Images) error {
+func GetRegionImages(region *string, imgList *Images, search string, searchClass bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: region}))
 	result, err := svc.DescribeImages(&ec2.DescribeImagesInput{Owners: []*string{aws.String("self")}})
 
@@ -84,9 +103,58 @@ func GetRegionImages(region *string, imgList *Images) error {
 			Region:       fmt.Sprintf(*region),
 		}
 	}
-	*imgList = append(*imgList, img[:]...)
+
+	if search != "" {
+		if searchClass { // Specific class search
+			for i, in := range img {
+				if in.Class == search {
+					*imgList = append(*imgList, img[i])
+				}
+			}
+		} else { // General search
+			term := regexp.MustCompile(search)
+		Loop:
+			for i, in := range img {
+				rInst := reflect.ValueOf(in)
+
+				for k := 0; k < rInst.NumField(); k++ {
+					sVal := rInst.Field(k).String()
+
+					if term.MatchString(sVal) {
+						*imgList = append(*imgList, img[i])
+						continue Loop
+					}
+				}
+			}
+		}
+	} else {
+		*imgList = append(*imgList, img[:]...)
+	}
 
 	return nil
+}
+
+// Functions for sorting
+func (i *Image) Timestamp() time.Time {
+	timestamp, err := time.Parse("2006-01-02T15:04:05.000Z", i.CreationDate)
+	if err != nil {
+		fmt.Println(err)
+		terminal.ErrorLine("Error parsing the timestamp for image [" + i.ImageId + "]!")
+	}
+
+	return timestamp
+}
+
+func (s Images) Len() int {
+	return len(s)
+}
+
+func (s Images) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s Images) Less(i, j int) bool {
+	return s[i].Timestamp().After(s[j].Timestamp())
 }
 
 func (i *Images) PrintTable() {

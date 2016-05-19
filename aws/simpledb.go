@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"regexp"
@@ -22,8 +23,9 @@ type SimpleDBDomain struct {
 	Region string
 }
 
-func GetSimpleDBDomains(search string) (*SimpleDBDomains, error) {
+func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	domainList := new(SimpleDBDomains)
 	regions := GetRegionList()
@@ -35,21 +37,23 @@ func GetSimpleDBDomains(search string) (*SimpleDBDomains, error) {
 			defer wg.Done()
 			err := GetRegionSimpleDBDomains(region.RegionName, domainList, search)
 			if err != nil {
-				//terminal.ErrorLine("Error gathering simpledb domains list") // TODO handle regions withour service endpoints that work
+				// TODO handle regions withour service endpoints that work
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering simpledb domain list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 
 	wg.Wait()
 
-	return domainList, nil
+	return domainList, errs
 }
 
 func GetRegionSimpleDBDomains(region *string, domainList *SimpleDBDomains, search string) error {
 	svc := simpledb.New(session.New(&aws.Config{Region: region}))
 	result, err := svc.ListDomains(nil)
 	if err != nil {
-		return err
+		//return err // TODO handle regions without services
 	}
 
 	domains := make(SimpleDBDomains, len(result.DomainNames))
@@ -136,7 +140,7 @@ func DeleteSimpleDBDomain(domain, region string) (err error) {
 	if region != "" {
 		err = GetRegionSimpleDBDomains(aws.String(region), domainList, domain)
 	} else {
-		domainList, err = GetSimpleDBDomains(domain)
+		domainList, _ = GetSimpleDBDomains(domain)
 	}
 
 	if err != nil {

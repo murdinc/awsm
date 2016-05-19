@@ -21,8 +21,9 @@ type LoadBalancer struct {
 	Region  string
 }
 
-func GetLoadBalancers() (*LoadBalancers, error) {
+func GetLoadBalancers() (*LoadBalancers, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	lbList := new(LoadBalancers)
 	regions := GetRegionList()
@@ -34,13 +35,14 @@ func GetLoadBalancers() (*LoadBalancers, error) {
 			defer wg.Done()
 			err := GetRegionLoadBalancers(region.RegionName, lbList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering launch config list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering loadbalancer list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return lbList, nil
+	return lbList, errs
 }
 
 func GetRegionLoadBalancers(region *string, lbList *LoadBalancers) error {

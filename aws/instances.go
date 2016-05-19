@@ -35,10 +35,15 @@ type Instance struct {
 	VPCId            string
 	Subnet           string
 	SubnetId         string
+	IAMUser          string
+	ShutdownBehavior string
+	EbsOptimized     bool // TODO
+	Monitoring       bool // TODO
 }
 
-func GetInstances(search string) (*Instances, error) {
+func GetInstances(search string) (*Instances, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	instList := new(Instances)
 	regions := GetRegionList()
@@ -50,14 +55,15 @@ func GetInstances(search string) (*Instances, error) {
 			defer wg.Done()
 			err := GetRegionInstances(region.RegionName, instList, search)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering instance list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering instance list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 
 	wg.Wait()
 
-	return instList, nil
+	return instList, errs
 }
 
 func GetRegionInstances(region *string, instList *Instances, search string) error {
@@ -158,20 +164,21 @@ func (i *Instances) PrintTable() {
 
 func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
-	// Check --dry-run flag
+	// --dry-run flag
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
 	}
 
-	// Get the class config
-	config, err := config.GetClassConfig(class, "ec2")
+	// Class Config
+	var cfg config.InstanceClassConfig
+	err := cfg.LoadConfig(class)
 	if err != nil {
 		return err
 	} else {
 		terminal.Information("Found Instance Class Configuration for [" + class + "]!")
 	}
 
-	// Check AZ
+	// AZ
 	azs, _ := GetAZs()
 	if !azs.ValidateAZ(az) {
 		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
@@ -179,12 +186,196 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		terminal.Information("Found Availability Zone [" + az + "]!")
 	}
 
-	fmt.Println(config)
+	region := azs.GetRegion(az)
+
+	// AMI Image
+	ami, err := GetLatestImage(cfg.AMI, region)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found AMI [" + ami.ImageId + "] with class [" + ami.Class + "] created on [" + ami.CreationDate + "]!")
+	}
+
+	// EBS Volumes
+	snapshots, err := GetLatestSnapshotMulti(cfg.EBSVolumes, region)
+	ebsVolumes := make([]*ec2.BlockDeviceMapping, len(cfg.EBSVolumes))
+	if err != nil {
+		return err
+	} else {
+		for i, snapshot := range snapshots {
+			terminal.Information("Found Snapshot [" + snapshot.SnapshotId + "] with class [" + snapshot.Class + "] created on [" + snapshot.StartTime + "]!")
+
+			ebsVolumes[i] = &ec2.BlockDeviceMapping{
+				DeviceName: aws.String("String"),
+				Ebs: &ec2.EbsBlockDevice{
+					DeleteOnTermination: aws.Bool("String"),
+					Encrypted:           aws.Bool(true),
+					Iops:                aws.Int64(1),
+					SnapshotId:          aws.String(snapshot.SnapshotId),
+					VolumeSize:          aws.Int64(1),
+					VolumeType:          aws.String("VolumeType"),
+				},
+				NoDevice:    aws.String("String"),
+				VirtualName: aws.String("String"),
+			}
+		}
+	}
+
+	// EBS Optimized
+	if cfg.EbsOptimized {
+		terminal.Information("Launching as EBS Optimized")
+	}
+
+	// IAM Profile
+	var iam IAM
+	if len(cfg.IAMUser) > 0 {
+		iam, err := GetIAMUser(cfg.IAMUser)
+		if err != nil {
+			return err
+		} else {
+			terminal.Information("Found IAM User [" + iam.UserName + "]!")
+		}
+	}
+
+	// KeyName
+	/*
+		keyName, err := GetKeyName(cfg.KeyName, region)
+		if err != nil {
+			return err
+		} else {
+			terminal.Information("Found Key [" + keyName. + "]!")
+		}
+	*/
+
+	// Network Interfaces
+
+	// Placement ??
+
+	// Security Groups
+	secGroups, err := GetSecurityGroupIds(cfg.SecurityGroups, region)
+	if err != nil {
+		return err
+	} else {
+		for _, secGroup := range secGroups {
+			terminal.Information("Found Security Group [" + secGroup.GroupId + "] with name [" + secGroup.Name + "]!")
+		}
+	}
+
+	// Subnet
+	subnet, err := GetSubnetId(cfg.Subnet)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found Subnet [" + subnet.SubnetId + "] in VPC [" + subnet.VpcId + "]!")
+	}
+
+	// User Data
+
+	fmt.Println(fmt.Sprintf("%v", cfg))
+
+	// ================================================================
+	// ================================================================
+	// ================================================================
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.RunInstancesInput{
+		ImageId:             aws.String(ami.ImageId),
+		MaxCount:            aws.Int64(1),
+		MinCount:            aws.Int64(1),
+		BlockDeviceMappings: ebsVolumes,
+		/*
+			BlockDeviceMappings: []*ec2.BlockDeviceMapping{
+				{ // Required
+					DeviceName: aws.String("String"),
+					Ebs: &ec2.EbsBlockDevice{
+						DeleteOnTermination: aws.Bool(true),
+						Encrypted:           aws.Bool(true),
+						Iops:                aws.Int64(1),
+						SnapshotId:          aws.String("String"),
+						VolumeSize:          aws.Int64(1),
+						VolumeType:          aws.String("VolumeType"),
+					},
+					NoDevice:    aws.String("String"),
+					VirtualName: aws.String("String"),
+				},
+				// More values...
+			},
+		*/
+		DryRun:       aws.Bool(dryRun),
+		EbsOptimized: aws.Bool(cfg.EbsOptimized),
+		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+			Arn:  aws.String(iam.Arn),
+			Name: aws.String(iam.UserName),
+		},
+		InstanceInitiatedShutdownBehavior: aws.String(cfg.ShutdownBehavior),
+		InstanceType:                      aws.String(cfg.InstanceType),
+		//KernelId:                          aws.String("String"),
+		KeyName: aws.String("String"),
+		Monitoring: &ec2.RunInstancesMonitoringEnabled{
+			Enabled: aws.Bool(cfg.Monitoring),
+		},
+		NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+			{ // Required
+				AssociatePublicIpAddress: aws.Bool(cfg.PublicIpAddress),
+				DeleteOnTermination:      aws.Bool(true),
+				Description:              aws.String("String"),
+				DeviceIndex:              aws.Int64(1),
+				Groups: []*string{
+					aws.String("String"), // Required
+					// More values...
+				},
+				NetworkInterfaceId: aws.String("String"),
+				PrivateIpAddress:   aws.String("String"),
+				PrivateIpAddresses: []*ec2.PrivateIpAddressSpecification{
+					{ // Required
+						PrivateIpAddress: aws.String("String"), // Required
+						Primary:          aws.Bool(true),
+					},
+					// More values...
+				},
+				SecondaryPrivateIpAddressCount: aws.Int64(1),
+				SubnetId:                       aws.String("String"),
+			},
+			// More values...
+		},
+		/*
+			Placement: &ec2.Placement{
+				Affinity:         aws.String("String"),
+				AvailabilityZone: aws.String("String"),
+				GroupName:        aws.String("String"),
+				HostId:           aws.String("String"),
+				Tenancy:          aws.String("Tenancy"),
+			},
+		*/
+		PrivateIpAddress: aws.String("String"),
+		RamdiskId:        aws.String("String"),
+		SecurityGroupIds: []*string{
+			aws.String("String"), // Required
+			// More values...
+		},
+		SecurityGroups: []*string{
+			aws.String("String"), // Required
+			// More values...
+		},
+		SubnetId: aws.String(subnet.SubnetId),
+		UserData: aws.String("String"),
+	}
+
+	fmt.Println(params)
+
+	resp, err := svc.RunInstances(params)
+
+	if err != nil {
+		return err
+	}
+
+	// Pretty-print the response data.
+	fmt.Println(resp)
+
+	// ================================================================
+	// ================================================================
+	// ================================================================
 
 	return nil
-}
-
-func GetInstanceClassConfig(class string) (*config.InstanceClassConfig, error) {
-
-	return &config.InstanceClassConfig{}, nil
 }

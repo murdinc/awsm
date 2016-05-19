@@ -28,8 +28,9 @@ type Alarm struct {
 	Region      string
 }
 
-func GetAlarms() (*Alarms, error) {
+func GetAlarms() (*Alarms, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	alList := new(Alarms)
 	regions := GetRegionList()
@@ -41,13 +42,14 @@ func GetAlarms() (*Alarms, error) {
 			defer wg.Done()
 			err := GetRegionAlarms(region.RegionName, alList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering alarm list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering alarm list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return alList, nil
+	return alList, errs
 }
 
 func GetRegionAlarms(region *string, alList *Alarms) error {

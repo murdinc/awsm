@@ -31,8 +31,9 @@ type AutoScaleGroup struct {
 	Subnets          string
 }
 
-func GetAutoScaleGroups() (*AutoScaleGroups, error) {
+func GetAutoScaleGroups() (*AutoScaleGroups, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	asgList := new(AutoScaleGroups)
 	regions := GetRegionList()
@@ -44,13 +45,14 @@ func GetAutoScaleGroups() (*AutoScaleGroups, error) {
 			defer wg.Done()
 			err := GetRegionAutoScaleGroups(region.RegionName, asgList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering AutoScaleGroup list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering autoscale group list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return asgList, nil
+	return asgList, errs
 }
 
 func GetRegionAutoScaleGroups(region *string, asgList *AutoScaleGroups) error {

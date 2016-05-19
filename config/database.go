@@ -24,7 +24,6 @@ func CheckDB() bool {
 	}
 
 	// TODO handle the response stats?
-
 	return true
 }
 
@@ -72,6 +71,13 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
 		}
 
+		/*
+			case "securitygroup":
+				for class, config := range configInterface.(AlarmClassConfigs) {
+					itemName = configType + "/" + class
+					itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+				}
+		*/
 	}
 
 	items := make([]*simpledb.ReplaceableItem, len(itemsMap))
@@ -113,28 +119,23 @@ func UpdateConfig() {
 
 }
 
-func SelectConfig(configType, configClass string) (*simpledb.GetAttributesOutput, error) {
-
-	itemName := configType + "/" + configClass
+func GetItemByName(configName string) (*simpledb.GetAttributesOutput, error) {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 
 	params := &simpledb.GetAttributesInput{
 		DomainName:     aws.String("awsm"),
-		ItemName:       aws.String(itemName),
+		ItemName:       aws.String(configName),
 		ConsistentRead: aws.Bool(true),
 	}
 	resp, err := svc.GetAttributes(params)
 
 	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
 		return &simpledb.GetAttributesOutput{}, err
 	}
 
 	if len(resp.Attributes) < 1 {
-		return &simpledb.GetAttributesOutput{}, errors.New("Unable to find the [" + itemName + "] class in the database!")
+		return &simpledb.GetAttributesOutput{}, errors.New("Unable to find the [" + configName + "] class in the database!")
 	}
 
 	return resp, nil
@@ -145,7 +146,7 @@ func CreateAwsmDatabase() error {
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 
 	params := &simpledb.CreateDomainInput{
-		DomainName: aws.String("awsm"), // Required
+		DomainName: aws.String("awsm"),
 	}
 	_, err := svc.CreateDomain(params)
 

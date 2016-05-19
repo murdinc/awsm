@@ -25,8 +25,9 @@ type ScalingPolicy struct {
 	Region             string
 }
 
-func GetScalingPolicies() (*ScalingPolicies, error) {
+func GetScalingPolicies() (*ScalingPolicies, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	spList := new(ScalingPolicies)
 	regions := GetRegionList()
@@ -38,13 +39,14 @@ func GetScalingPolicies() (*ScalingPolicies, error) {
 			defer wg.Done()
 			err := GetRegionScalingPolicies(region.RegionName, spList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering ScalingPolicy list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering scaling policy list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return spList, nil
+	return spList, errs
 }
 
 func GetRegionScalingPolicies(region *string, spList *ScalingPolicies) error {

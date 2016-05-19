@@ -22,8 +22,13 @@ type SecurityGroup struct {
 	Region      string
 }
 
-func GetSecurityGroups() (*SecurityGroups, error) {
+func GetSecurityGroupIds(groupNames []string, region string) (SecurityGroups, error) {
+	return SecurityGroups{}, nil
+}
+
+func GetSecurityGroups() (*SecurityGroups, []error) {
 	var wg sync.WaitGroup
+	var errs []error
 
 	sgroupList := new(SecurityGroups)
 	regions := GetRegionList()
@@ -35,13 +40,14 @@ func GetSecurityGroups() (*SecurityGroups, error) {
 			defer wg.Done()
 			err := GetRegionSecurityGroups(region.RegionName, sgroupList)
 			if err != nil {
-				terminal.ShowErrorMessage("Error gathering SecurityGroup list", err.Error())
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering security group list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
 			}
 		}(region)
 	}
 	wg.Wait()
 
-	return sgroupList, nil
+	return sgroupList, errs
 }
 
 func GetRegionSecurityGroups(region *string, sgroupList *SecurityGroups) error {
