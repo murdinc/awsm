@@ -18,6 +18,16 @@ type AZ struct {
 	State  string
 }
 
+func AZList() []string {
+	azs, _ := GetAZs()
+	azlist := make([]string, len(*azs))
+
+	for i, az := range *azs {
+		azlist[i] = az.Name
+	}
+	return azlist
+}
+
 func GetAZs() (*AZs, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -41,7 +51,6 @@ func GetAZs() (*AZs, []error) {
 	wg.Wait()
 
 	return azList, errs
-
 }
 
 func GetRegionAZs(region *string, azList *AZs) error {

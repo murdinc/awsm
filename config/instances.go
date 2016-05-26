@@ -104,5 +104,4 @@ func (c *InstanceClassConfig) LoadConfig(class string) error {
 	}
 
 	return nil
-
 }

@@ -66,7 +66,7 @@ func GetRegionAutoScaleGroups(region *string, asgList *AutoScaleGroups) error {
 	asg := make(AutoScaleGroups, len(result.AutoScalingGroups))
 	for i, autoscalegroup := range result.AutoScalingGroups {
 		asg[i] = AutoScaleGroup{
-			Name:             GetTagValue("Name", autoscalegroup.Tags),
+			Name:             aws.StringValue(autoscalegroup.AutoScalingGroupName),
 			Class:            GetTagValue("Class", autoscalegroup.Tags),
 			HealthCheck:      aws.StringValue(autoscalegroup.HealthCheckType),
 			LaunchConfig:     aws.StringValue(autoscalegroup.LaunchConfigurationName),

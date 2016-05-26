@@ -37,6 +37,21 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
+			Name:  "dashboard",
+			Usage: "Launch the awsm Dashboard GUI",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "dev-mode",
+					Destination: &dryRun,
+					Usage:       "dev-mode (Don't reopen dashboard on each restart)",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				aws.RunDashboard(c.Bool("dev-mode"))
+				return nil
+			},
+		},
+		{
 			Name:  "attachVolume",
 			Usage: "Attach an AWS EBS Volume",
 			Action: func(c *cli.Context) error {

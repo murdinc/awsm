@@ -38,37 +38,37 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 	case "ec2":
 		for class, config := range configInterface.(InstanceClassConfigs) {
 			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
 	case "ebs":
 		for class, config := range configInterface.(VolumeClassConfigs) {
 			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
 	case "ami":
 		for class, config := range configInterface.(ImageClassConfigs) {
 			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
 	case "autoscale":
 		for class, config := range configInterface.(AutoScaleGroupClassConfigs) {
 			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
 	case "scalingpolicy":
 		for class, config := range configInterface.(ScalingPolicyConfigs) {
 			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
 	case "alarm":
 		for class, config := range configInterface.(AlarmClassConfigs) {
 			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
 		/*
@@ -141,6 +141,31 @@ func GetItemByName(configName string) (*simpledb.GetAttributesOutput, error) {
 	return resp, nil
 }
 
+func GetItemsByType(configType string) (*simpledb.SelectOutput, error) {
+
+	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+
+	params := &simpledb.SelectInput{
+		SelectExpression: aws.String(fmt.Sprintf("select * from awsm where ConfigType = '%s'", configType)), // Required
+		ConsistentRead:   aws.Bool(true),
+		//NextToken:        aws.String("String"),
+	}
+
+	//fmt.Println(params)
+
+	resp, err := svc.Select(params)
+
+	if err != nil {
+		return &simpledb.SelectOutput{}, err
+	}
+
+	if len(resp.Items) < 1 {
+		return &simpledb.SelectOutput{}, errors.New("Unable to find the [" + configType + "] class in the database!")
+	}
+
+	return resp, nil
+}
+
 func CreateAwsmDatabase() error {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
@@ -166,7 +191,7 @@ func CreateAwsmDatabase() error {
 	return nil
 }
 
-func BuildAttributes(config interface{}) []*simpledb.ReplaceableAttribute {
+func BuildAttributes(config interface{}, configType string) []*simpledb.ReplaceableAttribute {
 	typ := reflect.TypeOf(config)
 	val := reflect.ValueOf(config)
 
@@ -207,8 +232,15 @@ func BuildAttributes(config interface{}) []*simpledb.ReplaceableAttribute {
 				Replace: aws.Bool(true),
 			})
 		}
-
 	}
+
+	attributes = append(attributes, &simpledb.ReplaceableAttribute{
+		Name:    aws.String("ConfigType"),
+		Value:   aws.String(configType),
+		Replace: aws.Bool(true),
+	})
+
+	//fmt.Println(attributes)
 
 	return attributes
 }

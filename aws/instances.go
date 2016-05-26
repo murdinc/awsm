@@ -208,7 +208,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 			ebsVolumes[i] = &ec2.BlockDeviceMapping{
 				DeviceName: aws.String("String"),
 				Ebs: &ec2.EbsBlockDevice{
-					DeleteOnTermination: aws.Bool("String"),
+					DeleteOnTermination: aws.Bool(true),
 					Encrypted:           aws.Bool(true),
 					Iops:                aws.Int64(1),
 					SnapshotId:          aws.String(snapshot.SnapshotId),
@@ -284,26 +284,8 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		MaxCount:            aws.Int64(1),
 		MinCount:            aws.Int64(1),
 		BlockDeviceMappings: ebsVolumes,
-		/*
-			BlockDeviceMappings: []*ec2.BlockDeviceMapping{
-				{ // Required
-					DeviceName: aws.String("String"),
-					Ebs: &ec2.EbsBlockDevice{
-						DeleteOnTermination: aws.Bool(true),
-						Encrypted:           aws.Bool(true),
-						Iops:                aws.Int64(1),
-						SnapshotId:          aws.String("String"),
-						VolumeSize:          aws.Int64(1),
-						VolumeType:          aws.String("VolumeType"),
-					},
-					NoDevice:    aws.String("String"),
-					VirtualName: aws.String("String"),
-				},
-				// More values...
-			},
-		*/
-		DryRun:       aws.Bool(dryRun),
-		EbsOptimized: aws.Bool(cfg.EbsOptimized),
+		DryRun:              aws.Bool(dryRun),
+		EbsOptimized:        aws.Bool(cfg.EbsOptimized),
 		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
 			Arn:  aws.String(iam.Arn),
 			Name: aws.String(iam.UserName),
