@@ -35,6 +35,12 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 
 	// Build Attributes
 	switch configType {
+	case "vpc":
+		for class, config := range configInterface.(VpcClassConfigs) {
+			itemName = configType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
+		}
+
 	case "ec2":
 		for class, config := range configInterface.(InstanceClassConfigs) {
 			itemName = configType + "/" + class
@@ -180,6 +186,7 @@ func CreateAwsmDatabase() error {
 	}
 
 	// Insert our default configs
+	InsertClassConfigs("vpc", DefaultVpcClasses())
 	InsertClassConfigs("ec2", DefaultInstanceClasses())
 	InsertClassConfigs("alarm", DefaultAlarms())
 	InsertClassConfigs("ami", DefaultImageClasses())

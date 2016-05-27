@@ -108,3 +108,28 @@ func (i *Vpcs) PrintTable() {
 	table.AppendBulk(rows)
 	table.Render()
 }
+
+func CreateVpc(class, region string, dryRun bool) error {
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.CreateVpcInput{
+		CidrBlock:       aws.String("String"), // Required
+		DryRun:          aws.Bool(true),
+		InstanceTenancy: aws.String("Tenancy"),
+	}
+	resp, err := svc.CreateVpc(params)
+
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		fmt.Println(err.Error())
+		return nil
+	}
+
+	// Pretty-print the response data.
+	fmt.Println(resp)
+
+	return nil
+
+}

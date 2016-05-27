@@ -51,3 +51,18 @@ func GetAllConfigNames(configType string) ([]string, error) {
 
 	return names, nil
 }
+
+func GetAllClassConfigs(configType string) (*simpledb.SelectOutput, error) {
+	// Check for the awsm db
+	if !CheckDB() {
+		return nil, nil
+	}
+
+	// Get the configs
+	data, err := GetItemsByType(configType)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
