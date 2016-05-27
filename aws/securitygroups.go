@@ -61,7 +61,9 @@ func GetRegionSecurityGroups(region *string, sgroupList *SecurityGroups) error {
 	sgroup := make(SecurityGroups, len(result.SecurityGroups))
 	for i, securitygroup := range result.SecurityGroups {
 		sgroup[i] = SecurityGroup{
-			Name:        GetTagValue("Name", securitygroup.Tags),
+
+			Name: aws.StringValue(securitygroup.GroupName),
+			//Name:        GetTagValue("Name", securitygroup.Tags),
 			GroupId:     aws.StringValue(securitygroup.GroupId),
 			Description: aws.StringValue(securitygroup.Description),
 			Vpc:         aws.StringValue(securitygroup.VpcId),
