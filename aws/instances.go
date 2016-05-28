@@ -53,7 +53,7 @@ func GetInstances(search string) (*Instances, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionInstances(region.RegionName, instList, search)
+			err := GetRegionInstances(*region.RegionName, instList, search)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering instance list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -66,8 +66,8 @@ func GetInstances(search string) (*Instances, []error) {
 	return instList, errs
 }
 
-func GetRegionInstances(region *string, instList *Instances, search string) error {
-	svc := ec2.New(session.New(&aws.Config{Region: region}))
+func GetRegionInstances(region string, instList *Instances, search string) error {
+	svc := ec2.New(session.New(&aws.Config{Region: &region}))
 	result, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{})
 	if err != nil {
 		return err
@@ -75,8 +75,8 @@ func GetRegionInstances(region *string, instList *Instances, search string) erro
 
 	subList := new(Subnets)
 	vpcList := new(Vpcs)
-	GetRegionSubnets(region, subList)
-	GetRegionVpcs(region, vpcList)
+	GetRegionSubnets(region, subList, "")
+	GetRegionVpcs(region, vpcList, "")
 
 	for _, reservation := range result.Reservations {
 		inst := make(Instances, len(reservation.Instances))
@@ -180,7 +180,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	// AZ
 	azs, _ := GetAZs()
-	if !azs.ValidateAZ(az) {
+	if !azs.ValidAZ(az) {
 		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
 	} else {
 		terminal.Information("Found Availability Zone [" + az + "]!")
@@ -262,7 +262,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	}
 
 	// Subnet
-	subnet, err := GetSubnetId(cfg.Subnet)
+	subnet, err := GetSubnetByName(region, cfg.Subnet)
 	if err != nil {
 		return err
 	} else {

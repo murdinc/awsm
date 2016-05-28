@@ -109,7 +109,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateIAMUser(c.NamedArg("username"), c.NamedArg("path"))
 				if err != nil {
-					terminal.ShowErrorMessage("Error", err.Error())
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -148,7 +148,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSimpleDBDomain(c.NamedArg("domain"), c.NamedArg("region"))
 				if err != nil {
-					terminal.ShowErrorMessage("Error", err.Error())
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -166,6 +166,77 @@ func main() {
 			Usage: "Create an AWS EBS volume (from a class snapshot or blank)",
 			Action: func(c *cli.Context) error {
 				// TODO
+				return nil
+			},
+		},
+		{
+			Name:  "createVpc",
+			Usage: "Create an AWS VPC",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of VPC to create",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the VPC",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "ip",
+					Description: "The IP address of this VPC (not including CIDR)",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to create the VPC in",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.CreateVpc(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("ip"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "createSubnet",
+			Usage: "Create an AWS VPC Subnet",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of Subnet to create",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the Subnet",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "vpc",
+					Description: "The VPC to create the Subnet in",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "az",
+					Description: "The Availability Zone to create the Subnet in",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "ip",
+					Description: "The IP address of this Subnet (not including CIDR)",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.CreateSubnet(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("vpc"), c.NamedArg("az"), c.NamedArg("ip"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -190,7 +261,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMUser(c.NamedArg("username"))
 				if err != nil {
-					terminal.ShowErrorMessage("Error", err.Error())
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -237,7 +308,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSimpleDBDomain(c.NamedArg("domain"), c.NamedArg("region"))
 				if err != nil {
-					terminal.ShowErrorMessage("Error", err.Error())
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -247,6 +318,52 @@ func main() {
 			Usage: "Delete an AWS EBS Volume",
 			Action: func(c *cli.Context) error {
 				// TODO
+				return nil
+			},
+		},
+		{
+			Name:  "deleteSubnets",
+			Usage: "Delete AWS VPC Subnets",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the Subnet",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the subnet (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteSubnets(c.NamedArg("name"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "deleteVpcs",
+			Usage: "Delete AWS VPCs",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the VPC",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the vpc (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteVpcs(c.NamedArg("name"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -306,7 +423,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.LaunchInstance(c.NamedArg("class"), c.NamedArg("sequence"), c.NamedArg("az"), dryRun)
 				if err != nil {
-					terminal.ShowErrorMessage("Error", err.Error())
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -478,8 +595,15 @@ func main() {
 		{
 			Name:  "listSubnets",
 			Usage: "Lists all AWS Subnets",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				subnets, errs := aws.GetSubnets()
+				subnets, errs := aws.GetSubnets(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Subnets!", 1)
 				} else {
@@ -524,8 +648,15 @@ func main() {
 		{
 			Name:  "listVpcs",
 			Usage: "Lists all AWS Vpcs",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				vpcs, errs := aws.GetVpcs()
+				vpcs, errs := aws.GetVpcs(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing VPCs!", 1)
 				} else {

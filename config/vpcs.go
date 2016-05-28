@@ -21,11 +21,6 @@ func DefaultVpcClasses() VpcClassConfigs {
 		Tenancy: "default",
 	}
 
-	defaultVpcs["awsm-smaller"] = VpcClassConfig{
-		CIDR:    "/24",
-		Tenancy: "default",
-	}
-
 	return defaultVpcs
 }
 

@@ -75,7 +75,7 @@ func GetRegionAZs(region *string, azList *AZs) error {
 	return nil
 }
 
-func (a *AZs) ValidateAZ(az string) bool {
+func (a *AZs) ValidAZ(az string) bool {
 	for _, vaz := range *a {
 		if az == vaz.Name {
 			return true

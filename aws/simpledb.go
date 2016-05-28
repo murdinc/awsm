@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -12,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/murdinc/awsm/terminal"
-	"github.com/murdinc/cli"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -113,7 +113,7 @@ func CreateSimpleDBDomain(domain, region string) error {
 
 	// Validate the region
 	if !ValidateRegion(region) {
-		return cli.NewExitError("Region ["+region+"] is Invalid!", 1)
+		return errors.New("Region [" + region + "] is Invalid!")
 	}
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String(region)}))

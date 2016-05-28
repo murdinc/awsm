@@ -152,72 +152,55 @@ func getForm(ctx *iris.Context) {
 // EC2 Instances
 
 func instancesPage(ctx *iris.Context) {
-	var errSlice []string
+	data := make(map[string]interface{})
 	instances, errs := GetInstances("")
 
-	data := make(map[string]interface{})
-
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-			ctx.Write("Error gathering instance list: %s\n", err.Error())
-		}
-	}
-
 	data["Instances"] = instances
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/instances.html", Content{Title: "Instances", Type: "Instance", Data: data, RenderLayout: true})
 }
 
 func newInstanceModal(ctx *iris.Context) {
-	var errSlice []string
-
 	data := make(map[string]interface{})
 	azList := AZList()
 	configs, err := config.GetAllConfigNames("ec2")
 	if err != nil {
-		errSlice = append(errSlice, err.Error())
+		data["Errors"] = []error{err}
 	}
 
 	data["Configs"] = configs
 	data["AZList"] = azList
-	data["Errors"] = errSlice
 
 	ctx.Render("templates/new-instance-modal.html", Content{Title: "New Instance", Type: "Instance", Data: data})
 }
 
 func manageInstanceClassesModal(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 	configs, err := config.GetAllConfigNames("ec2")
 	if err != nil {
-		errSlice = append(errSlice, err.Error())
+		data["Errors"] = []error{err}
 	}
 
 	data["Configs"] = configs
-	data["Errors"] = errSlice
 
 	ctx.Render("templates/manage-classes-modal.html", Content{Title: "Mange Instance Classes", Type: "Instance", Data: data, ClassFormURL: "edit-instance-class"})
 }
 
 func instanceClassForm(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 	class := ctx.Param("class")
 
 	var cfg config.InstanceClassConfig
 	err := cfg.LoadConfig(class)
-
 	if err != nil {
-		errSlice = append(errSlice, err.Error())
+		data["Errors"] = []error{err}
 	}
 
 	data["ClassName"] = class
 	data["ClassConfig"] = cfg
-	data["Errors"] = errSlice
 
 	ctx.Render("templates/instance-class-form.html", Content{Title: "Edit Instance Class", Type: "Instance", Data: data})
 }
@@ -226,19 +209,13 @@ func instanceClassForm(ctx *iris.Context) {
 // AMI
 
 func imagesPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	images, errs := GetImages("")
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["Images"] = images
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/images.html", Content{Title: "Images", Type: "Image", Data: data, RenderLayout: true})
 }
@@ -247,37 +224,25 @@ func imagesPage(ctx *iris.Context) {
 // EBS
 
 func volumesPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	volumes, errs := GetVolumes()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["Volumes"] = volumes
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/volumes.html", Content{Title: "Volumes", Type: "Volume", Data: data, RenderLayout: true})
 }
 
 func snapshotsPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	snapshots, errs := GetSnapshots()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["Snapshots"] = snapshots
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/snapshots.html", Content{Title: "Snapshots", Type: "Snapshot", Data: data, RenderLayout: true})
 }
@@ -286,19 +251,13 @@ func snapshotsPage(ctx *iris.Context) {
 // Security Groups
 
 func securitygroupsPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	securitygroups, errs := GetSecurityGroups()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["SecurityGroups"] = securitygroups
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/securitygroups.html", Content{Title: "Security Groups", Type: "Security Group", Data: data, RenderLayout: true})
 }
@@ -307,19 +266,13 @@ func securitygroupsPage(ctx *iris.Context) {
 // Load Balancers
 
 func loadbalancersPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	loadbalancers, errs := GetLoadBalancers()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["LoadBalancers"] = loadbalancers
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/loadbalancers.html", Content{Title: "Load Balancers", Type: "Load Balancer", Data: data, RenderLayout: true})
 }
@@ -328,55 +281,37 @@ func loadbalancersPage(ctx *iris.Context) {
 // Auto Scaling
 
 func launchconfigurationsPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	launchconfigurations, errs := GetLaunchConfigurations()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["LaunchConfigurations"] = launchconfigurations
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/launchconfigurations.html", Content{Title: "Launch Configurations", Type: "Launch Configuration", Data: data, RenderLayout: true})
 }
 
 func autoscalegroupsPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	autoscalegroups, errs := GetAutoScaleGroups()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["AutoScaleGroups"] = autoscalegroups
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/autoscalegroups.html", Content{Title: "Auto Scale Groups", Type: "Auto Scale Group", Data: data, RenderLayout: true})
 }
 
 func scalingpoliciesPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	scalingpolicies, errs := GetScalingPolicies()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["ScalingPolicies"] = scalingpolicies
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/scalingpolicies.html", Content{Title: "Scaling Policies", Type: "Scaling Policy", Data: data, RenderLayout: true})
 }
@@ -385,71 +320,58 @@ func scalingpoliciesPage(ctx *iris.Context) {
 // VPCs
 
 func vpcsPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
-	vpcs, errs := GetVpcs()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
+	vpcs, errs := GetVpcs("")
 
 	data["VPCs"] = vpcs
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/vpcs.html", Content{Title: "VPCs", Type: "VPC", Data: data, RenderLayout: true})
 }
 
 func newVpcModal(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 	regionList := GetRegionList()
 
 	configs, err := config.LoadAllVpcConfigs()
 	if err != nil {
-		errSlice = append(errSlice, err.Error())
+		data["Errors"] = []error{err}
 	}
 
 	data["Configs"] = configs
 	data["Regions"] = regionList
-	data["Errors"] = errSlice
 
 	ctx.Render("templates/new-vpc-modal.html", Content{Title: "New Vpc", Type: "Vpc", Data: data})
 }
 
 func manageVpcClassesModal(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 	configs, err := config.GetAllConfigNames("vpc")
 	if err != nil {
-		errSlice = append(errSlice, err.Error())
+		data["Errors"] = []error{err}
 	}
 
 	data["Configs"] = configs
-	data["Errors"] = errSlice
 
-	ctx.Render("templates/manage-classes-modal.html", Content{Title: "Mange Instance Classes", Type: "Instance", Data: data, ClassFormURL: "edit-vpc-class"})
+	ctx.Render("templates/manage-classes-modal.html", Content{Title: "Mange VPC Classes", Type: "VPC", Data: data, ClassFormURL: "edit-vpc-class"})
 }
 
 func vpcClassForm(ctx *iris.Context) {
-	var errSlice []string
 	data := make(map[string]interface{})
 	class := ctx.Param("class")
 
 	var cfg config.VpcClassConfig
 	err := cfg.LoadConfig(class)
-
 	if err != nil {
-		errSlice = append(errSlice, err.Error())
+		data["Errors"] = []error{err}
 	}
 
 	data["ClassName"] = class
 	data["ClassConfig"] = cfg
-	data["Errors"] = errSlice
 
 	ctx.Render("templates/vpc-class-form.html", Content{Title: "Edit VPC Class", Type: "VPC", Data: data})
 }
@@ -458,19 +380,11 @@ func vpcClassForm(ctx *iris.Context) {
 // Subnets
 
 func subnetsPage(ctx *iris.Context) {
-	var errSlice []string
-
 	data := make(map[string]interface{})
-
-	subnets, errs := GetSubnets()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
+	subnets, errs := GetSubnets("")
 
 	data["Subnets"] = subnets
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/subnets.html", Content{Title: "Subnets", Type: "Subnet", Data: data, RenderLayout: true})
 }
@@ -495,19 +409,13 @@ func elasticipsPage(ctx *iris.Context) {
 // CloudWatch Alarms
 
 func alarmsPage(ctx *iris.Context) {
-	var errSlice []string
 
 	data := make(map[string]interface{})
 
 	alarms, errs := GetAlarms()
-	if errs != nil {
-		for _, err := range errs {
-			errSlice = append(errSlice, err.Error())
-		}
-	}
 
 	data["Alarms"] = alarms
-	data["Errors"] = errSlice
+	data["Errors"] = errs
 
 	ctx.Render("templates/alarms.html", Content{Title: "Alarms", Type: "Alarm", Data: data, RenderLayout: true})
 }

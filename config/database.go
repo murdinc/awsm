@@ -41,6 +41,12 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
+	case "subnet":
+		for class, config := range configInterface.(SubnetClassConfigs) {
+			itemName = configType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
+		}
+
 	case "ec2":
 		for class, config := range configInterface.(InstanceClassConfigs) {
 			itemName = configType + "/" + class
@@ -76,6 +82,9 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
+
+	default:
+		terminal.ErrorLine("InsertClassConfigs does not have switch for [" + configType + "]! No configurations of this type are being installed!")
 
 		/*
 			case "securitygroup":
@@ -187,6 +196,7 @@ func CreateAwsmDatabase() error {
 
 	// Insert our default configs
 	InsertClassConfigs("vpc", DefaultVpcClasses())
+	InsertClassConfigs("subnet", DefaultSubnetClasses())
 	InsertClassConfigs("ec2", DefaultInstanceClasses())
 	InsertClassConfigs("alarm", DefaultAlarms())
 	InsertClassConfigs("ami", DefaultImageClasses())

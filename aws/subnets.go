@@ -1,14 +1,19 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"reflect"
+	"regexp"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/cli"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -16,6 +21,7 @@ type Subnets []Subnet
 
 type Subnet struct {
 	Name             string
+	Class            string
 	SubnetId         string
 	VpcId            string
 	State            string
@@ -24,13 +30,15 @@ type Subnet struct {
 	CIDRBlock        string
 	AvailableIPs     string
 	MapPublicIp      string
+	Region           string
 }
 
-func GetSubnetId(name string) (Subnet, error) {
+func GetSubnetByName(region, search string) (Subnet, error) {
+	// TODO
 	return Subnet{}, nil
 }
 
-func GetSubnets() (*Subnets, []error) {
+func GetSubnets(search string) (*Subnets, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -42,7 +50,7 @@ func GetSubnets() (*Subnets, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionSubnets(region.RegionName, subList)
+			err := GetRegionSubnets(*region.RegionName, subList, search)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering subnet list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -54,8 +62,21 @@ func GetSubnets() (*Subnets, []error) {
 	return subList, errs
 }
 
-func GetRegionSubnets(region *string, subList *Subnets) error {
-	svc := ec2.New(session.New(&aws.Config{Region: region}))
+func (s *Subnet) Marshall(subnet *ec2.Subnet, region string) {
+	s.Name = GetTagValue("Name", subnet.Tags)
+	s.Class = GetTagValue("Class", subnet.Tags)
+	s.SubnetId = aws.StringValue(subnet.SubnetId)
+	s.VpcId = aws.StringValue(subnet.VpcId)
+	s.State = aws.StringValue(subnet.State)
+	s.AvailabilityZone = aws.StringValue(subnet.AvailabilityZone)
+	s.Default = fmt.Sprintf("%t", aws.BoolValue(subnet.DefaultForAz))
+	s.CIDRBlock = aws.StringValue(subnet.CidrBlock)
+	s.AvailableIPs = fmt.Sprint(aws.Int64Value(subnet.AvailableIpAddressCount))
+	s.Region = region
+}
+
+func GetRegionSubnets(region string, subList *Subnets, search string) error {
+	svc := ec2.New(session.New(&aws.Config{Region: &region}))
 	result, err := svc.DescribeSubnets(&ec2.DescribeSubnetsInput{})
 
 	if err != nil {
@@ -64,20 +85,57 @@ func GetRegionSubnets(region *string, subList *Subnets) error {
 
 	sub := make(Subnets, len(result.Subnets))
 	for i, subnet := range result.Subnets {
-		sub[i] = Subnet{
-			Name:             GetTagValue("Name", subnet.Tags),
-			SubnetId:         aws.StringValue(subnet.SubnetId),
-			VpcId:            aws.StringValue(subnet.VpcId),
-			State:            aws.StringValue(subnet.State),
-			AvailabilityZone: aws.StringValue(subnet.AvailabilityZone),
-			Default:          fmt.Sprintf("%t", aws.BoolValue(subnet.DefaultForAz)),
-			CIDRBlock:        aws.StringValue(subnet.CidrBlock),
-			AvailableIPs:     fmt.Sprint(aws.Int64Value(subnet.AvailableIpAddressCount)),
-		}
+		sub[i].Marshall(subnet, region)
 	}
-	*subList = append(*subList, sub[:]...)
+
+	if search != "" {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, s := range sub {
+			rVpc := reflect.ValueOf(s)
+
+			for k := 0; k < rVpc.NumField(); k++ {
+				sVal := rVpc.Field(k).String()
+
+				if term.MatchString(sVal) {
+					*subList = append(*subList, sub[i])
+					continue Loop
+				}
+			}
+		}
+	} else {
+		*subList = append(*subList, sub[:]...)
+	}
 
 	return nil
+}
+
+func GetVpcSubnets(vpcId string, region string) (Subnets, error) {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("vpc-id"),
+				Values: []*string{
+					aws.String(vpcId),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeSubnets(params)
+
+	if err != nil {
+		return Subnets{}, err
+	}
+
+	subList := make(Subnets, len(result.Subnets))
+	for i, subnet := range result.Subnets {
+		subList[i].Marshall(subnet, region)
+	}
+
+	return Subnets{}, nil
 }
 
 func (i *Subnets) GetSubnetName(id string) string {
@@ -96,6 +154,7 @@ func (i *Subnets) PrintTable() {
 	for index, val := range *i {
 		rows[index] = []string{
 			val.Name,
+			val.Class,
 			val.SubnetId,
 			val.VpcId,
 			val.State,
@@ -107,8 +166,156 @@ func (i *Subnets) PrintTable() {
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Subnet Id", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"})
+	table.SetHeader([]string{"Name", "Class", "Subnet Id", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"})
 
 	table.AppendBulk(rows)
 	table.Render()
+}
+
+func CreateSubnet(class, name, vpc, az, ip string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Class Config
+	var cfg config.SubnetClassConfig
+	err := cfg.LoadConfig(class)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found Subnet Class Configuration for [" + class + "]!")
+	}
+
+	// Verify the az input
+	azs, errs := GetAZs()
+	if errs != nil {
+		return errors.New("Error Verifying Availability Zone input")
+	}
+	if !azs.ValidAZ(az) {
+		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
+	} else {
+		terminal.Information("Found Availability Zone [" + az + "]!")
+	}
+
+	region := azs.GetRegion(az)
+
+	// Verify the vpc input
+	targetVpc, err := GetVpcByName(region, vpc)
+	if err != nil {
+		return err
+	}
+	terminal.Information("Found [" + targetVpc.Name + "] VPC [" + targetVpc.VpcId + "]!")
+
+	// Create the Subnet
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.CreateSubnetInput{
+		CidrBlock:        aws.String(ip + cfg.CIDR),
+		VpcId:            aws.String(targetVpc.VpcId),
+		DryRun:           aws.Bool(dryRun),
+		AvailabilityZone: aws.String(az),
+	}
+
+	createSubnetResp, err := svc.CreateSubnet(params)
+
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Created Subnet [" + *createSubnetResp.Subnet.SubnetId + "] named [" + name + "] in [" + *createSubnetResp.Subnet.AvailabilityZone + "]!")
+
+	// Add Tags
+	vpcTagsParams := &ec2.CreateTagsInput{
+		Resources: []*string{
+			createSubnetResp.Subnet.SubnetId,
+		},
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String(name),
+			},
+			{
+				Key:   aws.String("Class"),
+				Value: aws.String(class),
+			},
+		},
+		DryRun: aws.Bool(dryRun),
+	}
+
+	_, err = svc.CreateTags(vpcTagsParams)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Public function with confirmation terminal prompt
+func DeleteSubnets(name, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	subnetList := new(Subnets)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionSubnets(region, subnetList, name)
+	} else {
+		subnetList, _ = GetSubnets(name)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Subnet list")
+	}
+
+	if len(*subnetList) > 0 {
+		// Print the table
+		subnetList.PrintTable()
+	} else {
+		return errors.New("No Subnets found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these Subnets") {
+		return errors.New("Aborting!")
+	}
+
+	// Delete 'Em
+	err = deleteSubnets(subnetList, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
+	for _, subnet := range *subnetList {
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(subnet.Region)}))
+
+		params := &ec2.DeleteSubnetInput{
+			SubnetId: aws.String(subnet.SubnetId),
+			DryRun:   aws.Bool(dryRun),
+		}
+
+		_, err := svc.DeleteSubnet(params)
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Deleted Subnet [" + subnet.Name + "] in [" + subnet.Region + "]!")
+	}
+
+	return nil
 }
