@@ -13,29 +13,29 @@
 ## Commands
 
 ## Roadmap
-* dashboard - "Launch the awsm Dashboard GUI"
+* ~~dashboard - "Launch the awsm Dashboard GUI"~~
 * attachVolume - "Attach an AWS EBS Volume"
 * copyImage - "Copy an AWS Machine Image to another region"
 * copySnapshot - "Copy an AWS EBS Snapshot to another region"
 * createAddress - "Create an AWS Elastic IP Address (for use in a VPC or EC2-Classic)"
 * createAutoScaleGroup - "Create an AWS AutoScaling Group"
-* createIAMUser - "Create an IAM User"
+* ~~createIAMUser - "Create an IAM User"~~
 * createImage - "Create an AWS Machine Image from a running instance"
 * createLaunchConfiguration - "Create an AWS AutoScaling Launch Configuration"
-* createSimpleDBDomain - "Create an AWS SimpleDB Domain"
+* ~~createSimpleDBDomain - "Create an AWS SimpleDB Domain"~~
 * createSnapshot - "Create an AWS EBS snapshot of a volume"
 * createVolume - "Create an AWS EBS volume (from a class snapshot or blank)"
 * ~~createVpc - "Create an AWS VPC"~~
 * ~~createSubnet - "Create an AWS VPC Subnet"~~
 * deleteAutoScaleGroup - "Delete an AWS AutoScaling Group"
-* deleteIAMUser - "Delete an AWS Machine Image"
+* ~~deleteIAMUser - "Delete an AWS Machine Image"~~
 * deleteImage - "Delete an AWS Machine Image"
 * deleteLaunchConfiguration - "Delete an AWS AutoScaling Launch Configuration"
 * deleteSnapshot - "Delete an AWS EBS Snapshot"
-* deleteSimpleDBDomains - "Delete an AWS SimpleDB Domain"
+* ~~deleteSimpleDBDomains - "Delete an AWS SimpleDB Domain"~~
 * deleteVolume - "Delete an AWS EBS Volume"
-* deleteSubnets - "Delete AWS VPC Subnets"
-* deleteVpcs - "Delete AWS VPCs"
+* ~~deleteSubnets - "Delete AWS VPC Subnets"~~
+* ~~deleteVpcs - "Delete AWS VPCs"~~
 * detachVolume - "Detach an AWS EBS Volume"
 * stopInstances - "Stop AWS instance(s)"
 * pauseInstances - "Pause AWS instance(s)"
@@ -53,7 +53,7 @@
 * ~~listSecurityGroups  - "Lists all Security Groups"~~
 * ~~listSnapshots  - "Lists all AWS EBS Snapshots"~~
 * ~~listSubnets  - "Lists all AWS Subnets"~~
-* listSimpleDBDomains - "Lists all AWS SimpleDB Domains"
+* ~~listSimpleDBDomains - "Lists all AWS SimpleDB Domains"~~
 * ~~listVolumes  - "Lists all AWS EBS Volumes"~~
 * ~~listVpcs  - "Lists all AWS Vpcs"~~
 * resumeProcesses - "Resume all autoscaling processes on a specific autoscaling group"
