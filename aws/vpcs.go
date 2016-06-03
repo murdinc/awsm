@@ -30,24 +30,133 @@ type Vpc struct {
 	Region    string
 }
 
-func GetVpcByName(region, search string) (Vpc, error) {
-	vpcList := new(Vpcs)
-	err := GetRegionVpcs(region, vpcList, search)
+func GetVpcByTag(region, key, value string) (Vpc, error) {
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeVpcs(params)
 	if err != nil {
 		return Vpc{}, err
 	}
 
-	count := len(*vpcList)
+	count := len(result.Vpcs)
 
 	switch count {
 	case 0:
-		return Vpc{}, errors.New("No VPC found, Aborting!")
+		return Vpc{}, errors.New("No VPC found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 	case 1:
-		vpcs := *vpcList
-		return vpcs[0], nil
+		vpc := new(Vpc)
+		vpc.Marshall(result.Vpcs[0], region)
+		return *vpc, nil
 	}
 
-	return Vpc{}, errors.New("Please limit your search term to return only one VPC")
+	return Vpc{}, errors.New("Found more than one VPC with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+}
+
+func (v *Vpc) GetVpcSecurityGroupByTag(key, value string) (SecurityGroup, error) {
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(v.Region)}))
+
+	params := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("vpc-id"),
+				Values: []*string{
+					aws.String(v.VpcId),
+				},
+			},
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeSecurityGroups(params)
+	if err != nil {
+		return SecurityGroup{}, err
+	}
+
+	count := len(result.SecurityGroups)
+
+	switch count {
+	case 0:
+		return SecurityGroup{}, errors.New("No VPC Security Group found with [" + key + "] of [" + value + "] in [" + v.Region + "], Aborting!")
+	case 1:
+		sec := new(SecurityGroup)
+		sec.Marshall(result.SecurityGroups[0], v.Region)
+		return *sec, nil
+	}
+
+	return SecurityGroup{}, errors.New("Found more than one VPC Security Group with [" + key + "] of [" + value + "] in [" + v.Region + "], Aborting!")
+}
+
+func (v *Vpc) GetVpcSecurityGroupByTagMulti(key string, value []string) (SecurityGroups, error) {
+	var secList SecurityGroups
+	for _, val := range value {
+		secgroup, err := v.GetVpcSecurityGroupByTag(key, val)
+		if err != nil {
+			return SecurityGroups{}, err
+		}
+
+		secList = append(secList, secgroup)
+	}
+
+	return secList, nil
+}
+
+func (v *Vpc) GetVpcSubnetByTag(key, value string) (Subnet, error) {
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(v.Region)}))
+
+	params := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+			{
+				Name: aws.String("vpc-id"),
+				Values: []*string{
+					aws.String(v.VpcId),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeSubnets(params)
+
+	if err != nil {
+		return Subnet{}, err
+	}
+
+	count := len(result.Subnets)
+
+	switch count {
+	case 0:
+		return Subnet{}, errors.New("No Subnet found with [" + key + "] of [" + value + "] in [" + v.Region + "] VPC [" + v.Name + "], Aborting!")
+	case 1:
+		subnet := new(Subnet)
+		subnet.Marshall(result.Subnets[0], v.Region)
+		return *subnet, nil
+	}
+
+	return Subnet{}, errors.New("Please limit your request to return only one Subnet")
 }
 
 func GetVpcs(search string) (*Vpcs, []error) {
@@ -74,6 +183,18 @@ func GetVpcs(search string) (*Vpcs, []error) {
 	return vpcList, errs
 }
 
+func (v *Vpc) Marshall(vpc *ec2.Vpc, region string) {
+	v.Name = GetTagValue("Name", vpc.Tags)
+	v.Class = GetTagValue("Class", vpc.Tags)
+	v.VpcId = aws.StringValue(vpc.VpcId)
+	v.State = aws.StringValue(vpc.State)
+	v.Default = fmt.Sprintf("%t", aws.BoolValue(vpc.IsDefault))
+	v.CIDRBlock = aws.StringValue(vpc.CidrBlock)
+	v.DHCPOptId = aws.StringValue(vpc.DhcpOptionsId)
+	v.Tenancy = aws.StringValue(vpc.InstanceTenancy)
+	v.Region = region
+}
+
 func GetRegionVpcs(region string, vpcList *Vpcs, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeVpcs(&ec2.DescribeVpcsInput{})
@@ -84,17 +205,7 @@ func GetRegionVpcs(region string, vpcList *Vpcs, search string) error {
 
 	vpcs := make(Vpcs, len(result.Vpcs))
 	for i, vpc := range result.Vpcs {
-		vpcs[i] = Vpc{
-			Name:      GetTagValue("Name", vpc.Tags),
-			Class:     GetTagValue("Class", vpc.Tags),
-			VpcId:     aws.StringValue(vpc.VpcId),
-			State:     aws.StringValue(vpc.State),
-			Default:   fmt.Sprintf("%t", aws.BoolValue(vpc.IsDefault)),
-			CIDRBlock: aws.StringValue(vpc.CidrBlock),
-			DHCPOptId: aws.StringValue(vpc.DhcpOptionsId),
-			Tenancy:   aws.StringValue(vpc.InstanceTenancy),
-			Region:    region,
-		}
+		vpcs[i].Marshall(vpc, region)
 	}
 
 	if search != "" {
@@ -172,6 +283,8 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 	if !ValidateRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
+
+	// TODO limit to one VPC of a class per region, so that we can target VPCs by class instead of name.
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 

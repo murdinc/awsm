@@ -53,8 +53,14 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "ebs":
+	case "ebs-volume":
 		for class, config := range configInterface.(VolumeClassConfigs) {
+			itemName = configType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
+		}
+
+	case "ebs-snapshot":
+		for class, config := range configInterface.(SnapshotClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
@@ -83,9 +89,6 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	default:
-		terminal.ErrorLine("InsertClassConfigs does not have switch for [" + configType + "]! No configurations of this type are being installed!")
-
 		/*
 			case "securitygroup":
 				for class, config := range configInterface.(AlarmClassConfigs) {
@@ -93,6 +96,10 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 					itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
 				}
 		*/
+
+	default:
+		terminal.ErrorLine("InsertClassConfigs does not have switch for [" + configType + "]! No configurations of this type are being installed!")
+
 	}
 
 	items := make([]*simpledb.ReplaceableItem, len(itemsMap))
@@ -201,7 +208,8 @@ func CreateAwsmDatabase() error {
 	InsertClassConfigs("alarm", DefaultAlarms())
 	InsertClassConfigs("ami", DefaultImageClasses())
 	InsertClassConfigs("scalingpolicy", DefaultScalingPolicies())
-	InsertClassConfigs("ebs", DefaultVolumeClasses())
+	InsertClassConfigs("ebs-volume", DefaultVolumeClasses())
+	InsertClassConfigs("ebs-snapshot", DefaultSnapshotClasses())
 	InsertClassConfigs("autoscale", DefaultAutoScaleGroupClasses())
 	//InsertClassConfigs("securitygroup", DefaultSecurityGroupClasses())
 
@@ -221,7 +229,7 @@ func BuildAttributes(config interface{}, configType string) []*simpledb.Replacea
 		case int:
 			attributes = append(attributes, &simpledb.ReplaceableAttribute{
 				Name:    aws.String(name),
-				Value:   aws.String(val.Field(i).String()),
+				Value:   aws.String(fmt.Sprint(val.Field(i).Int())),
 				Replace: aws.Bool(true),
 			})
 

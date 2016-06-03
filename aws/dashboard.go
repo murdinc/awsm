@@ -239,7 +239,7 @@ func snapshotsPage(ctx *iris.Context) {
 
 	data := make(map[string]interface{})
 
-	snapshots, errs := GetSnapshots()
+	snapshots, errs := GetSnapshots("")
 
 	data["Snapshots"] = snapshots
 	data["Errors"] = errs

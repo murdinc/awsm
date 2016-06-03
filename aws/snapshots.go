@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -31,44 +32,64 @@ type Snapshot struct {
 	Region      string
 }
 
-func GetLatestSnapshotMulti(classes []string, region string) (Snapshots, error) {
-	snapList := new(Snapshots)
-	matches := make(Snapshots, len(classes))
+func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
 
-	err := GetRegionSnapshots(aws.String(region), snapList, "", false)
-	if err != nil {
-		return Snapshots{}, err
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeSnapshotsInput{
+		OwnerIds: []*string{aws.String("self")},
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+		},
 	}
 
-	sort.Sort(snapList)
+	result, err := svc.DescribeSnapshots(params)
 
-Loop:
-	for i, c := range classes {
-		for _, snap := range *snapList {
-			if snap.Class == c {
-				matches[i] = snap
-				continue Loop
-			}
-		}
-	}
-
-	return matches, nil
-}
-
-func GetLatestSnapshot(class string, region string) (Snapshot, error) {
-	snapList := new(Snapshots)
-
-	err := GetRegionSnapshots(aws.String(region), snapList, class, true)
 	if err != nil {
 		return Snapshot{}, err
 	}
 
+	count := len(result.Snapshots)
+
+	switch count {
+	case 0:
+		return Snapshot{}, errors.New("No Snapshot found with tag [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+	case 1:
+		snapshot := new(Snapshot)
+		snapshot.Marshall(result.Snapshots[0], region)
+		return *snapshot, nil
+	}
+
+	snapList := make(Snapshots, len(result.Snapshots))
+	for i, snapshot := range result.Snapshots {
+		snapList[i].Marshall(snapshot, region)
+	}
+
 	sort.Sort(snapList)
 
-	return (*snapList)[0], nil
+	return snapList[0], nil
 }
 
-func GetSnapshots() (*Snapshots, []error) {
+func GetLatestSnapshotByTagMulti(region, key string, value []string) (Snapshots, error) {
+	var snapList Snapshots
+	for _, v := range value {
+		snapshot, err := GetLatestSnapshotByTag(region, key, v)
+		if err != nil {
+			return Snapshots{}, err
+		}
+
+		snapList = append(snapList, snapshot)
+	}
+
+	return snapList, nil
+}
+
+func GetSnapshots(search string) (*Snapshots, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -80,7 +101,7 @@ func GetSnapshots() (*Snapshots, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionSnapshots(region.RegionName, snapList, "", false)
+			err := GetRegionSnapshots(*region.RegionName, snapList, search)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering snapshot list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -92,8 +113,21 @@ func GetSnapshots() (*Snapshots, []error) {
 	return snapList, errs
 }
 
-func GetRegionSnapshots(region *string, snapList *Snapshots, search string, searchClass bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: region}))
+func (s *Snapshot) Marshall(snapshot *ec2.Snapshot, region string) {
+	s.Name = GetTagValue("Name", snapshot.Tags)
+	s.Class = GetTagValue("Class", snapshot.Tags)
+	s.Description = aws.StringValue(snapshot.Description)
+	s.SnapshotId = aws.StringValue(snapshot.SnapshotId)
+	s.VolumeId = aws.StringValue(snapshot.VolumeId)
+	s.State = aws.StringValue(snapshot.State)
+	s.StartTime = snapshot.StartTime.String()
+	s.Progress = aws.StringValue(snapshot.Progress)
+	s.VolumeSize = fmt.Sprint(aws.Int64Value(snapshot.VolumeSize))
+	s.Region = region
+}
+
+func GetRegionSnapshots(region string, snapList *Snapshots, search string) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSnapshots(&ec2.DescribeSnapshotsInput{OwnerIds: []*string{aws.String("self")}})
 
 	if err != nil {
@@ -102,40 +136,21 @@ func GetRegionSnapshots(region *string, snapList *Snapshots, search string, sear
 
 	snap := make(Snapshots, len(result.Snapshots))
 	for i, snapshot := range result.Snapshots {
-		snap[i] = Snapshot{
-			Name:        GetTagValue("Name", snapshot.Tags),
-			Class:       GetTagValue("Class", snapshot.Tags),
-			Description: aws.StringValue(snapshot.Description),
-			SnapshotId:  aws.StringValue(snapshot.SnapshotId),
-			VolumeId:    aws.StringValue(snapshot.VolumeId),
-			State:       aws.StringValue(snapshot.State),
-			StartTime:   snapshot.StartTime.String(),
-			Progress:    aws.StringValue(snapshot.Progress),
-			VolumeSize:  fmt.Sprint(aws.Int64Value(snapshot.VolumeSize)),
-			Region:      fmt.Sprintf(*region),
-		}
+		snap[i].Marshall(snapshot, region)
 	}
 
 	if search != "" {
-		if searchClass { // Specific class search
-			for i, in := range snap {
-				if in.Class == search {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, in := range snap {
+			rInst := reflect.ValueOf(in)
+
+			for k := 0; k < rInst.NumField(); k++ {
+				sVal := rInst.Field(k).String()
+
+				if term.MatchString(sVal) {
 					*snapList = append(*snapList, snap[i])
-				}
-			}
-		} else { // General search
-			term := regexp.MustCompile(search)
-		Loop:
-			for i, in := range snap {
-				rInst := reflect.ValueOf(in)
-
-				for k := 0; k < rInst.NumField(); k++ {
-					sVal := rInst.Field(k).String()
-
-					if term.MatchString(sVal) {
-						*snapList = append(*snapList, snap[i])
-						continue Loop
-					}
+					continue Loop
 				}
 			}
 		}

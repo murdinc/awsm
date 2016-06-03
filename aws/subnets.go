@@ -33,9 +33,39 @@ type Subnet struct {
 	Region           string
 }
 
-func GetSubnetByName(region, search string) (Subnet, error) {
-	// TODO
-	return Subnet{}, nil
+func GetSubnetByTag(region, key, value string) (Subnet, error) {
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeSubnets(params)
+
+	if err != nil {
+		return Subnet{}, err
+	}
+
+	count := len(result.Subnets)
+
+	switch count {
+	case 0:
+		return Subnet{}, errors.New("No Subnet found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+	case 1:
+		subnet := new(Subnet)
+		subnet.Marshall(result.Subnets[0], region)
+		return *subnet, nil
+	}
+
+	return Subnet{}, errors.New("Found more than one Subnet with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 }
 
 func GetSubnets(search string) (*Subnets, []error) {
@@ -83,34 +113,34 @@ func GetRegionSubnets(region string, subList *Subnets, search string) error {
 		return err
 	}
 
-	sub := make(Subnets, len(result.Subnets))
+	subs := make(Subnets, len(result.Subnets))
 	for i, subnet := range result.Subnets {
-		sub[i].Marshall(subnet, region)
+		subs[i].Marshall(subnet, region)
 	}
 
 	if search != "" {
 		term := regexp.MustCompile(search)
 	Loop:
-		for i, s := range sub {
+		for i, s := range subs {
 			rVpc := reflect.ValueOf(s)
 
 			for k := 0; k < rVpc.NumField(); k++ {
 				sVal := rVpc.Field(k).String()
 
 				if term.MatchString(sVal) {
-					*subList = append(*subList, sub[i])
+					*subList = append(*subList, subs[i])
 					continue Loop
 				}
 			}
 		}
 	} else {
-		*subList = append(*subList, sub[:]...)
+		*subList = append(*subList, subs[:]...)
 	}
 
 	return nil
 }
 
-func GetVpcSubnets(vpcId string, region string) (Subnets, error) {
+func GetSubnetsByVpcId(vpcId string, region string) (Subnets, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeSubnetsInput{
@@ -172,7 +202,7 @@ func (i *Subnets) PrintTable() {
 	table.Render()
 }
 
-func CreateSubnet(class, name, vpc, az, ip string, dryRun bool) error {
+func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -202,7 +232,7 @@ func CreateSubnet(class, name, vpc, az, ip string, dryRun bool) error {
 	region := azs.GetRegion(az)
 
 	// Verify the vpc input
-	targetVpc, err := GetVpcByName(region, vpc)
+	targetVpc, err := GetVpcByTag(region, "Class", vpc)
 	if err != nil {
 		return err
 	}

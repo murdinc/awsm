@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -22,8 +23,52 @@ type SecurityGroup struct {
 	Region      string
 }
 
-func GetSecurityGroupIds(groupNames []string, region string) (SecurityGroups, error) {
-	return SecurityGroups{}, nil
+func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeSecurityGroups(params)
+	if err != nil {
+		return SecurityGroup{}, err
+	}
+
+	count := len(result.SecurityGroups)
+
+	switch count {
+	case 0:
+		return SecurityGroup{}, errors.New("No Security Group found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+	case 1:
+		sec := new(SecurityGroup)
+		sec.Marshall(result.SecurityGroups[0], region)
+		return *sec, nil
+	}
+
+	return SecurityGroup{}, errors.New("Found more than one Security Group with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+}
+
+func GetSecurityGroupByTagMulti(region, key string, value []string) (SecurityGroups, error) {
+	var secList SecurityGroups
+	for _, v := range value {
+		secgroup, err := GetSecurityGroupByTag(region, key, v)
+		if err != nil {
+			return SecurityGroups{}, err
+		}
+
+		secList = append(secList, secgroup)
+	}
+
+	return secList, nil
 }
 
 func GetSecurityGroups() (*SecurityGroups, []error) {
@@ -38,7 +83,7 @@ func GetSecurityGroups() (*SecurityGroups, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionSecurityGroups(region.RegionName, sgroupList)
+			err := GetRegionSecurityGroups(*region.RegionName, sgroupList)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering security group list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -50,8 +95,17 @@ func GetSecurityGroups() (*SecurityGroups, []error) {
 	return sgroupList, errs
 }
 
-func GetRegionSecurityGroups(region *string, sgroupList *SecurityGroups) error {
-	svc := ec2.New(session.New(&aws.Config{Region: region}))
+func (s *SecurityGroup) Marshall(securitygroup *ec2.SecurityGroup, region string) {
+
+	s.Name = aws.StringValue(securitygroup.GroupName)
+	s.GroupId = aws.StringValue(securitygroup.GroupId)
+	s.Description = aws.StringValue(securitygroup.Description)
+	s.Vpc = aws.StringValue(securitygroup.VpcId)
+	s.Region = region
+}
+
+func GetRegionSecurityGroups(region string, sgroupList *SecurityGroups) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{})
 
 	if err != nil {
@@ -60,15 +114,7 @@ func GetRegionSecurityGroups(region *string, sgroupList *SecurityGroups) error {
 
 	sgroup := make(SecurityGroups, len(result.SecurityGroups))
 	for i, securitygroup := range result.SecurityGroups {
-		sgroup[i] = SecurityGroup{
-
-			Name: aws.StringValue(securitygroup.GroupName),
-			//Name:        GetTagValue("Name", securitygroup.Tags),
-			GroupId:     aws.StringValue(securitygroup.GroupId),
-			Description: aws.StringValue(securitygroup.Description),
-			Vpc:         aws.StringValue(securitygroup.VpcId),
-			Region:      fmt.Sprintf(*region),
-		}
+		sgroup[i].Marshall(securitygroup, region)
 	}
 	*sgroupList = append(*sgroupList, sgroup[:]...)
 

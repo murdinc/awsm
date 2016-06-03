@@ -8,10 +8,11 @@ type InstanceClassConfig struct {
 	InstanceType     string
 	SecurityGroups   []string
 	EBSVolumes       []string
+	Vpc              string
 	Subnet           string
 	PublicIpAddress  bool
 	AMI              string
-	Keys             []string
+	KeyName          string
 	EbsOptimized     bool
 	Monitoring       bool
 	ShutdownBehavior string
@@ -22,33 +23,39 @@ func DefaultInstanceClasses() InstanceClassConfigs {
 	defaultInstances := make(InstanceClassConfigs)
 
 	defaultInstances["base"] = InstanceClassConfig{
-		InstanceType:    "t1.micro",
-		SecurityGroups:  []string{"dev"},
-		EBSVolumes:      []string{},
-		Subnet:          "private",
-		PublicIpAddress: false,
-		AMI:             "base",
-		Keys:            []string{"default"},
+		InstanceType:     "t1.micro",
+		SecurityGroups:   []string{"dev"},
+		EBSVolumes:       []string{},
+		Vpc:              "awsm",
+		Subnet:           "private",
+		PublicIpAddress:  false,
+		AMI:              "base",
+		KeyName:          "awsm",
+		ShutdownBehavior: "terminate",
 	}
 
 	defaultInstances["dev"] = InstanceClassConfig{
-		InstanceType:    "r3.large",
-		SecurityGroups:  []string{"all", "dev"},
-		EBSVolumes:      []string{"git", "mysql-data"}, // TODO
-		Subnet:          "private",
-		PublicIpAddress: false,
-		AMI:             "base",
-		Keys:            []string{"default"},
+		InstanceType:     "r3.large",
+		SecurityGroups:   []string{"all", "dev"},
+		EBSVolumes:       []string{"git-standard", "mysql-data-standard"}, // TODO
+		Vpc:              "awsm",
+		Subnet:           "private",
+		PublicIpAddress:  false,
+		AMI:              "hvm-base",
+		KeyName:          "awsm",
+		ShutdownBehavior: "terminate",
 	}
 
 	defaultInstances["prod"] = InstanceClassConfig{
-		InstanceType:    "r3.large",
-		SecurityGroups:  []string{"dev"},
-		EBSVolumes:      []string{},
-		Subnet:          "private",
-		PublicIpAddress: false,
-		AMI:             "base",
-		Keys:            []string{"default"},
+		InstanceType:     "r3.large",
+		SecurityGroups:   []string{"dev"},
+		EBSVolumes:       []string{},
+		Vpc:              "awsm",
+		Subnet:           "private",
+		PublicIpAddress:  false,
+		AMI:              "hvm-base",
+		KeyName:          "awsm",
+		ShutdownBehavior: "terminate",
 	}
 
 	return defaultInstances
@@ -79,14 +86,17 @@ func (c *InstanceClassConfig) LoadConfig(class string) error {
 		case "Subnet":
 			c.Subnet = val
 
+		case "Vpc":
+			c.Vpc = val
+
 		case "PublicIpAddress":
 			c.PublicIpAddress, _ = strconv.ParseBool(val)
 
 		case "AMI":
 			c.AMI = val
 
-		case "Keys":
-			c.Keys = append(c.Keys, val)
+		case "KeyName":
+			c.KeyName = val
 
 		case "EbsOptimized":
 			c.EbsOptimized, _ = strconv.ParseBool(val)

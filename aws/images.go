@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -30,17 +31,47 @@ type Image struct {
 	Region       string
 }
 
-func GetLatestImage(class, region string) (Image, error) {
-	imgList := new(Images)
+func GetLatestImageByTag(region, key, value string) (Image, error) {
 
-	err := GetRegionImages(aws.String(region), imgList, class, true)
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeImagesInput{
+		Owners: []*string{aws.String("self")},
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeImages(params)
+
 	if err != nil {
 		return Image{}, err
 	}
 
+	count := len(result.Images)
+
+	switch count {
+	case 0:
+		return Image{}, errors.New("No Image found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+	case 1:
+		image := new(Image)
+		image.Marshall(result.Images[0], region)
+		return *image, nil
+	}
+
+	imgList := make(Images, len(result.Images))
+	for i, image := range result.Images {
+		imgList[i].Marshall(image, region)
+	}
+
 	sort.Sort(imgList)
 
-	return (*imgList)[0], nil
+	return imgList[0], nil
 }
 
 func GetImages(search string) (*Images, []error) {
@@ -55,7 +86,7 @@ func GetImages(search string) (*Images, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionImages(region.RegionName, imgList, search, false)
+			err := GetRegionImages(*region.RegionName, imgList, search, false)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering image list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -67,8 +98,34 @@ func GetImages(search string) (*Images, []error) {
 	return imgList, errs
 }
 
-func GetRegionImages(region *string, imgList *Images, search string, searchClass bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: region}))
+func (i *Image) Marshall(image *ec2.Image, region string) {
+	var snapshotId, volSize string
+	root := aws.StringValue(image.RootDeviceType)
+	//fmt.Println(root)
+
+	if root == "ebs" {
+		for _, mapping := range image.BlockDeviceMappings {
+
+			if *mapping.DeviceName == *image.RootDeviceName {
+				snapshotId = aws.StringValue(mapping.Ebs.SnapshotId)
+				volSize = fmt.Sprintf("%d GB", *mapping.Ebs.VolumeSize)
+			}
+		}
+	}
+
+	i.Name = GetTagValue("Name", image.Tags)
+	i.Class = GetTagValue("Class", image.Tags)
+	i.CreationDate = aws.StringValue(image.CreationDate)
+	i.ImageId = aws.StringValue(image.ImageId)
+	i.State = aws.StringValue(image.State)
+	i.Root = root
+	i.SnapshotId = snapshotId
+	i.VolumeSize = volSize
+	i.Region = region
+}
+
+func GetRegionImages(region string, imgList *Images, search string, searchClass bool) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeImages(&ec2.DescribeImagesInput{Owners: []*string{aws.String("self")}})
 
 	if err != nil {
@@ -77,31 +134,7 @@ func GetRegionImages(region *string, imgList *Images, search string, searchClass
 
 	img := make(Images, len(result.Images))
 	for i, image := range result.Images {
-		var snapshotId, volSize string
-		root := aws.StringValue(image.RootDeviceType)
-		//fmt.Println(root)
-
-		if root == "ebs" {
-			for _, mapping := range image.BlockDeviceMappings {
-
-				if *mapping.DeviceName == *image.RootDeviceName {
-					snapshotId = aws.StringValue(mapping.Ebs.SnapshotId)
-					volSize = fmt.Sprintf("%d GB", *mapping.Ebs.VolumeSize)
-				}
-			}
-		}
-
-		img[i] = Image{
-			Name:         GetTagValue("Name", image.Tags),
-			Class:        GetTagValue("Class", image.Tags),
-			CreationDate: aws.StringValue(image.CreationDate),
-			ImageId:      aws.StringValue(image.ImageId),
-			State:        aws.StringValue(image.State),
-			Root:         root,
-			SnapshotId:   snapshotId,
-			VolumeSize:   volSize,
-			Region:       fmt.Sprintf(*region),
-		}
+		img[i].Marshall(image, region)
 	}
 
 	if search != "" {

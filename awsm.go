@@ -131,6 +131,26 @@ func main() {
 			},
 		},
 		{
+			Name:  "createKeyPair",
+			Usage: "Create and upload an AWS Key Pair",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the key pair",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				errs := aws.CreateAndImportKeyPair(c.NamedArg("name"), dryRun)
+				if errs != nil {
+					return cli.NewExitError("Error Creating KeyPair!", 1)
+				} else {
+					terminal.Information("Done!")
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "createSimpleDBDomain",
 			Usage: "Create an AWS SimpleDB Domain",
 			Arguments: []cli.Argument{
@@ -222,18 +242,18 @@ func main() {
 					Optional:    false,
 				},
 				cli.Argument{
-					Name:        "az",
-					Description: "The Availability Zone to create the Subnet in",
-					Optional:    false,
-				},
-				cli.Argument{
 					Name:        "ip",
 					Description: "The IP address of this Subnet (not including CIDR)",
 					Optional:    false,
 				},
+				cli.Argument{
+					Name:        "az",
+					Description: "The Availability Zone to create the Subnet in",
+					Optional:    true,
+				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.CreateSubnet(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("vpc"), c.NamedArg("az"), c.NamedArg("ip"), dryRun)
+				err := aws.CreateSubnet(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("vpc"), c.NamedArg("ip"), c.NamedArg("az"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -254,7 +274,7 @@ func main() {
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "username",
-					Description: "The of the IAM User to delete",
+					Description: "The username of the IAM User to delete",
 					Optional:    false,
 				},
 			},
@@ -271,6 +291,26 @@ func main() {
 			Usage: "Delete an AWS Machine Image",
 			Action: func(c *cli.Context) error {
 				// TODO
+				return nil
+			},
+		},
+		{
+			Name:  "deleteKeyPairs",
+			Usage: "Delete an AWS KeyPair",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the AWS KeyPair to delete",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				errs := aws.DeleteKeyPairs(c.NamedArg("name"), dryRun)
+				if errs != nil {
+					return cli.NewExitError("Errors Deleting KeyPair!", 1)
+				} else {
+					terminal.Information("Done!")
+				}
 				return nil
 			},
 		},
@@ -395,8 +435,23 @@ func main() {
 		{
 			Name:  "killInstances",
 			Usage: "Kill AWS instance(s)",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the Instance",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the instance (optional)",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				errs := aws.KillInstances(c.NamedArg("name"), c.NamedArg("region"), dryRun)
+				if errs != nil {
+					return cli.NewExitError("Error Terminating Instances!", 1)
+				}
 				return nil
 			},
 		},
@@ -528,6 +583,26 @@ func main() {
 			},
 		},
 		{
+			Name:  "listKeyPairs",
+			Usage: "Lists all AWS Key Pairs",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				keyPairs, errs := aws.GetKeyPairs(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing Key Pairs!", 1)
+				} else {
+					keyPairs.PrintTable()
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "listLaunchConfigurations",
 			Usage: "Lists all Launch Configurations",
 			Action: func(c *cli.Context) error {
@@ -582,8 +657,15 @@ func main() {
 		{
 			Name:  "listSnapshots",
 			Usage: "Lists all AWS EBS Snapshots",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				snapshots, errs := aws.GetSnapshots()
+				snapshots, errs := aws.GetSnapshots(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Snapshots!", 1)
 				} else {
