@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
@@ -118,7 +119,7 @@ func GetRegionInstances(region string, instList *Instances, search string) error
 				for k := 0; k < rInst.NumField(); k++ {
 					sVal := rInst.Field(k).String()
 
-					if term.MatchString(sVal) {
+					if term.MatchString(sVal) && inst[i].State == "running" {
 						*instList = append(*instList, inst[i])
 						continue Loop
 					}
@@ -215,7 +216,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		if err != nil {
 			return err
 		} else {
-			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotId + "] with class [" + latestSnapshot.Class + "] created on [" + latestSnapshot.StartTime + "]!")
+			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotId + "] with class [" + latestSnapshot.Class + "] created on [" + latestSnapshot.CreatedHuman + "]!")
 		}
 
 		ebsVolumes[i] = &ec2.BlockDeviceMapping{
@@ -375,7 +376,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		// PrivateIpAddress: aws.String("String"),
 		SecurityGroupIds: secGroupIds,
 		SubnetId:         aws.String(subnetId),
-		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte("echo wemadeit > /tmp/didwemakeit"))),
+		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte(instanceCfg.UserData))),
 
 		//KernelId:         aws.String("String"),
 		//RamdiskId:        aws.String("String"),
@@ -384,6 +385,9 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	launchInstanceResp, err := svc.RunInstances(params)
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
 		return err
 	}
 
@@ -411,6 +415,9 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	_, err = svc.CreateTags(instanceTagsParams)
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
 		return err
 	}
 

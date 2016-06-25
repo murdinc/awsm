@@ -332,8 +332,6 @@ func askForConfirmation() bool {
 	}
 }
 
-// You might want to put the following two functions in a separate utility package.
-
 // posString returns the first index of element in slice.
 // If slice does not contain element, returns -1.
 func posString(slice []string, element string) int {

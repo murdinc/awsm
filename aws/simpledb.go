@@ -37,7 +37,7 @@ func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 			defer wg.Done()
 			err := GetRegionSimpleDBDomains(region.RegionName, domainList, search)
 			if err != nil {
-				// TODO handle regions withour service endpoints that work
+				// TODO handle regions without service endpoints that work
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering simpledb domain list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
 			}

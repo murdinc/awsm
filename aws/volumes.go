@@ -3,11 +3,14 @@ package aws
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"regexp"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/terminal"
 	"github.com/olekukonko/tablewriter"
 )
@@ -29,7 +32,7 @@ type Volume struct {
 	AvailabilityZone string
 }
 
-func GetVolumes() (*Volumes, []error) {
+func GetVolumes(search string) (*Volumes, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -41,7 +44,7 @@ func GetVolumes() (*Volumes, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionVolumes(region.RegionName, volList)
+			err := GetRegionVolumes(region.RegionName, volList, search)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering volume list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -53,7 +56,7 @@ func GetVolumes() (*Volumes, []error) {
 	return volList, errs
 }
 
-func GetRegionVolumes(region *string, volList *Volumes) error {
+func GetRegionVolumes(region *string, volList *Volumes, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: region}))
 	result, err := svc.DescribeVolumes(&ec2.DescribeVolumesInput{})
 
@@ -71,19 +74,43 @@ func GetRegionVolumes(region *string, volList *Volumes) error {
 			State:    aws.StringValue(volume.State),
 			Iops:     fmt.Sprint(aws.Int64Value(volume.Iops)),
 			//Attachments:  aws.StringValue(volume.Attachments), // TODO
-			CreationTime: aws.TimeValue(volume.CreateTime).String(),
+			//CreationTime: aws.TimeValue(volume.CreateTime).String(),
+			CreationTime: humanize.Time(aws.TimeValue(volume.CreateTime)),
 			VolumeType:   aws.StringValue(volume.VolumeType),
 			SnapshoId:    aws.StringValue(volume.SnapshotId),
 			//DeleteOnTerm:     aws.StringValue(volume.), // TODO
 			AvailabilityZone: aws.StringValue(volume.AvailabilityZone),
 		}
 	}
-	*volList = append(*volList, vol[:]...)
+
+	if search != "" {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, v := range vol {
+			rV := reflect.ValueOf(v)
+
+			for k := 0; k < rV.NumField(); k++ {
+				sVal := rV.Field(k).String()
+
+				if term.MatchString(sVal) {
+					*volList = append(*volList, vol[i])
+					continue Loop
+				}
+			}
+		}
+	} else {
+		*volList = append(*volList, vol[:]...)
+	}
 
 	return nil
 }
 
 func (i *Volumes) PrintTable() {
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Volumes Found!")
+		return
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))

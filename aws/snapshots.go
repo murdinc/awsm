@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/terminal"
 	"github.com/olekukonko/tablewriter"
 )
@@ -20,16 +21,17 @@ import (
 type Snapshots []Snapshot
 
 type Snapshot struct {
-	Name        string
-	Class       string
-	Description string
-	SnapshotId  string
-	VolumeId    string
-	State       string
-	StartTime   string
-	Progress    string
-	VolumeSize  string
-	Region      string
+	Name         string
+	Class        string
+	Description  string
+	SnapshotId   string
+	VolumeId     string
+	State        string
+	StartTime    time.Time
+	CreatedHuman string
+	Progress     string
+	VolumeSize   string
+	Region       string
 }
 
 func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
@@ -120,10 +122,20 @@ func (s *Snapshot) Marshall(snapshot *ec2.Snapshot, region string) {
 	s.SnapshotId = aws.StringValue(snapshot.SnapshotId)
 	s.VolumeId = aws.StringValue(snapshot.VolumeId)
 	s.State = aws.StringValue(snapshot.State)
-	s.StartTime = snapshot.StartTime.String()
+	s.StartTime = *snapshot.StartTime                                 // machines
+	s.CreatedHuman = humanize.Time(aws.TimeValue(snapshot.StartTime)) // humans
 	s.Progress = aws.StringValue(snapshot.Progress)
 	s.VolumeSize = fmt.Sprint(aws.Int64Value(snapshot.VolumeSize))
 	s.Region = region
+
+	switch s.State {
+
+	case "error":
+		s.Progress = "failed!"
+
+	case "completed":
+		s.Progress = "ready"
+	}
 }
 
 func GetRegionSnapshots(region string, snapList *Snapshots, search string) error {
@@ -161,16 +173,6 @@ func GetRegionSnapshots(region string, snapList *Snapshots, search string) error
 	return nil
 }
 
-// Functions for sorting
-func (s *Snapshot) Timestamp() time.Time {
-	timestamp, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", s.StartTime)
-	if err != nil {
-		terminal.ErrorLine("Error parsing the timestamp for volume [" + s.SnapshotId + "]!")
-	}
-
-	return timestamp
-}
-
 func (v Snapshots) Len() int {
 	return len(v)
 }
@@ -180,7 +182,7 @@ func (v Snapshots) Swap(i, j int) {
 }
 
 func (v Snapshots) Less(i, j int) bool {
-	return v[i].Timestamp().After(v[j].Timestamp())
+	return v[i].StartTime.After(v[j].StartTime)
 }
 
 func (i *Snapshots) PrintTable() {
@@ -191,18 +193,18 @@ func (i *Snapshots) PrintTable() {
 		rows[index] = []string{
 			val.Name,
 			val.Class,
-			val.Description,
+			//val.Description,
 			val.SnapshotId,
 			val.VolumeId,
 			val.State,
-			val.StartTime,
+			val.CreatedHuman,
 			val.Progress,
 			val.VolumeSize,
 			val.Region,
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Description", "Snapshot Id", "Volume Id", "State", "Start Time", "Progress", "Volume Size", "Region"})
+	table.SetHeader([]string{"Name", "Class", "Snapshot Id", "Volume Id", "State", "Created", "Progress", "Volume Size", "Region"})
 
 	table.AppendBulk(rows)
 	table.Render()

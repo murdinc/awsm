@@ -448,9 +448,9 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				errs := aws.KillInstances(c.NamedArg("name"), c.NamedArg("region"), dryRun)
-				if errs != nil {
-					return cli.NewExitError("Error Terminating Instances!", 1)
+				err := aws.KillInstances(c.NamedArg("name"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -717,8 +717,15 @@ func main() {
 		{
 			Name:  "listVolumes",
 			Usage: "Lists all AWS EBS Volumes",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				volumes, errs := aws.GetVolumes()
+				volumes, errs := aws.GetVolumes(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Volumes!", 1)
 				} else {

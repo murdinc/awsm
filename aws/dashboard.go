@@ -11,49 +11,61 @@ import (
 type Content struct {
 	Title        string
 	Type         string
+	URLKey       string
 	Data         map[string]interface{}
 	Configs      interface{}
 	AZList       []string
 	RenderLayout bool
 	Errors       []string
-	ClassFormURL string
+	Host         string
+	//ClassFormURL string
 }
 
 func RunDashboard(devMode bool) {
 	currentUser, _ := user.Current()
 	guiLocation := currentUser.HomeDir + "/.awsm/gui/awsm-default-gui" // TODO accept custom theme directories
 
-	api := iris.New()
+	// logger middleware
+	//log := logger.New()
+
+	//iris := iris.New()
+
+	iris.Config.DisableBanner = true
 
 	// Template Configuration
-	api.Config().Render.Template.Directory = guiLocation
-	api.Config().Render.Template.Layout = "templates/layout.html"
+	iris.Config.Render.Template.Directory = guiLocation
+	iris.Config.Render.Template.Layout = "templates/layout.html"
 
 	// Static Asset Folders
-	api.StaticWeb("/js", guiLocation, 0)
-	api.StaticWeb("/css", guiLocation, 0)
-	api.StaticWeb("/fonts", guiLocation, 0)
-	api.StaticWeb("/static", guiLocation, 0)
+	iris.StaticWeb("/js", guiLocation, 0)
+	iris.StaticWeb("/css", guiLocation, 0)
+	iris.StaticWeb("/fonts", guiLocation, 0)
+	iris.StaticWeb("/static", guiLocation, 0)
 
-	// Index and Dashboard
-	api.Get("/", index)
-	api.Get("/dashboard", getDashboard)
+	// Form Handler
+	iris.Post("/create/:type", postData)
 
-	// Template builders
-	api.Get("/dashboard/:page", getDashboard)
-	api.Get("/modal/:modal", getModal)
-	api.Get("/form/:form/:class", getForm)
+	// Index
+	iris.Get("/", index)
 
-	// Form Handlers
-	//api.Post("/form/:form", postForm)
+	// Pages
+	pages := iris.Party("/dashboard")
+	pages.Get("/", getDashboard)
+	pages.Get("/:page", getDashboard)
+
+	// Modals
+	modals := iris.Party("/modal")
+	modals.Get("/:action/:type", getModal)
+	modals.Get("/:action/:type/:class", getModal)
 
 	if !devMode {
 		webbrowser.Open("http://localhost:8080/dashboard") // TODO race condition?
 	}
 
-	api.Listen(":8080") // TODO optionally configurable port #
+	iris.Listen(":8080") // TODO optionally configurable port #
 }
 
+// index redirect to dashboard
 func index(ctx *iris.Context) {
 	ctx.Redirect("/dashboard")
 }
@@ -98,53 +110,76 @@ func getDashboard(ctx *iris.Context) {
 	case "securitygroups":
 		securitygroupsPage(ctx)
 	default:
-		ctx.Render("templates/dashboard.html", Content{Title: "Dashboard", Type: "Dashboard", RenderLayout: true})
+		ctx.Render("templates/dashboard.html", Content{Title: "Dashboard", Type: "Dashboard", URLKey: "dashboard", RenderLayout: true, Host: ctx.HostString()})
 	}
+}
+
+// ===================================
+// Recieves all the different forms
+func postData(ctx *iris.Context) {
+
+	var err error
+
+	typ := ctx.Param("type")
+
+	switch typ {
+	case "instance":
+		err = LaunchInstance(ctx.PostFormValue("class"), ctx.PostFormValue("sequence"), ctx.PostFormValue("az"), true)
+
+	case "vpc":
+
+	default:
+		ctx.Render("templates/404-modal.html", Content{Title: "404", Type: "404", URLKey: "error"})
+	}
+
+	if err != nil {
+		ctx.JSON(200, map[string]interface{}{"success": false, "error": err.Error()})
+	} else {
+		ctx.JSON(200, map[string]interface{}{"success": true})
+	}
+
 }
 
 // ===================================
 // Builds all the different modals
 func getModal(ctx *iris.Context) {
 
-	modal := ctx.Param("modal")
+	action := ctx.Param("action")
+	typ := ctx.Param("type")
 
-	switch modal {
+	switch action {
+	case "new":
+		switch typ {
+		case "instance":
+			newInstanceModal(ctx)
+		case "vpc":
+			newVpcModal(ctx)
+		default:
+			ctx.Render("templates/404-modal.html", Content{Title: "404", Type: "404", URLKey: "error"})
+		}
 
-	// EC2 Instances
-	case "new-instance":
-		newInstanceModal(ctx)
-	case "manage-instance-classes":
-		manageInstanceClassesModal(ctx)
+	case "manage":
+		switch typ {
+		case "instance":
+			manageInstanceClassesModal(ctx)
+		case "vpc":
+			manageVpcClassesModal(ctx)
+		default:
+			ctx.Render("templates/404-modal.html", Content{Title: "404", Type: "404", URLKey: "error"})
+		}
 
-	// VPC
-	case "new-vpc":
-		newVpcModal(ctx)
-	case "manage-vpc-classes":
-		manageVpcClassesModal(ctx)
-
-	default:
-		//ctx.Render("templates/404-modal.html", Content{Title: "404", Type: "404"})
-	}
-}
-
-// ===================================
-// Builds all the different forms
-func getForm(ctx *iris.Context) {
-
-	form := ctx.Param("form")
-
-	switch form {
-
-	// EC2 Instances
-	case "edit-instance-class":
-		instanceClassForm(ctx)
-
-	// VPC
-	case "edit-vpc-class":
-		vpcClassForm(ctx)
+	case "edit":
+		switch typ {
+		case "instance":
+			instanceClassForm(ctx)
+		case "vpc":
+			vpcClassForm(ctx)
+		default:
+			ctx.Render("templates/404-modal.html", Content{Title: "404", Type: "404", URLKey: "error"})
+		}
 
 	default:
-		//ctx.Render("templates/404-modal.html", Content{Title: "404", Type: "404"})
+		ctx.Render("templates/404-modal.html", Content{Title: "404", Type: "404", URLKey: "error"})
 	}
 }
 
@@ -158,10 +193,11 @@ func instancesPage(ctx *iris.Context) {
 	data["Instances"] = instances
 	data["Errors"] = errs
 
-	ctx.Render("templates/instances.html", Content{Title: "Instances", Type: "Instance", Data: data, RenderLayout: true})
+	ctx.Render("templates/instances.html", Content{Title: "Instances", Type: "Instance", URLKey: "instance", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 func newInstanceModal(ctx *iris.Context) {
+
 	data := make(map[string]interface{})
 	azList := AZList()
 	configs, err := config.GetAllConfigNames("ec2")
@@ -172,7 +208,7 @@ func newInstanceModal(ctx *iris.Context) {
 	data["Configs"] = configs
 	data["AZList"] = azList
 
-	ctx.Render("templates/new-instance-modal.html", Content{Title: "New Instance", Type: "Instance", Data: data})
+	ctx.Render("templates/new-instance-modal.html", Content{Title: "New Instance", Type: "Instance", URLKey: "instance", Data: data})
 }
 
 func manageInstanceClassesModal(ctx *iris.Context) {
@@ -185,7 +221,7 @@ func manageInstanceClassesModal(ctx *iris.Context) {
 
 	data["Configs"] = configs
 
-	ctx.Render("templates/manage-classes-modal.html", Content{Title: "Mange Instance Classes", Type: "Instance", Data: data, ClassFormURL: "edit-instance-class"})
+	ctx.Render("templates/manage-classes-modal.html", Content{Title: "Mange Instance Classes", Type: "Instance", URLKey: "instance", Data: data})
 }
 
 func instanceClassForm(ctx *iris.Context) {
@@ -202,7 +238,7 @@ func instanceClassForm(ctx *iris.Context) {
 	data["ClassName"] = class
 	data["ClassConfig"] = cfg
 
-	ctx.Render("templates/instance-class-form.html", Content{Title: "Edit Instance Class", Type: "Instance", Data: data})
+	ctx.Render("templates/instance-class-form.html", Content{Title: "Edit Instance Class", Type: "Instance", URLKey: "instance", Data: data})
 }
 
 // ===================================
@@ -217,7 +253,7 @@ func imagesPage(ctx *iris.Context) {
 	data["Images"] = images
 	data["Errors"] = errs
 
-	ctx.Render("templates/images.html", Content{Title: "Images", Type: "Image", Data: data, RenderLayout: true})
+	ctx.Render("templates/images.html", Content{Title: "Images", Type: "Image", URLKey: "image", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 // ===================================
@@ -227,12 +263,12 @@ func volumesPage(ctx *iris.Context) {
 
 	data := make(map[string]interface{})
 
-	volumes, errs := GetVolumes()
+	volumes, errs := GetVolumes("")
 
 	data["Volumes"] = volumes
 	data["Errors"] = errs
 
-	ctx.Render("templates/volumes.html", Content{Title: "Volumes", Type: "Volume", Data: data, RenderLayout: true})
+	ctx.Render("templates/volumes.html", Content{Title: "Volumes", Type: "Volume", URLKey: "volume", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 func snapshotsPage(ctx *iris.Context) {
@@ -244,7 +280,7 @@ func snapshotsPage(ctx *iris.Context) {
 	data["Snapshots"] = snapshots
 	data["Errors"] = errs
 
-	ctx.Render("templates/snapshots.html", Content{Title: "Snapshots", Type: "Snapshot", Data: data, RenderLayout: true})
+	ctx.Render("templates/snapshots.html", Content{Title: "Snapshots", Type: "Snapshot", URLKey: "snapshot", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 // ===================================
@@ -259,7 +295,7 @@ func securitygroupsPage(ctx *iris.Context) {
 	data["SecurityGroups"] = securitygroups
 	data["Errors"] = errs
 
-	ctx.Render("templates/securitygroups.html", Content{Title: "Security Groups", Type: "Security Group", Data: data, RenderLayout: true})
+	ctx.Render("templates/securitygroups.html", Content{Title: "Security Groups", Type: "Security Group", URLKey: "security-group", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 // ===================================
@@ -274,7 +310,7 @@ func loadbalancersPage(ctx *iris.Context) {
 	data["LoadBalancers"] = loadbalancers
 	data["Errors"] = errs
 
-	ctx.Render("templates/loadbalancers.html", Content{Title: "Load Balancers", Type: "Load Balancer", Data: data, RenderLayout: true})
+	ctx.Render("templates/loadbalancers.html", Content{Title: "Load Balancers", Type: "Load Balancer", URLKey: "load-balancer", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 // ===================================
@@ -289,7 +325,7 @@ func launchconfigurationsPage(ctx *iris.Context) {
 	data["LaunchConfigurations"] = launchconfigurations
 	data["Errors"] = errs
 
-	ctx.Render("templates/launchconfigurations.html", Content{Title: "Launch Configurations", Type: "Launch Configuration", Data: data, RenderLayout: true})
+	ctx.Render("templates/launchconfigurations.html", Content{Title: "Launch Configurations", Type: "Launch Configuration", URLKey: "launch-configuration", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 func autoscalegroupsPage(ctx *iris.Context) {
@@ -301,7 +337,7 @@ func autoscalegroupsPage(ctx *iris.Context) {
 	data["AutoScaleGroups"] = autoscalegroups
 	data["Errors"] = errs
 
-	ctx.Render("templates/autoscalegroups.html", Content{Title: "Auto Scale Groups", Type: "Auto Scale Group", Data: data, RenderLayout: true})
+	ctx.Render("templates/autoscalegroups.html", Content{Title: "Auto Scale Groups", Type: "Auto Scale Group", URLKey: "auto-scale-group", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 func scalingpoliciesPage(ctx *iris.Context) {
@@ -313,7 +349,7 @@ func scalingpoliciesPage(ctx *iris.Context) {
 	data["ScalingPolicies"] = scalingpolicies
 	data["Errors"] = errs
 
-	ctx.Render("templates/scalingpolicies.html", Content{Title: "Scaling Policies", Type: "Scaling Policy", Data: data, RenderLayout: true})
+	ctx.Render("templates/scalingpolicies.html", Content{Title: "Scaling Policies", Type: "Scaling Policy", URLKey: "scaling-policy", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 // ===================================
@@ -328,7 +364,7 @@ func vpcsPage(ctx *iris.Context) {
 	data["VPCs"] = vpcs
 	data["Errors"] = errs
 
-	ctx.Render("templates/vpcs.html", Content{Title: "VPCs", Type: "VPC", Data: data, RenderLayout: true})
+	ctx.Render("templates/vpcs.html", Content{Title: "VPCs", Type: "VPC", URLKey: "vpc", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 func newVpcModal(ctx *iris.Context) {
@@ -344,7 +380,7 @@ func newVpcModal(ctx *iris.Context) {
 	data["Configs"] = configs
 	data["Regions"] = regionList
 
-	ctx.Render("templates/new-vpc-modal.html", Content{Title: "New Vpc", Type: "Vpc", Data: data})
+	ctx.Render("templates/new-vpc-modal.html", Content{Title: "New Vpc", Type: "Vpc", URLKey: "vpc", Data: data})
 }
 
 func manageVpcClassesModal(ctx *iris.Context) {
@@ -357,7 +393,7 @@ func manageVpcClassesModal(ctx *iris.Context) {
 
 	data["Configs"] = configs
 
-	ctx.Render("templates/manage-classes-modal.html", Content{Title: "Mange VPC Classes", Type: "VPC", Data: data, ClassFormURL: "edit-vpc-class"})
+	ctx.Render("templates/manage-classes-modal.html", Content{Title: "Mange VPC Classes", Type: "VPC", URLKey: "vpc", Data: data})
 }
 
 func vpcClassForm(ctx *iris.Context) {
@@ -373,7 +409,7 @@ func vpcClassForm(ctx *iris.Context) {
 	data["ClassName"] = class
 	data["ClassConfig"] = cfg
 
-	ctx.Render("templates/vpc-class-form.html", Content{Title: "Edit VPC Class", Type: "VPC", Data: data})
+	ctx.Render("templates/vpc-class-form.html", Content{Title: "Edit VPC Class", Type: "VPC", URLKey: "vpc", Data: data})
 }
 
 // ===================================
@@ -386,7 +422,7 @@ func subnetsPage(ctx *iris.Context) {
 	data["Subnets"] = subnets
 	data["Errors"] = errs
 
-	ctx.Render("templates/subnets.html", Content{Title: "Subnets", Type: "Subnet", Data: data, RenderLayout: true})
+	ctx.Render("templates/subnets.html", Content{Title: "Subnets", Type: "Subnet", URLKey: "subnet", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }
 
 func routetablesPage(ctx *iris.Context) {
@@ -417,5 +453,5 @@ func alarmsPage(ctx *iris.Context) {
 	data["Alarms"] = alarms
 	data["Errors"] = errs
 
-	ctx.Render("templates/alarms.html", Content{Title: "Alarms", Type: "Alarm", Data: data, RenderLayout: true})
+	ctx.Render("templates/alarms.html", Content{Title: "Alarms", Type: "Alarm", URLKey: "alarm", Data: data, RenderLayout: true, Host: ctx.HostString()})
 }

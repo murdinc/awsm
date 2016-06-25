@@ -17,6 +17,7 @@ type InstanceClassConfig struct {
 	Monitoring       bool
 	ShutdownBehavior string
 	IAMUser          string
+	UserData         string
 }
 
 func DefaultInstanceClasses() InstanceClassConfigs {
@@ -44,6 +45,7 @@ func DefaultInstanceClasses() InstanceClassConfigs {
 		AMI:              "hvm-base",
 		KeyName:          "awsm",
 		ShutdownBehavior: "terminate",
+		UserData:         "#!/bin/bash \n echo wemadeit > ~/didwemakeit",
 	}
 
 	defaultInstances["prod"] = InstanceClassConfig{
@@ -106,6 +108,9 @@ func (c *InstanceClassConfig) LoadConfig(class string) error {
 
 		case "ShutdownBehavior":
 			c.ShutdownBehavior = val
+
+		case "UserData":
+			c.UserData = val
 
 		case "IAMUser":
 			c.IAMUser = val
