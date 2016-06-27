@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/terminal"
 )
 
 func CheckDB() bool {

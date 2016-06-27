@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/murdinc/awsm/aws"
-	"github.com/murdinc/awsm/terminal"
 	"github.com/murdinc/cli"
+	"github.com/murdinc/terminal"
 )
 
 // Main Function
@@ -18,6 +18,7 @@ func main() {
 	}
 
 	var dryRun bool
+	var force bool
 
 	app := cli.NewApp()
 	app.Name = "awsm"
@@ -53,9 +54,24 @@ func main() {
 		},
 		{
 			Name:  "attachVolume",
-			Usage: "Attach an AWS EBS Volume",
+			Usage: "Attach an AWS EBS Volume to and EC2 Instance",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "volume",
+					Description: "The volume to attach",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "instance",
+					Description: "The instance to attach the volume to",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.AttachVolume(c.NamedArg("volume"), c.NamedArg("instance"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -117,8 +133,28 @@ func main() {
 		{
 			Name:  "createImage",
 			Usage: "Create an AWS Machine Image from a running instance",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The AMI to create an image of",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of the new image",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the new image",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.CreateImage(c.NamedArg("search"), c.NamedArg("class"), c.NamedArg("name"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -176,16 +212,56 @@ func main() {
 		{
 			Name:  "createSnapshot",
 			Usage: "Create an AWS EBS snapshot of a volume",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The volume to create a snapshot from",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of the new snapshot",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the new snapshot",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.CreateSnapshot(c.NamedArg("search"), c.NamedArg("class"), c.NamedArg("name"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
 		{
 			Name:  "createVolume",
-			Usage: "Create an AWS EBS volume (from a class snapshot or blank)",
+			Usage: "Create an AWS EBS volume",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of the new volume",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the new volume",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "az",
+					Description: "The Availability Zone to create the volume in",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.CreateVolume(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("az"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -335,8 +411,8 @@ func main() {
 			Usage: "Delete an AWS SimpleDB Domain",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "domain",
-					Description: "The domain of the db",
+					Name:        "search",
+					Description: "The search term for simpleDB domain to delete",
 					Optional:    false,
 				},
 				cli.Argument{
@@ -346,7 +422,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.DeleteSimpleDBDomain(c.NamedArg("domain"), c.NamedArg("region"))
+				err := aws.DeleteSimpleDBDomain(c.NamedArg("search"), c.NamedArg("region"))
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -356,8 +432,23 @@ func main() {
 		{
 			Name:  "deleteVolume",
 			Usage: "Delete an AWS EBS Volume",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for volume to delete",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the vpc (optional)",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.DeleteVpcs(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -366,8 +457,8 @@ func main() {
 			Usage: "Delete AWS VPC Subnets",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "name",
-					Description: "The name of the Subnet",
+					Name:        "search",
+					Description: "The search term for Subnets to delete",
 					Optional:    false,
 				},
 				cli.Argument{
@@ -377,7 +468,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.DeleteSubnets(c.NamedArg("name"), c.NamedArg("region"), dryRun)
+				err := aws.DeleteSubnets(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -389,8 +480,8 @@ func main() {
 			Usage: "Delete AWS VPCs",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "name",
-					Description: "The name of the VPC",
+					Name:        "search",
+					Description: "The search term for VPCs to delete",
 					Optional:    false,
 				},
 				cli.Argument{
@@ -400,7 +491,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.DeleteVpcs(c.NamedArg("name"), c.NamedArg("region"), dryRun)
+				err := aws.DeleteVpcs(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -410,35 +501,41 @@ func main() {
 		{
 			Name:  "detachVolume",
 			Usage: "Detach an AWS EBS Volume",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "volume",
+					Description: "The volume to detach",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "instance",
+					Description: "The instance to detach the volume from",
+					Optional:    false,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "force",
+					Destination: &force,
+					Usage:       "force detach",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
 
+				err := aws.DetachVolume(c.NamedArg("volume"), c.NamedArg("instance"), force, dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
 		{
 			Name:  "stopInstances",
 			Usage: "Stop AWS instance(s)",
-			Action: func(c *cli.Context) error {
-				// TODO
-				return nil
-			},
-		},
-		{
-			Name:  "pauseInstances",
-			Usage: "Pause AWS instance(s)",
-			Action: func(c *cli.Context) error {
-				// TODO
-				return nil
-			},
-		},
-		{
-			Name:  "killInstances",
-			Usage: "Kill AWS instance(s)",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "name",
-					Description: "The name of the Instance",
+					Name:        "search",
+					Description: "The search term for instance to stop",
 					Optional:    false,
 				},
 				cli.Argument{
@@ -448,7 +545,76 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.KillInstances(c.NamedArg("name"), c.NamedArg("region"), dryRun)
+				err := aws.StopInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "startInstances",
+			Usage: "Start AWS instance(s)",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for Instance to start",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the instance (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.StartInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "rebootInstances",
+			Usage: "Reboot AWS instance(s)",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for instance to reboot",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the instance (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.RebootInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "terminateInstances",
+			Usage: "Terminate AWS instance(s)",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The search term for instance to terminate",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the instance (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.TerminateInstances(c.NamedArg("name"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -573,7 +739,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				instances, errs := aws.GetInstances(c.NamedArg("search"))
+				instances, errs := aws.GetInstances(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Instances!", 1)
 				} else {
@@ -725,7 +891,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				volumes, errs := aws.GetVolumes(c.NamedArg("search"))
+				volumes, errs := aws.GetVolumes(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Volumes!", 1)
 				} else {

@@ -12,8 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
-	"github.com/murdinc/awsm/terminal"
 	"github.com/murdinc/cli"
+	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 

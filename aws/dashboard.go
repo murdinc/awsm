@@ -188,7 +188,7 @@ func getModal(ctx *iris.Context) {
 
 func instancesPage(ctx *iris.Context) {
 	data := make(map[string]interface{})
-	instances, errs := GetInstances("")
+	instances, errs := GetInstances("", false)
 
 	data["Instances"] = instances
 	data["Errors"] = errs
@@ -263,7 +263,7 @@ func volumesPage(ctx *iris.Context) {
 
 	data := make(map[string]interface{})
 
-	volumes, errs := GetVolumes("")
+	volumes, errs := GetVolumes("", false)
 
 	data["Volumes"] = volumes
 	data["Errors"] = errs

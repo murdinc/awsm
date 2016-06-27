@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/dustin/go-humanize"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -171,6 +173,84 @@ func GetRegionSnapshots(region string, snapList *Snapshots, search string) error
 	}
 
 	return nil
+}
+
+func CreateSnapshot(search, class, name string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Locate the Volume
+	volumes, _ := GetVolumes(search, false)
+	if len(*volumes) == 0 {
+		return errors.New("No volumes found for your search terms.")
+	}
+	if len(*volumes) > 1 {
+		volumes.PrintTable()
+		return errors.New("Please limit your search to return only one volume.")
+	}
+
+	volume := (*volumes)[0]
+	region := volume.Region
+
+	// Class Config
+	var cfg config.SnapshotClassConfig
+	err := cfg.LoadConfig(class)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found Snapshot Class Configuration for [" + class + "]!")
+	}
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	// Create the Snapshot
+	snapshotParams := &ec2.CreateSnapshotInput{
+		VolumeId: aws.String(volume.VolumeId),
+		DryRun:   aws.Bool(dryRun),
+	}
+
+	createSnapshotResp, err := svc.CreateSnapshot(snapshotParams)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Created Snapshot [" + *createSnapshotResp.SnapshotId + "] named [" + name + "] in [" + region + "]!")
+
+	// Add Tags
+	snapshotTagsParams := &ec2.CreateTagsInput{
+		Resources: []*string{
+			createSnapshotResp.SnapshotId,
+		},
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String(name),
+			},
+			{
+				Key:   aws.String("Class"),
+				Value: aws.String(class),
+			},
+		},
+		DryRun: aws.Bool(dryRun),
+	}
+	_, err = svc.CreateTags(snapshotTagsParams)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+
 }
 
 func (v Snapshots) Len() int {

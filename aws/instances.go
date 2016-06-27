@@ -14,8 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
-	"github.com/murdinc/awsm/terminal"
 	"github.com/murdinc/cli"
+	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -42,9 +42,10 @@ type Instance struct {
 	ShutdownBehavior string
 	EbsOptimized     bool // TODO
 	Monitoring       bool // TODO
+	Region           string
 }
 
-func GetInstances(search string) (*Instances, []error) {
+func GetInstances(search string, running bool) (*Instances, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -56,7 +57,7 @@ func GetInstances(search string) (*Instances, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionInstances(*region.RegionName, instList, search)
+			err := GetRegionInstances(*region.RegionName, instList, search, running)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering instance list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -90,9 +91,10 @@ func (i *Instance) Marshall(instance *ec2.Instance, region string, subList *Subn
 	i.VPC = vpc
 	i.SubnetId = aws.StringValue(instance.SubnetId)
 	i.Subnet = subnet
+	i.Region = region
 }
 
-func GetRegionInstances(region string, instList *Instances, search string) error {
+func GetRegionInstances(region string, instList *Instances, search string, running bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: &region}))
 	result, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{})
 	if err != nil {
@@ -119,7 +121,7 @@ func GetRegionInstances(region string, instList *Instances, search string) error
 				for k := 0; k < rInst.NumField(); k++ {
 					sVal := rInst.Field(k).String()
 
-					if term.MatchString(sVal) && inst[i].State == "running" {
+					if term.MatchString(sVal) && ((running && inst[i].State == "running") || !running) {
 						*instList = append(*instList, inst[i])
 						continue Loop
 					}
@@ -216,7 +218,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		if err != nil {
 			return err
 		} else {
-			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotId + "] with class [" + latestSnapshot.Class + "] created on [" + latestSnapshot.CreatedHuman + "]!")
+			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotId + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
 		}
 
 		ebsVolumes[i] = &ec2.BlockDeviceMapping{
@@ -269,11 +271,13 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	// Placement ??
 
 	// VPC / Subnet
+	var vpc Vpc
+	var subnet Subnet
 	var subnetId string
 	secGroupIds := make([]*string, len(instanceCfg.SecurityGroups))
 	if instanceCfg.Vpc != "" && instanceCfg.Subnet != "" {
 		// VPC
-		vpc, err := GetVpcByTag(region, "Class", instanceCfg.Vpc)
+		vpc, err = GetVpcByTag(region, "Class", instanceCfg.Vpc)
 		if err != nil {
 			return err
 		} else {
@@ -281,7 +285,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		}
 
 		// Subnet
-		subnet, err := vpc.GetVpcSubnetByTag("Class", instanceCfg.Subnet)
+		subnet, err = vpc.GetVpcSubnetByTag("Class", instanceCfg.Subnet)
 		if err != nil {
 			return err
 		} else {
@@ -423,10 +427,10 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	terminal.Information("Finished Launching Instance!")
 
-	instList := new(Instances)
+	inst := make(Instances, 1)
+	inst[1].Marshall(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc})
 
-	GetRegionInstances(region, instList, *launchInstanceResp.Instances[0].InstanceId)
-	instList.PrintTable()
+	inst.PrintTable()
 
 	// ================================================================
 	// ================================================================
@@ -436,7 +440,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 }
 
 // Public function with confirmation terminal prompt
-func KillInstances(name, region string, dryRun bool) (err error) {
+func TerminateInstances(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
 	if dryRun {
@@ -447,9 +451,9 @@ func KillInstances(name, region string, dryRun bool) (err error) {
 
 	// Check if we were given a region or not
 	if region != "" {
-		err = GetRegionInstances(region, instList, name)
+		err = GetRegionInstances(region, instList, search, true)
 	} else {
-		instList, _ = GetInstances(name)
+		instList, _ = GetInstances(search, true)
 	}
 
 	if err != nil {
@@ -464,12 +468,12 @@ func KillInstances(name, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to kill these Instances") {
+	if !terminal.PromptBool("Are you sure you want to terminate these Instances") {
 		return errors.New("Aborting!")
 	}
 
 	// Delete 'Em
-	err = killInstances(instList, dryRun)
+	err = terminateInstances(instList, dryRun)
 	if err != nil {
 		return err
 	}
@@ -480,7 +484,7 @@ func KillInstances(name, region string, dryRun bool) (err error) {
 }
 
 // Private function without the confirmation terminal prompts
-func killInstances(instList *Instances, dryRun bool) (err error) {
+func terminateInstances(instList *Instances, dryRun bool) (err error) {
 	for _, instance := range *instList {
 		azs, _ := GetAZs()
 
@@ -495,11 +499,229 @@ func killInstances(instList *Instances, dryRun bool) (err error) {
 
 		_, err := svc.TerminateInstances(params)
 		if err != nil {
-			terminal.ErrorLine(err.Error())
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
 			return err
 		}
 
-		terminal.Information("Killed Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Information("Terminated Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+	}
+
+	return nil
+}
+
+// Public function with confirmation terminal prompt
+func StopInstances(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	instList := new(Instances)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionInstances(region, instList, search, true)
+	} else {
+		instList, _ = GetInstances(search, true)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Instance list")
+	}
+
+	if len(*instList) > 0 {
+		// Print the table
+		instList.PrintTable()
+	} else {
+		return errors.New("No Instances found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to stop these Instances") {
+		return errors.New("Aborting!")
+	}
+
+	// Stop 'Em
+	err = stopInstances(instList, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func stopInstances(instList *Instances, dryRun bool) (err error) {
+	for _, instance := range *instList {
+		azs, _ := GetAZs()
+
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
+
+		params := &ec2.StopInstancesInput{
+			InstanceIds: []*string{
+				aws.String(instance.InstanceId),
+			},
+			DryRun: aws.Bool(dryRun),
+		}
+
+		_, err := svc.StopInstances(params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+			return err
+		}
+
+		terminal.Information("Stopped Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+	}
+
+	return nil
+}
+
+// Public function with confirmation terminal prompt
+func StartInstances(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	instList := new(Instances)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionInstances(region, instList, search, false)
+	} else {
+		instList, _ = GetInstances(search, false)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Instance list")
+	}
+
+	if len(*instList) > 0 {
+		// Print the table
+		instList.PrintTable()
+	} else {
+		return errors.New("No Instances found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to start these Instances") {
+		return errors.New("Aborting!")
+	}
+
+	// Stop 'Em
+	err = startInstances(instList, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func startInstances(instList *Instances, dryRun bool) (err error) {
+	for _, instance := range *instList {
+		azs, _ := GetAZs()
+
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
+
+		params := &ec2.StartInstancesInput{
+			InstanceIds: []*string{
+				aws.String(instance.InstanceId),
+			},
+			DryRun: aws.Bool(dryRun),
+		}
+
+		_, err := svc.StartInstances(params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+			return err
+		}
+
+		terminal.Information("Started Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+	}
+
+	return nil
+}
+
+// Public function with confirmation terminal prompt
+func RebootInstances(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	instList := new(Instances)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionInstances(region, instList, search, true)
+	} else {
+		instList, _ = GetInstances(search, true)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Instance list")
+	}
+
+	if len(*instList) > 0 {
+		// Print the table
+		instList.PrintTable()
+	} else {
+		return errors.New("No Instances found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to reboot these Instances") {
+		return errors.New("Aborting!")
+	}
+
+	// Stop 'Em
+	err = stopInstances(instList, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func rebootInstances(instList *Instances, dryRun bool) (err error) {
+	for _, instance := range *instList {
+		azs, _ := GetAZs()
+
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
+
+		params := &ec2.RebootInstancesInput{
+			InstanceIds: []*string{
+				aws.String(instance.InstanceId),
+			},
+			DryRun: aws.Bool(dryRun),
+		}
+
+		_, err := svc.RebootInstances(params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+			return err
+		}
+
+		terminal.Information("Rebooted Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil

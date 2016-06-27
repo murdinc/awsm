@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 

@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -330,7 +330,7 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 }
 
 // Public function with confirmation terminal prompt
-func DeleteVpcs(name, region string, dryRun bool) (err error) {
+func DeleteVpcs(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
 	if dryRun {
@@ -341,9 +341,9 @@ func DeleteVpcs(name, region string, dryRun bool) (err error) {
 
 	// Check if we were given a region or not
 	if region != "" {
-		err = GetRegionVpcs(region, vpcList, name)
+		err = GetRegionVpcs(region, vpcList, search)
 	} else {
-		vpcList, _ = GetVpcs(name)
+		vpcList, _ = GetVpcs(search)
 	}
 
 	if err != nil {

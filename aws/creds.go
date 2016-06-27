@@ -5,7 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/terminal"
 	"gopkg.in/ini.v1"
 )
 

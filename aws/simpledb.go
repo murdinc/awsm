@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/simpledb"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -132,15 +132,15 @@ func CreateSimpleDBDomain(domain, region string) error {
 	return err
 }
 
-func DeleteSimpleDBDomain(domain, region string) (err error) {
+func DeleteSimpleDBDomain(search, region string) (err error) {
 
 	domainList := new(SimpleDBDomains)
 
 	// Check if we were given a region or not
 	if region != "" {
-		err = GetRegionSimpleDBDomains(aws.String(region), domainList, domain)
+		err = GetRegionSimpleDBDomains(aws.String(region), domainList, search)
 	} else {
-		domainList, _ = GetSimpleDBDomains(domain)
+		domainList, _ = GetSimpleDBDomains(search)
 	}
 
 	if err != nil {

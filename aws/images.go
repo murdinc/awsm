@@ -11,9 +11,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -96,6 +98,104 @@ func GetImages(search string) (*Images, []error) {
 	wg.Wait()
 
 	return imgList, errs
+}
+
+func CreateImage(search, class, name string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Class Config
+	var imgCfg config.ImageClassConfig
+	err := imgCfg.LoadConfig(class)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found Image Class Configuration for [" + class + "]!")
+	}
+
+	// Locate the Instance
+	instances, _ := GetInstances(search, true)
+	if len(*instances) == 0 {
+		return errors.New("No running instances found for your search terms.")
+	}
+	if len(*instances) > 1 {
+		instances.PrintTable()
+		return errors.New("Please limit your search to return only one instance.")
+	}
+
+	instance := (*instances)[0]
+	region := instance.Region
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	// Create the Image
+
+	params := &ec2.CreateImageInput{
+		InstanceId: aws.String(instance.InstanceId),
+		Name:       aws.String(name),
+		/*
+			BlockDeviceMappings: []*ec2.BlockDeviceMapping{
+				{ // Required
+					DeviceName: aws.String("String"),
+					Ebs: &ec2.EbsBlockDevice{
+						DeleteOnTermination: aws.Bool(true),
+						Encrypted:           aws.Bool(true),
+						Iops:                aws.Int64(1),
+						SnapshotId:          aws.String("String"),
+						VolumeSize:          aws.Int64(1),
+						VolumeType:          aws.String("VolumeType"),
+					},
+					NoDevice:    aws.String("String"),
+					VirtualName: aws.String("String"),
+				},
+			},
+		*/
+		//Description: aws.String("String"),
+		DryRun: aws.Bool(dryRun),
+		//NoReboot:    aws.Bool(true),
+	}
+	createImageResp, err := svc.CreateImage(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Created Image [" + *createImageResp.ImageId + "] named [" + name + "] in [" + region + "]!")
+
+	// Add Tags
+	snapshotTagsParams := &ec2.CreateTagsInput{
+		Resources: []*string{
+			createImageResp.ImageId,
+		},
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String(name),
+			},
+			{
+				Key:   aws.String("Class"),
+				Value: aws.String(class),
+			},
+		},
+		DryRun: aws.Bool(dryRun),
+	}
+	_, err = svc.CreateTags(snapshotTagsParams)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+
 }
 
 func (i *Image) Marshall(image *ec2.Image, region string) {

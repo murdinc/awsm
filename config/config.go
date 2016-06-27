@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
-	"github.com/murdinc/awsm/terminal"
+	"github.com/murdinc/terminal"
 )
 
 func GetClassConfig(configType, configClass string) (*simpledb.GetAttributesOutput, error) {
