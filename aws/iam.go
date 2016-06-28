@@ -105,7 +105,7 @@ func CreateIAMUser(username, path string) error {
 	return err
 }
 
-func DeleteIAMUser(username string) (err error) {
+func DeleteIAMUsers(username string) (err error) {
 
 	userList, err := GetIAMUsers(username)
 	if err != nil {

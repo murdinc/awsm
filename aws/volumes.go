@@ -108,6 +108,41 @@ func GetVolumes(search string, available bool) (*Volumes, []error) {
 	return volList, errs
 }
 
+func GetRegionVolumes(region string, volList *Volumes, search string, available bool) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	result, err := svc.DescribeVolumes(&ec2.DescribeVolumesInput{})
+
+	if err != nil {
+		return err
+	}
+
+	vol := make(Volumes, len(result.Volumes))
+	for i, volume := range result.Volumes {
+		vol[i].Marshall(volume, region)
+	}
+
+	if search != "" {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, v := range vol {
+			rV := reflect.ValueOf(v)
+
+			for k := 0; k < rV.NumField(); k++ {
+				sVal := rV.Field(k).String()
+
+				if term.MatchString(sVal) && ((available && vol[i].State == "available") || !available) {
+					*volList = append(*volList, vol[i])
+					continue Loop
+				}
+			}
+		}
+	} else {
+		*volList = append(*volList, vol[:]...)
+	}
+
+	return nil
+}
+
 func DetachVolume(volume, instance string, force, dryRun bool) error {
 	// Get the instance
 	instances, _ := GetInstances(instance, true)
@@ -311,6 +346,74 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 
 }
 
+// Public function with confirmation terminal prompt
+func DeleteVolumes(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	volList := new(Volumes)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionVolumes(region, volList, search, true)
+	} else {
+		volList, _ = GetVolumes(search, true)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Volume list")
+	}
+
+	if len(*volList) > 0 {
+		// Print the table
+		volList.PrintTable()
+	} else {
+		return errors.New("No available Volumes found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these Volumes") {
+		return errors.New("Aborting!")
+	}
+
+	// Delete 'Em
+	err = deleteVolumes(volList, dryRun)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
+	for _, volume := range *volList {
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(volume.Region)}))
+
+		params := &ec2.DeleteVolumeInput{
+			VolumeId: aws.String(volume.VolumeId),
+			DryRun:   aws.Bool(dryRun),
+		}
+
+		_, err := svc.DeleteVolume(params)
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Deleted Volume [" + volume.Name + "] in [" + volume.Region + "]!")
+	}
+
+	return nil
+}
+
 func (v *Volume) Marshall(volume *ec2.Volume, region string) {
 	v.Name = GetTagValue("Name", volume.Tags)
 	v.Class = GetTagValue("Class", volume.Tags)
@@ -326,41 +429,6 @@ func (v *Volume) Marshall(volume *ec2.Volume, region string) {
 	//v.DeleteOnTerm =     aws.StringValue(volume.) // TODO
 	v.AvailabilityZone = aws.StringValue(volume.AvailabilityZone)
 	v.Region = region
-}
-
-func GetRegionVolumes(region string, volList *Volumes, search string, available bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
-	result, err := svc.DescribeVolumes(&ec2.DescribeVolumesInput{})
-
-	if err != nil {
-		return err
-	}
-
-	vol := make(Volumes, len(result.Volumes))
-	for i, volume := range result.Volumes {
-		vol[i].Marshall(volume, region)
-	}
-
-	if search != "" {
-		term := regexp.MustCompile(search)
-	Loop:
-		for i, v := range vol {
-			rV := reflect.ValueOf(v)
-
-			for k := 0; k < rV.NumField(); k++ {
-				sVal := rV.Field(k).String()
-
-				if term.MatchString(sVal) && ((available && vol[i].State == "available") || !available) {
-					*volList = append(*volList, vol[i])
-					continue Loop
-				}
-			}
-		}
-	} else {
-		*volList = append(*volList, vol[:]...)
-	}
-
-	return nil
 }
 
 func (v Volumes) Len() int {

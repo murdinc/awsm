@@ -78,24 +78,69 @@ func main() {
 		{
 			Name:  "copyImage",
 			Usage: "Copy an AWS Machine Image to another region",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The image to copy",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to copy the image to",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.CopyImage(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
 		{
 			Name:  "copySnapshot",
 			Usage: "Copy an AWS EBS Snapshot to another region",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The snapshot to copy",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to copy the snapshot to",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.CopySnapshot(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
 		{
 			Name:  "createAddress",
-			Usage: "Create an AWS Elastic IP Address (for use in a VPC or EC2-Classic)",
+			Usage: "Create an AWS Elastic IP Address",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to create the elastic ip in",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "domain",
+					Description: "The domain to create the elastic ip in (classic or vpc)",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.CreateAddress(c.NamedArg("region"), c.NamedArg("domain"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -337,25 +382,22 @@ func main() {
 			},
 		},
 		{
-			Name:  "deleteAutoScaleGroup",
-			Usage: "Delete an AWS AutoScaling Group",
-			Action: func(c *cli.Context) error {
-				// TODO
-				return nil
-			},
-		},
-		{
-			Name:  "deleteIAMUser",
-			Usage: "Delete an AWS Machine Image",
+			Name:  "deleteAddresses",
+			Usage: "Delete AWS Elastic IP Addresses",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "username",
-					Description: "The username of the IAM User to delete",
+					Name:        "search",
+					Description: "The search term for the elastic ip to delete",
 					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to delete the elastic ip from",
+					Optional:    true,
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.DeleteIAMUser(c.NamedArg("username"))
+				err := aws.DeleteAddresses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -363,16 +405,57 @@ func main() {
 			},
 		},
 		{
-			Name:  "deleteImage",
-			Usage: "Delete an AWS Machine Image",
+			Name:  "deleteAutoScaleGroup",
+			Usage: "Delete AWS AutoScaling Groups",
 			Action: func(c *cli.Context) error {
 				// TODO
 				return nil
 			},
 		},
 		{
+			Name:  "deleteIAMUsesr",
+			Usage: "Delete AWS IAM Users",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for iam username",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteIAMUsers(c.NamedArg("search"))
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "deleteImages",
+			Usage: "Delete AWS Machine Images",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for images to delete",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the images (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteImages(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "deleteKeyPairs",
-			Usage: "Delete an AWS KeyPair",
+			Usage: "Delete AWS KeyPairs",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "name",
@@ -392,23 +475,38 @@ func main() {
 		},
 		{
 			Name:  "deleteLaunchConfiguration",
-			Usage: "Delete an AWS AutoScaling Launch Configuration",
+			Usage: "Delete AWS AutoScaling Launch Configurations",
 			Action: func(c *cli.Context) error {
 				// TODO
 				return nil
 			},
 		},
 		{
-			Name:  "deleteSnapshot",
-			Usage: "Delete an AWS EBS Snapshot",
+			Name:  "deleteSnapshots",
+			Usage: "Delete AWS EBS Snapshots",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for snapshots to delete",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region of the snapshots (optional)",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.DeleteSnapshots(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
 		{
 			Name:  "deleteSimpleDBDomains",
-			Usage: "Delete an AWS SimpleDB Domain",
+			Usage: "Delete AWS SimpleDB Domains",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -417,7 +515,7 @@ func main() {
 				},
 				cli.Argument{
 					Name:        "region",
-					Description: "The region of the db (optional)",
+					Description: "The region of the DBs (optional)",
 					Optional:    true,
 				},
 			},
@@ -430,22 +528,23 @@ func main() {
 			},
 		},
 		{
-			Name:  "deleteVolume",
-			Usage: "Delete an AWS EBS Volume",
+			Name:  "deleteVolumes",
+			Usage: "Delete AWS EBS Volumes",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "search",
-					Description: "The search term for volume to delete",
+					Name:        "volume",
+					Description: "The volume to delete",
 					Optional:    false,
 				},
 				cli.Argument{
 					Name:        "region",
-					Description: "The region of the vpc (optional)",
+					Description: "The region of the volumes (optional)",
 					Optional:    true,
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.DeleteVpcs(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+
+				err := aws.DeleteVolumes(c.NamedArg("volume"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -463,7 +562,7 @@ func main() {
 				},
 				cli.Argument{
 					Name:        "region",
-					Description: "The region of the subnet (optional)",
+					Description: "The region of the subnets (optional)",
 					Optional:    true,
 				},
 			},
@@ -486,7 +585,7 @@ func main() {
 				},
 				cli.Argument{
 					Name:        "region",
-					Description: "The region of the vpc (optional)",
+					Description: "The region of the VPCs (optional)",
 					Optional:    true,
 				},
 			},
@@ -531,7 +630,7 @@ func main() {
 		},
 		{
 			Name:  "stopInstances",
-			Usage: "Stop AWS instance(s)",
+			Usage: "Stop AWS instances",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -554,7 +653,7 @@ func main() {
 		},
 		{
 			Name:  "startInstances",
-			Usage: "Start AWS instance(s)",
+			Usage: "Start AWS instances",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -577,7 +676,7 @@ func main() {
 		},
 		{
 			Name:  "rebootInstances",
-			Usage: "Reboot AWS instance(s)",
+			Usage: "Reboot AWS instances",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -600,7 +699,7 @@ func main() {
 		},
 		{
 			Name:  "terminateInstances",
-			Usage: "Terminate AWS instance(s)",
+			Usage: "Terminate AWS instances",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "name",
@@ -651,9 +750,16 @@ func main() {
 		},
 		{
 			Name:  "listAddresses",
-			Usage: "Lists all AWS Elastic IP Addresses",
+			Usage: "Lists AWS Elastic IP Addresses",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				addresses, errs := aws.GetAddresses()
+				addresses, errs := aws.GetAddresses(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Addresses!", 1)
 				} else {
@@ -664,7 +770,7 @@ func main() {
 		},
 		{
 			Name:  "listAlarms",
-			Usage: "Lists all CloudWatch Alarms",
+			Usage: "Lists CloudWatch Alarms",
 			Action: func(c *cli.Context) error {
 				alarms, errs := aws.GetAlarms()
 				if errs != nil {
@@ -677,7 +783,7 @@ func main() {
 		},
 		{
 			Name:  "listAutoScaleGroups",
-			Usage: "Lists all AutoScale Groups",
+			Usage: "Lists AutoScale Groups",
 			Action: func(c *cli.Context) error {
 				groups, errs := aws.GetAutoScaleGroups()
 				if errs != nil {
@@ -690,7 +796,7 @@ func main() {
 		},
 		{
 			Name:  "listIAMUsers",
-			Usage: "Lists all IAM Users",
+			Usage: "Lists IAM Users",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -710,7 +816,7 @@ func main() {
 		},
 		{
 			Name:  "listImages",
-			Usage: "Lists all AWS Machine Images owned by us",
+			Usage: "Lists AWS Machine Images owned by us",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -719,7 +825,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				images, errs := aws.GetImages(c.NamedArg("search"))
+				images, errs := aws.GetImages(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Images!", 1)
 				} else {
@@ -730,7 +836,7 @@ func main() {
 		},
 		{
 			Name:  "listInstances",
-			Usage: "Lists all AWS EC2 Instances",
+			Usage: "Lists AWS EC2 Instances",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -750,7 +856,7 @@ func main() {
 		},
 		{
 			Name:  "listKeyPairs",
-			Usage: "Lists all AWS Key Pairs",
+			Usage: "Lists AWS Key Pairs",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -770,7 +876,7 @@ func main() {
 		},
 		{
 			Name:  "listLaunchConfigurations",
-			Usage: "Lists all Launch Configurations",
+			Usage: "Lists Launch Configurations",
 			Action: func(c *cli.Context) error {
 				launchConfigs, errs := aws.GetLaunchConfigurations()
 				if errs != nil {
@@ -783,7 +889,7 @@ func main() {
 		},
 		{
 			Name:  "listLoadBalancers",
-			Usage: "Lists all Elastic Load Balancers",
+			Usage: "Lists Elastic Load Balancers",
 			Action: func(c *cli.Context) error {
 				loadBalancers, errs := aws.GetLoadBalancers()
 				if errs != nil {
@@ -796,7 +902,7 @@ func main() {
 		},
 		{
 			Name:  "listScalingPolicies",
-			Usage: "Lists all Scaling Policies",
+			Usage: "Lists Scaling Policies",
 			Action: func(c *cli.Context) error {
 				policies, errs := aws.GetScalingPolicies()
 				if errs != nil {
@@ -809,7 +915,7 @@ func main() {
 		},
 		{
 			Name:  "listSecurityGroups",
-			Usage: "Lists all Security Groups",
+			Usage: "Lists Security Groups",
 			Action: func(c *cli.Context) error {
 				groups, errs := aws.GetSecurityGroups()
 				if errs != nil {
@@ -822,7 +928,7 @@ func main() {
 		},
 		{
 			Name:  "listSnapshots",
-			Usage: "Lists all AWS EBS Snapshots",
+			Usage: "Lists AWS EBS Snapshots",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -831,7 +937,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				snapshots, errs := aws.GetSnapshots(c.NamedArg("search"))
+				snapshots, errs := aws.GetSnapshots(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Snapshots!", 1)
 				} else {
@@ -842,7 +948,7 @@ func main() {
 		},
 		{
 			Name:  "listSubnets",
-			Usage: "Lists all AWS Subnets",
+			Usage: "Lists AWS Subnets",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -862,7 +968,7 @@ func main() {
 		},
 		{
 			Name:  "listSimpleDBDomains",
-			Usage: "Lists all AWS SimpleDB Domains",
+			Usage: "Lists AWS SimpleDB Domains",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -882,7 +988,7 @@ func main() {
 		},
 		{
 			Name:  "listVolumes",
-			Usage: "Lists all AWS EBS Volumes",
+			Usage: "Lists AWS EBS Volumes",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -902,7 +1008,7 @@ func main() {
 		},
 		{
 			Name:  "listVpcs",
-			Usage: "Lists all AWS Vpcs",
+			Usage: "Lists AWS Vpcs",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -922,7 +1028,7 @@ func main() {
 		},
 		{
 			Name:  "resumeProcesses",
-			Usage: "Resume all autoscaling processes on a specific autoscaling group",
+			Usage: "Resume autoscaling processes on a specific autoscaling group",
 			Action: func(c *cli.Context) error {
 				// TODO
 				return nil
@@ -938,7 +1044,7 @@ func main() {
 		},
 		{
 			Name:  "suspendProcesses",
-			Usage: "Stop all autoscaling processes on a specific autoscaling group",
+			Usage: "Stop autoscaling processes on a specific autoscaling group",
 			Action: func(c *cli.Context) error {
 				// TODO
 				return nil

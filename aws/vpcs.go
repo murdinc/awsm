@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
@@ -365,6 +366,9 @@ func DeleteVpcs(search, region string, dryRun bool) (err error) {
 	// Delete 'Em
 	err = deleteVpcs(vpcList, dryRun)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
 		return err
 	}
 

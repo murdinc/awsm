@@ -40,7 +40,7 @@ func GetAZs() (*AZs, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionAZs(region.RegionName, azList)
+			err := GetRegionAZs(*region.RegionName, azList)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering az list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -53,8 +53,8 @@ func GetAZs() (*AZs, []error) {
 	return azList, errs
 }
 
-func GetRegionAZs(region *string, azList *AZs) error {
-	svc := ec2.New(session.New(&aws.Config{Region: region}))
+func GetRegionAZs(region string, azList *AZs) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeAvailabilityZones(nil)
 
 	if err != nil {

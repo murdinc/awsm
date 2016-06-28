@@ -76,7 +76,7 @@ func GetLatestImageByTag(region, key, value string) (Image, error) {
 	return imgList[0], nil
 }
 
-func GetImages(search string) (*Images, []error) {
+func GetImages(search string, available bool) (*Images, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -88,7 +88,7 @@ func GetImages(search string) (*Images, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionImages(*region.RegionName, imgList, search, false)
+			err := GetRegionImages(*region.RegionName, imgList, search, available)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering image list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -98,6 +98,126 @@ func GetImages(search string) (*Images, []error) {
 	wg.Wait()
 
 	return imgList, errs
+}
+
+func GetRegionImages(region string, imgList *Images, search string, available bool) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	result, err := svc.DescribeImages(&ec2.DescribeImagesInput{Owners: []*string{aws.String("self")}})
+
+	if err != nil {
+		return err
+	}
+
+	img := make(Images, len(result.Images))
+	for i, image := range result.Images {
+		img[i].Marshall(image, region)
+	}
+
+	if search != "" {
+		for i, in := range img {
+			if in.Class == search {
+				*imgList = append(*imgList, img[i])
+			}
+		}
+
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, in := range img {
+			rInst := reflect.ValueOf(in)
+
+			for k := 0; k < rInst.NumField(); k++ {
+				sVal := rInst.Field(k).String()
+
+				if term.MatchString(sVal) && ((available && img[i].State == "available") || !available) {
+					*imgList = append(*imgList, img[i])
+					continue Loop
+				}
+			}
+		}
+
+	} else {
+		*imgList = append(*imgList, img[:]...)
+	}
+
+	return nil
+}
+
+func CopyImage(search, region string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Validate the destination region
+	if !ValidateRegion(region) {
+		return errors.New("Region [" + region + "] is Invalid!")
+	}
+
+	// Get the source image
+	images, _ := GetImages(search, true)
+	imgCount := len(*images)
+	if imgCount == 0 {
+		return errors.New("No available images found for your search terms.")
+	}
+	if imgCount > 1 {
+		images.PrintTable()
+		return errors.New("Please limit your search to return only one image.")
+	}
+
+	image := (*images)[0]
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	// Copy image to the destination region
+	params := &ec2.CopyImageInput{
+		Name:          aws.String(image.Name),
+		SourceImageId: aws.String(image.ImageId),
+		SourceRegion:  aws.String(image.Region),
+		DryRun:        aws.Bool(dryRun),
+		//ClientToken: aws.String("String"),
+		//Description: aws.String("String"),
+		//Encrypted:   aws.Bool(true),
+		//KmsKeyId:    aws.String("String"),
+	}
+	copyImageResp, err := svc.CopyImage(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Created Image [" + *copyImageResp.ImageId + "] named [" + image.Name + "] to [" + region + "]!")
+
+	// Add Tags
+	imageTagsParams := &ec2.CreateTagsInput{
+		Resources: []*string{
+			copyImageResp.ImageId,
+		},
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String(image.Name),
+			},
+			{
+				Key:   aws.String("Class"),
+				Value: aws.String(image.Class),
+			},
+		},
+		DryRun: aws.Bool(dryRun),
+	}
+	_, err = svc.CreateTags(imageTagsParams)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
 }
 
 func CreateImage(search, class, name string, dryRun bool) error {
@@ -118,10 +238,11 @@ func CreateImage(search, class, name string, dryRun bool) error {
 
 	// Locate the Instance
 	instances, _ := GetInstances(search, true)
-	if len(*instances) == 0 {
+	instCount := len(*instances)
+	if instCount == 0 {
 		return errors.New("No running instances found for your search terms.")
 	}
-	if len(*instances) > 1 {
+	if instCount > 1 {
 		instances.PrintTable()
 		return errors.New("Please limit your search to return only one instance.")
 	}
@@ -169,7 +290,7 @@ func CreateImage(search, class, name string, dryRun bool) error {
 	terminal.Information("Created Image [" + *createImageResp.ImageId + "] named [" + name + "] in [" + region + "]!")
 
 	// Add Tags
-	snapshotTagsParams := &ec2.CreateTagsInput{
+	imageTagsParams := &ec2.CreateTagsInput{
 		Resources: []*string{
 			createImageResp.ImageId,
 		},
@@ -185,7 +306,7 @@ func CreateImage(search, class, name string, dryRun bool) error {
 		},
 		DryRun: aws.Bool(dryRun),
 	}
-	_, err = svc.CreateTags(snapshotTagsParams)
+	_, err = svc.CreateTags(imageTagsParams)
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -224,44 +345,69 @@ func (i *Image) Marshall(image *ec2.Image, region string) {
 	i.Region = region
 }
 
-func GetRegionImages(region string, imgList *Images, search string, searchClass bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
-	result, err := svc.DescribeImages(&ec2.DescribeImagesInput{Owners: []*string{aws.String("self")}})
+// Public function with confirmation terminal prompt
+func DeleteImages(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	imgList := new(Images)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionImages(region, imgList, search, false)
+	} else {
+		imgList, _ = GetImages(search, false)
+	}
 
 	if err != nil {
+		return errors.New("Error gathering Image list")
+	}
+
+	if len(*imgList) > 0 {
+		// Print the table
+		imgList.PrintTable()
+	} else {
+		return errors.New("No available Images found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these Volumes") {
+		return errors.New("Aborting!")
+	}
+
+	// Delete 'Em
+	err = deleteImages(imgList, dryRun)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
 		return err
 	}
 
-	img := make(Images, len(result.Images))
-	for i, image := range result.Images {
-		img[i].Marshall(image, region)
-	}
+	terminal.Information("Done!")
 
-	if search != "" {
-		if searchClass { // Specific class search
-			for i, in := range img {
-				if in.Class == search {
-					*imgList = append(*imgList, img[i])
-				}
-			}
-		} else { // General search
-			term := regexp.MustCompile(search)
-		Loop:
-			for i, in := range img {
-				rInst := reflect.ValueOf(in)
+	return nil
+}
 
-				for k := 0; k < rInst.NumField(); k++ {
-					sVal := rInst.Field(k).String()
+// Private function without the confirmation terminal prompts
+func deleteImages(imgList *Images, dryRun bool) (err error) {
+	for _, image := range *imgList {
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(image.Region)}))
 
-					if term.MatchString(sVal) {
-						*imgList = append(*imgList, img[i])
-						continue Loop
-					}
-				}
-			}
+		params := &ec2.DeregisterImageInput{
+			ImageId: aws.String(image.ImageId),
+			DryRun:  aws.Bool(dryRun),
 		}
-	} else {
-		*imgList = append(*imgList, img[:]...)
+
+		_, err := svc.DeregisterImage(params)
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Deleted Image [" + image.Name + "] in [" + image.Region + "]!")
 	}
 
 	return nil

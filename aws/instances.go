@@ -70,6 +70,15 @@ func GetInstances(search string, running bool) (*Instances, []error) {
 	return instList, errs
 }
 
+func (i *Instances) GetInstanceName(id string) string {
+	for _, instance := range *i {
+		if instance.InstanceId == id && instance.Name != "" {
+			return instance.Name
+		}
+	}
+	return id
+}
+
 func (i *Instance) Marshall(instance *ec2.Instance, region string, subList *Subnets, vpcList *Vpcs) {
 
 	subnet := subList.GetSubnetName(aws.StringValue(instance.SubnetId))

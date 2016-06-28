@@ -93,7 +93,7 @@ func GetLatestSnapshotByTagMulti(region, key string, value []string) (Snapshots,
 	return snapList, nil
 }
 
-func GetSnapshots(search string) (*Snapshots, []error) {
+func GetSnapshots(search string, completed bool) (*Snapshots, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -105,7 +105,7 @@ func GetSnapshots(search string) (*Snapshots, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionSnapshots(*region.RegionName, snapList, search)
+			err := GetRegionSnapshots(*region.RegionName, snapList, search, completed)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering snapshot list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -140,7 +140,7 @@ func (s *Snapshot) Marshall(snapshot *ec2.Snapshot, region string) {
 	}
 }
 
-func GetRegionSnapshots(region string, snapList *Snapshots, search string) error {
+func GetRegionSnapshots(region string, snapList *Snapshots, search string, completed bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSnapshots(&ec2.DescribeSnapshotsInput{OwnerIds: []*string{aws.String("self")}})
 
@@ -162,7 +162,7 @@ func GetRegionSnapshots(region string, snapList *Snapshots, search string) error
 			for k := 0; k < rInst.NumField(); k++ {
 				sVal := rInst.Field(k).String()
 
-				if term.MatchString(sVal) {
+				if term.MatchString(sVal) && ((completed && snap[i].State == "completed") || !completed) {
 					*snapList = append(*snapList, snap[i])
 					continue Loop
 				}
@@ -170,6 +170,84 @@ func GetRegionSnapshots(region string, snapList *Snapshots, search string) error
 		}
 	} else {
 		*snapList = append(*snapList, snap[:]...)
+	}
+
+	return nil
+}
+
+func CopySnapshot(search, region string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Validate the destination region
+	if !ValidateRegion(region) {
+		return errors.New("Region [" + region + "] is Invalid!")
+	}
+
+	// Get the source snapshot
+	snapshots, _ := GetSnapshots(search, true)
+	snapCount := len(*snapshots)
+	if snapCount == 0 {
+		return errors.New("No available snapshots found for your search terms.")
+	}
+	if snapCount > 1 {
+		snapshots.PrintTable()
+		return errors.New("Please limit your search to return only one snapshot.")
+	}
+
+	snapshot := (*snapshots)[0]
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	// Copy snapshot to the destination region
+	params := &ec2.CopySnapshotInput{
+		SourceRegion:      aws.String(snapshot.Region),
+		SourceSnapshotId:  aws.String(snapshot.SnapshotId),
+		Description:       aws.String(snapshot.Description),
+		DestinationRegion: aws.String(region),
+		DryRun:            aws.Bool(dryRun),
+		//Encrypted:       aws.Bool(true),
+		//KmsKeyId:        aws.String("String"),
+		//PresignedUrl:    aws.String("String"),
+	}
+	copySnapResp, err := svc.CopySnapshot(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Created Snapshot [" + *copySnapResp.SnapshotId + "] named [" + snapshot.Name + "] to [" + region + "]!")
+
+	// Add Tags
+	snapTagsParams := &ec2.CreateTagsInput{
+		Resources: []*string{
+			copySnapResp.SnapshotId,
+		},
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String(snapshot.Name),
+			},
+			{
+				Key:   aws.String("Class"),
+				Value: aws.String(snapshot.Class),
+			},
+		},
+		DryRun: aws.Bool(dryRun),
+	}
+	_, err = svc.CreateTags(snapTagsParams)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
 	}
 
 	return nil
@@ -251,6 +329,74 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 
 	return nil
 
+}
+
+// Public function with confirmation terminal prompt
+func DeleteSnapshots(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	snapList := new(Snapshots)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionSnapshots(region, snapList, search, false)
+	} else {
+		snapList, _ = GetSnapshots(search, false)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Snapshots list")
+	}
+
+	if len(*snapList) > 0 {
+		// Print the table
+		snapList.PrintTable()
+	} else {
+		return errors.New("No available Snapshots found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these Snapshots") {
+		return errors.New("Aborting!")
+	}
+
+	// Delete 'Em
+	err = deleteSnapshots(snapList, dryRun)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func deleteSnapshots(snapList *Snapshots, dryRun bool) (err error) {
+	for _, snapshot := range *snapList {
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(snapshot.Region)}))
+
+		params := &ec2.DeleteSnapshotInput{
+			SnapshotId: aws.String(snapshot.SnapshotId),
+			DryRun:     aws.Bool(dryRun),
+		}
+
+		_, err := svc.DeleteSnapshot(params)
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Deleted Snapshot [" + snapshot.Name + "] in [" + snapshot.Region + "]!")
+	}
+
+	return nil
 }
 
 func (v Snapshots) Len() int {
