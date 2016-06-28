@@ -5,10 +5,7 @@
 **awsm** is an alternative interface for Amazon Web Services. It is intended to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions.
 
 ## Origin
-This application is the fourth rewrite of one of the tools I have built to make my duties as a one man Infrastructure / DevOps team of Salon as agile as a much larger team. Each implementation has incorporated things I have learned during my career, with the motivation of promoting the use of more secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining complex AWS infrastructures.
-
-## But what about containers? ##
-Sometimes your current needs require you to build or migrate and scale monolith applications like a CMS on Amazon Web Services, with a very small team and limited resources. There weren't any tools that provided the automation and simplicity we needed, this tool is a result of that.
+This application is the fourth rewrite of one of the tools I have built to make my duties as a one-man Infrastructure / DevOps team of Salon as agile as a much larger team. Each implementation has incorporated things I have learned during my career, with the motivation of promoting the use of more secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining distributed AWS infrastructures.
 
 ## Installation
 
