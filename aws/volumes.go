@@ -30,12 +30,13 @@ type Volume struct {
 	Size             string
 	State            string
 	Iops             string
-	Attachments      string
+	InstanceId       string
+	Attachment       string
 	CreationTime     time.Time
 	CreatedHuman     string
 	VolumeType       string
 	SnapshoId        string
-	DeleteOnTerm     string
+	DeleteOnTerm     bool
 	AvailabilityZone string
 	Region           string
 }
@@ -63,18 +64,21 @@ func GetVolumeByTag(region, key, value string) (Volume, error) {
 
 	count := len(result.Volumes)
 
+	instList := new(Instances)
+	GetRegionInstances(region, instList, "", false)
+
 	switch count {
 	case 0:
 		return Volume{}, errors.New("No Volume found with tag [" + key + "] of [" + value + "].")
 	case 1:
 		volume := new(Volume)
-		volume.Marshall(result.Volumes[0], region)
+		volume.Marshall(result.Volumes[0], region, instList)
 		return *volume, nil
 	}
 
 	volList := make(Volumes, len(result.Volumes))
 	for i, volume := range result.Volumes {
-		volList[i].Marshall(volume, region)
+		volList[i].Marshall(volume, region, instList)
 	}
 
 	sort.Sort(volList)
@@ -116,9 +120,12 @@ func GetRegionVolumes(region string, volList *Volumes, search string, available 
 		return err
 	}
 
+	instList := new(Instances)
+	GetRegionInstances(region, instList, "", false)
+
 	vol := make(Volumes, len(result.Volumes))
 	for i, volume := range result.Volumes {
-		vol[i].Marshall(volume, region)
+		vol[i].Marshall(volume, region, instList)
 	}
 
 	if search != "" {
@@ -317,23 +324,7 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 	terminal.Information("Created Volume [" + *createVolumeResp.VolumeId + "] named [" + name + "] in [" + region + "]!")
 
 	// Add Tags
-	volumeTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			createVolumeResp.VolumeId,
-		},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("Name"),
-				Value: aws.String(name),
-			},
-			{
-				Key:   aws.String("Class"),
-				Value: aws.String(class),
-			},
-		},
-		DryRun: aws.Bool(dryRun),
-	}
-	_, err = svc.CreateTags(volumeTagsParams)
+	err = SetEc2NameAndClassTags(createVolumeResp.VolumeId, name, class, region)
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -414,21 +405,28 @@ func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
 	return nil
 }
 
-func (v *Volume) Marshall(volume *ec2.Volume, region string) {
+func (v *Volume) Marshall(volume *ec2.Volume, region string, instList *Instances) {
 	v.Name = GetTagValue("Name", volume.Tags)
 	v.Class = GetTagValue("Class", volume.Tags)
 	v.VolumeId = aws.StringValue(volume.VolumeId)
 	v.Size = fmt.Sprint(aws.Int64Value(volume.Size))
 	v.State = aws.StringValue(volume.State)
 	v.Iops = fmt.Sprint(aws.Int64Value(volume.Iops))
-	//v.Attachments =  aws.StringValue(volume.Attachments) // TODO
-	v.CreationTime = *volume.CreateTime
+	v.CreationTime = *volume.CreateTime                              // robots
 	v.CreatedHuman = humanize.Time(aws.TimeValue(volume.CreateTime)) // humans
 	v.VolumeType = aws.StringValue(volume.VolumeType)
 	v.SnapshoId = aws.StringValue(volume.SnapshotId)
-	//v.DeleteOnTerm =     aws.StringValue(volume.) // TODO
 	v.AvailabilityZone = aws.StringValue(volume.AvailabilityZone)
 	v.Region = region
+
+	if v.State == "in-use" {
+		v.InstanceId = aws.StringValue(volume.Attachments[0].InstanceId)
+		instance := instList.GetInstanceName(v.InstanceId)
+		v.Attachment = instance
+		v.DeleteOnTerm = aws.BoolValue(volume.Attachments[0].DeleteOnTermination)
+
+	}
+
 }
 
 func (v Volumes) Len() int {
@@ -457,18 +455,19 @@ func (i *Volumes) PrintTable() {
 			val.Name,
 			val.Class,
 			val.VolumeId,
-			val.Size,
+			fmt.Sprintf("%s GB", val.Size),
 			val.State,
-			val.Attachments,
+			val.Attachment,
+			val.InstanceId,
 			val.CreatedHuman,
 			val.VolumeType,
 			val.SnapshoId,
-			val.DeleteOnTerm,
+			fmt.Sprintf("%t", val.DeleteOnTerm),
 			val.AvailabilityZone,
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Volume Id", "Size", "State", "Attachment", "Created", "Volume Type", "Snapshot Id", "Delete on Termination", "Availability Zone"})
+	table.SetHeader([]string{"Name", "Class", "Volume Id", "Size", "State", "Attachment", "Instance Id", "Created", "Volume Type", "Snapshot Id", "Delete on Termination", "Availability Zone"})
 
 	table.AppendBulk(rows)
 	table.Render()

@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -24,7 +25,8 @@ type Images []Image
 type Image struct {
 	Name         string
 	Class        string
-	CreationDate string
+	CreationDate time.Time
+	CreatedHuman string
 	ImageId      string
 	State        string
 	Root         string
@@ -33,8 +35,7 @@ type Image struct {
 	Region       string
 }
 
-func GetLatestImageByTag(region, key, value string) (Image, error) {
-
+func GetImagesByTag(region, key, value string) (Images, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeImagesInput{
@@ -51,29 +52,24 @@ func GetLatestImageByTag(region, key, value string) (Image, error) {
 
 	result, err := svc.DescribeImages(params)
 
-	if err != nil {
-		return Image{}, err
-	}
-
-	count := len(result.Images)
-
-	switch count {
-	case 0:
-		return Image{}, errors.New("No Image found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
-	case 1:
-		image := new(Image)
-		image.Marshall(result.Images[0], region)
-		return *image, nil
-	}
-
 	imgList := make(Images, len(result.Images))
 	for i, image := range result.Images {
 		imgList[i].Marshall(image, region)
 	}
 
-	sort.Sort(imgList)
+	if len(imgList) == 0 {
+		return imgList, errors.New("No Images found with tag [" + key + "] of [" + value + "] in [" + region + "].")
+	}
 
-	return imgList[0], nil
+	return imgList, err
+
+}
+
+func GetLatestImageByTag(region, key, value string) (Image, error) {
+	images, err := GetImagesByTag(region, key, value)
+	sort.Sort(images)
+
+	return images[0], err
 }
 
 func GetImages(search string, available bool) (*Images, []error) {
@@ -164,8 +160,22 @@ func CopyImage(search, region string, dryRun bool) error {
 		images.PrintTable()
 		return errors.New("Please limit your search to return only one image.")
 	}
-
 	image := (*images)[0]
+
+	// Copy image to the destination region
+	copyImageResp, err := copyImage(image, region, dryRun)
+
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Created Image [" + *copyImageResp.ImageId + "] named [" + image.Name + "] to [" + region + "]!")
+
+	// Add Tags
+	return SetEc2NameAndClassTags(copyImageResp.ImageId, image.Name, image.Class, region)
+}
+
+func copyImage(image Image, region string, dryRun bool) (*ec2.CopyImageOutput, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -184,40 +194,11 @@ func CopyImage(search, region string, dryRun bool) error {
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
+			return copyImageResp, errors.New(awsErr.Message())
 		}
-		return err
 	}
 
-	terminal.Information("Created Image [" + *copyImageResp.ImageId + "] named [" + image.Name + "] to [" + region + "]!")
-
-	// Add Tags
-	imageTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			copyImageResp.ImageId,
-		},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("Name"),
-				Value: aws.String(image.Name),
-			},
-			{
-				Key:   aws.String("Class"),
-				Value: aws.String(image.Class),
-			},
-		},
-		DryRun: aws.Bool(dryRun),
-	}
-	_, err = svc.CreateTags(imageTagsParams)
-
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
-		}
-		return err
-	}
-
-	return nil
+	return copyImageResp, err
 }
 
 func CreateImage(search, class, name string, dryRun bool) error {
@@ -228,8 +209,8 @@ func CreateImage(search, class, name string, dryRun bool) error {
 	}
 
 	// Class Config
-	var imgCfg config.ImageClassConfig
-	err := imgCfg.LoadConfig(class)
+	var cfg config.ImageClassConfig
+	err := cfg.LoadConfig(class)
 	if err != nil {
 		return err
 	} else {
@@ -250,12 +231,140 @@ func CreateImage(search, class, name string, dryRun bool) error {
 	instance := (*instances)[0]
 	region := instance.Region
 
+	createImageResp, err := createImage(instance.InstanceId, name, region, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Created Image [" + *createImageResp.ImageId + "] named [" + name + "] in [" + region + "]!")
+
+	// Add Tags
+	err = SetEc2NameAndClassTags(createImageResp.ImageId, name, class, region)
+
+	if err != nil {
+		return err
+	}
+
+	sourceImage := Image{Name: name, Class: class, ImageId: *createImageResp.ImageId, Region: region}
+
+	// Check for Propagate flag
+	if cfg.Propagate && cfg.PropagateRegions != nil {
+
+		var wg sync.WaitGroup
+		var errs []error
+
+		terminal.Information("Propagate flag is set, waiting for initial snapshot to complete...")
+
+		// Wait for the image to complete.
+		err = waitForImage(*createImageResp.ImageId, region, dryRun)
+		if err != nil {
+			return err
+		}
+
+		// Copy to other regions
+		for _, propRegion := range cfg.PropagateRegions {
+			wg.Add(1)
+
+			go func(region string) {
+				defer wg.Done()
+
+				// Copy image to the destination region
+				copyImageResp, err := copyImage(sourceImage, propRegion, dryRun)
+
+				if err != nil {
+					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating image [%s] to region [%s]", sourceImage.ImageId, propRegion), err.Error())
+					errs = append(errs, err)
+				}
+
+				// Add Tags
+				err = SetEc2NameAndClassTags(copyImageResp.ImageId, name, class, propRegion)
+
+				terminal.Information(fmt.Sprintf("Copied image [%s] to region [%s].", sourceImage.ImageId, propRegion))
+
+			}(propRegion)
+		}
+
+		wg.Wait()
+
+		if errs != nil {
+			return errors.New("Error propagating snapshot to other regions!")
+		}
+	}
+
+	// Rotate out older images
+	if cfg.Retain > 1 {
+		err := RotateImages(class, cfg, dryRun)
+		if err != nil {
+			terminal.ShowErrorMessage(fmt.Sprintf("Error rotating [%s] images!", sourceImage.Class), err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+func RotateImages(class string, cfg config.ImageClassConfig, dryRun bool) error {
+	var wg sync.WaitGroup
+	var errs []error
+
+	regions := GetRegionList()
+
+	for _, region := range regions {
+		wg.Add(1)
+
+		go func(region *ec2.Region) {
+			defer wg.Done()
+
+			// Get the images
+			images, err := GetImagesByTag(*region.RegionName, "Class", class)
+			if err != nil {
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering image list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
+			}
+
+			// Delete the oldest ones if we have more than the retention number
+			if len(images) > cfg.Retain {
+				di := images[cfg.Retain:]
+				deleteImages(&di, dryRun)
+			}
+
+		}(region)
+	}
+	wg.Wait()
+
+	if errs != nil {
+		return errors.New("Error rotating images for [" + class + "]!")
+	}
+
+	return nil
+}
+
+func waitForImage(imageId, region string, dryRun bool) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	// Wait for the snapshot to complete.
+	waitParams := &ec2.DescribeImagesInput{
+		ImageIds: []*string{aws.String(imageId)},
+		Owners:   []*string{aws.String("self")},
+		DryRun:   aws.Bool(dryRun),
+	}
+
+	err := svc.WaitUntilImageAvailable(waitParams)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+	}
+	return err
+}
+
+func createImage(instanceId, name, region string, dryRun bool) (*ec2.CreateImageOutput, error) {
+
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Create the Image
-
 	params := &ec2.CreateImageInput{
-		InstanceId: aws.String(instance.InstanceId),
+		InstanceId: aws.String(instanceId),
 		Name:       aws.String(name),
 		/*
 			BlockDeviceMappings: []*ec2.BlockDeviceMapping{
@@ -282,47 +391,16 @@ func CreateImage(search, class, name string, dryRun bool) error {
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
+			return createImageResp, errors.New(awsErr.Message())
 		}
-		return err
 	}
 
-	terminal.Information("Created Image [" + *createImageResp.ImageId + "] named [" + name + "] in [" + region + "]!")
-
-	// Add Tags
-	imageTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			createImageResp.ImageId,
-		},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("Name"),
-				Value: aws.String(name),
-			},
-			{
-				Key:   aws.String("Class"),
-				Value: aws.String(class),
-			},
-		},
-		DryRun: aws.Bool(dryRun),
-	}
-	_, err = svc.CreateTags(imageTagsParams)
-
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
-		}
-		return err
-	}
-
-	return nil
-
+	return createImageResp, err
 }
 
 func (i *Image) Marshall(image *ec2.Image, region string) {
 	var snapshotId, volSize string
 	root := aws.StringValue(image.RootDeviceType)
-	//fmt.Println(root)
 
 	if root == "ebs" {
 		for _, mapping := range image.BlockDeviceMappings {
@@ -336,7 +414,8 @@ func (i *Image) Marshall(image *ec2.Image, region string) {
 
 	i.Name = GetTagValue("Name", image.Tags)
 	i.Class = GetTagValue("Class", image.Tags)
-	i.CreationDate = aws.StringValue(image.CreationDate)
+	i.CreationDate, _ = time.Parse("2006-01-02T15:04:05.000Z", aws.StringValue(image.CreationDate)) // robots
+	i.CreatedHuman = humanize.Time(i.CreationDate)                                                  // humans
 	i.ImageId = aws.StringValue(image.ImageId)
 	i.State = aws.StringValue(image.State)
 	i.Root = root
@@ -414,16 +493,6 @@ func deleteImages(imgList *Images, dryRun bool) (err error) {
 }
 
 // Functions for sorting
-func (i *Image) Timestamp() time.Time {
-	timestamp, err := time.Parse("2006-01-02T15:04:05.000Z", i.CreationDate)
-	if err != nil {
-		fmt.Println(err)
-		terminal.ErrorLine("Error parsing the timestamp for image [" + i.ImageId + "]!")
-	}
-
-	return timestamp
-}
-
 func (s Images) Len() int {
 	return len(s)
 }
@@ -433,7 +502,7 @@ func (s Images) Swap(i, j int) {
 }
 
 func (s Images) Less(i, j int) bool {
-	return s[i].Timestamp().After(s[j].Timestamp())
+	return s[i].CreationDate.After(s[j].CreationDate)
 }
 
 func (i *Images) PrintTable() {
@@ -444,8 +513,8 @@ func (i *Images) PrintTable() {
 		rows[index] = []string{
 			val.Name,
 			val.Class,
-			val.CreationDate,
 			val.ImageId,
+			val.CreatedHuman,
 			val.State,
 			val.Root,
 			val.SnapshotId,
@@ -454,7 +523,7 @@ func (i *Images) PrintTable() {
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Creation Date", "Image Id", "State", "Root", "Snapshot Id", "Volume Size", "Region"})
+	table.SetHeader([]string{"Name", "Class", "Image Id", "Created", "State", "Root", "Snapshot Id", "Volume Size", "Region"})
 
 	table.AppendBulk(rows)
 	table.Render()

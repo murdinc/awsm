@@ -22,7 +22,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "awsm"
-	app.Usage = "AWS iMproved CLI"
+	app.Usage = "AWSM Interface"
 	app.Version = "1.0"
 	app.Author = "Ahmad A"
 	app.Email = "send@ahmad.pizza"
@@ -413,7 +413,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "deleteIAMUsesr",
+			Name:  "deleteIAMUsers",
 			Usage: "Delete AWS IAM Users",
 			Arguments: []cli.Argument{
 				cli.Argument{

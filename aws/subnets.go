@@ -258,24 +258,8 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	terminal.Information("Created Subnet [" + *createSubnetResp.Subnet.SubnetId + "] named [" + name + "] in [" + *createSubnetResp.Subnet.AvailabilityZone + "]!")
 
 	// Add Tags
-	vpcTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			createSubnetResp.Subnet.SubnetId,
-		},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("Name"),
-				Value: aws.String(name),
-			},
-			{
-				Key:   aws.String("Class"),
-				Value: aws.String(class),
-			},
-		},
-		DryRun: aws.Bool(dryRun),
-	}
+	err = SetEc2NameAndClassTags(createSubnetResp.Subnet.SubnetId, name, class, region)
 
-	_, err = svc.CreateTags(vpcTagsParams)
 	if err != nil {
 		return err
 	}

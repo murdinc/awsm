@@ -304,23 +304,7 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 	terminal.Information("Created VPC [" + *createVpcResp.Vpc.VpcId + "] named [" + name + "] in [" + region + "]!")
 
 	// Add Tags
-	vpcTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			createVpcResp.Vpc.VpcId,
-		},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("Name"),
-				Value: aws.String(name),
-			},
-			{
-				Key:   aws.String("Class"),
-				Value: aws.String(class),
-			},
-		},
-		DryRun: aws.Bool(dryRun),
-	}
-	_, err = svc.CreateTags(vpcTagsParams)
+	err = SetEc2NameAndClassTags(createVpcResp.Vpc.VpcId, name, class, region)
 
 	if err != nil {
 		return err

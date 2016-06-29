@@ -51,6 +51,8 @@ func (c *SnapshotClassConfig) LoadConfig(class string) error {
 		case "PropagateRegions":
 			c.PropagateRegions = append(c.PropagateRegions, val)
 
+		case "VolumeId":
+			c.VolumeId = val
 		}
 	}
 

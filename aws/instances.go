@@ -209,7 +209,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	if err != nil {
 		return err
 	} else {
-		terminal.Information("Found AMI [" + ami.ImageId + "] with class [" + ami.Class + "] created on [" + ami.CreationDate + "]!")
+		terminal.Information("Found AMI [" + ami.ImageId + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]!")
 	}
 
 	// EBS Volumes
@@ -257,7 +257,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	}
 
 	// IAM Profile
-	var iam IAM
+	var iam IAMUser
 	if len(instanceCfg.IAMUser) > 0 {
 		iam, err := GetIAMUser(instanceCfg.IAMUser)
 		if err != nil {

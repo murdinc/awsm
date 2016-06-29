@@ -36,8 +36,7 @@ type Snapshot struct {
 	Region       string
 }
 
-func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
-
+func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeSnapshotsInput{
@@ -54,29 +53,23 @@ func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
 
 	result, err := svc.DescribeSnapshots(params)
 
-	if err != nil {
-		return Snapshot{}, err
-	}
-
-	count := len(result.Snapshots)
-
-	switch count {
-	case 0:
-		return Snapshot{}, errors.New("No Snapshot found with tag [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
-	case 1:
-		snapshot := new(Snapshot)
-		snapshot.Marshall(result.Snapshots[0], region)
-		return *snapshot, nil
-	}
-
 	snapList := make(Snapshots, len(result.Snapshots))
 	for i, snapshot := range result.Snapshots {
 		snapList[i].Marshall(snapshot, region)
 	}
 
-	sort.Sort(snapList)
+	if len(snapList) == 0 {
+		return snapList, errors.New("No Snapshot found with tag [" + key + "] of [" + value + "] in [" + region + "].")
+	}
 
-	return snapList[0], nil
+	return snapList, err
+}
+
+func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
+	snapshots, err := GetSnapshotsByTag(region, key, value)
+	sort.Sort(snapshots)
+
+	return snapshots[0], err
 }
 
 func GetLatestSnapshotByTagMulti(region, key string, value []string) (Snapshots, error) {
@@ -124,7 +117,7 @@ func (s *Snapshot) Marshall(snapshot *ec2.Snapshot, region string) {
 	s.SnapshotId = aws.StringValue(snapshot.SnapshotId)
 	s.VolumeId = aws.StringValue(snapshot.VolumeId)
 	s.State = aws.StringValue(snapshot.State)
-	s.StartTime = *snapshot.StartTime                                 // machines
+	s.StartTime = *snapshot.StartTime                                 // robots
 	s.CreatedHuman = humanize.Time(aws.TimeValue(snapshot.StartTime)) // humans
 	s.Progress = aws.StringValue(snapshot.Progress)
 	s.VolumeSize = fmt.Sprint(aws.Int64Value(snapshot.VolumeSize))
@@ -200,6 +193,27 @@ func CopySnapshot(search, region string, dryRun bool) error {
 
 	snapshot := (*snapshots)[0]
 
+	copySnapResp, err := copySnapshot(snapshot, region, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Created Snapshot [" + *copySnapResp.SnapshotId + "] named [" + snapshot.Name + "] to [" + region + "]!")
+
+	// Add Tags
+	err = SetEc2NameAndClassTags(copySnapResp.SnapshotId, snapshot.Name, snapshot.Class, region)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnapshotOutput, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Copy snapshot to the destination region
@@ -217,40 +231,11 @@ func CopySnapshot(search, region string, dryRun bool) error {
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
+			return copySnapResp, errors.New(awsErr.Message())
 		}
-		return err
 	}
 
-	terminal.Information("Created Snapshot [" + *copySnapResp.SnapshotId + "] named [" + snapshot.Name + "] to [" + region + "]!")
-
-	// Add Tags
-	snapTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			copySnapResp.SnapshotId,
-		},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("Name"),
-				Value: aws.String(snapshot.Name),
-			},
-			{
-				Key:   aws.String("Class"),
-				Value: aws.String(snapshot.Class),
-			},
-		},
-		DryRun: aws.Bool(dryRun),
-	}
-	_, err = svc.CreateTags(snapTagsParams)
-
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
-		}
-		return err
-	}
-
-	return nil
+	return copySnapResp, err
 }
 
 func CreateSnapshot(search, class, name string, dryRun bool) error {
@@ -282,11 +267,138 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 		terminal.Information("Found Snapshot Class Configuration for [" + class + "]!")
 	}
 
+	// Create the snapshot
+	createSnapshotResp, err := createSnapshot(volume.VolumeId, region, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Created Snapshot [" + *createSnapshotResp.SnapshotId + "] named [" + name + "] in [" + region + "]!")
+
+	// Add Tags
+	err = SetEc2NameAndClassTags(createSnapshotResp.SnapshotId, name, class, region)
+
+	if err != nil {
+		return err
+	}
+
+	sourceSnapshot := Snapshot{Name: name, Class: class, SnapshotId: *createSnapshotResp.SnapshotId}
+
+	// Check for Propagate flag
+	if cfg.Propagate && cfg.PropagateRegions != nil {
+
+		var wg sync.WaitGroup
+		var errs []error
+
+		terminal.Information("Propagate flag is set, waiting for initial snapshot to complete.")
+
+		// Wait for the snapshot to complete.
+		err = waitForSnapshot(*createSnapshotResp.SnapshotId, region, dryRun)
+		if err != nil {
+			return err
+		}
+
+		// Copy to other regions
+		for _, propRegion := range cfg.PropagateRegions {
+			wg.Add(1)
+
+			go func(region string) {
+				defer wg.Done()
+
+				// Copy snapshot to the destination region
+				copySnapResp, err := copySnapshot(sourceSnapshot, propRegion, dryRun)
+
+				if err != nil {
+					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating snapshot [%s] to region [%s]", sourceSnapshot.SnapshotId, propRegion), err.Error())
+					errs = append(errs, err)
+				}
+
+				// Add Tags
+				err = SetEc2NameAndClassTags(copySnapResp.SnapshotId, name, class, propRegion)
+				terminal.Information(fmt.Sprintf("Copied snapshot [%s] to region [%s].", sourceSnapshot.SnapshotId, propRegion))
+
+			}(propRegion)
+		}
+
+		wg.Wait()
+
+		if errs != nil {
+			return errors.New("Error propagating snapshot to other regions!")
+		}
+	}
+
+	// Rotate out older snapshots
+	if cfg.Retain > 1 {
+		err := RotateSnapshots(class, cfg, dryRun)
+		if err != nil {
+			terminal.ShowErrorMessage(fmt.Sprintf("Error rotating [%s] snapshots!", sourceSnapshot.Class), err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+func RotateSnapshots(class string, cfg config.SnapshotClassConfig, dryRun bool) error {
+	var wg sync.WaitGroup
+	var errs []error
+
+	regions := GetRegionList()
+
+	for _, region := range regions {
+		wg.Add(1)
+
+		go func(region *ec2.Region) {
+			defer wg.Done()
+
+			// Get the snapshots
+			snapshots, err := GetSnapshotsByTag(*region.RegionName, "Class", class)
+			if err != nil {
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering snapshot list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
+			}
+
+			// Delete the oldest ones if we have more than the retention number
+			if len(snapshots) > cfg.Retain {
+				ds := snapshots[cfg.Retain:]
+				deleteSnapshots(&ds, dryRun)
+			}
+
+		}(region)
+	}
+	wg.Wait()
+
+	if errs != nil {
+		return errors.New("Error rotating snapshots for [" + class + "]!")
+	}
+
+	return nil
+}
+
+func waitForSnapshot(snapshotId, region string, dryRun bool) error {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	// Wait for the snapshot to complete.
+	waitParams := &ec2.DescribeSnapshotsInput{
+		SnapshotIds: []*string{aws.String(snapshotId)},
+		DryRun:      aws.Bool(dryRun),
+	}
+
+	err := svc.WaitUntilSnapshotCompleted(waitParams)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+	}
+	return err
+}
+
+func createSnapshot(volumeId, region string, dryRun bool) (*ec2.Snapshot, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Create the Snapshot
 	snapshotParams := &ec2.CreateSnapshotInput{
-		VolumeId: aws.String(volume.VolumeId),
+		VolumeId: aws.String(volumeId),
 		DryRun:   aws.Bool(dryRun),
 	}
 
@@ -294,41 +406,11 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
+			return createSnapshotResp, errors.New(awsErr.Message())
 		}
-		return err
 	}
 
-	terminal.Information("Created Snapshot [" + *createSnapshotResp.SnapshotId + "] named [" + name + "] in [" + region + "]!")
-
-	// Add Tags
-	snapshotTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			createSnapshotResp.SnapshotId,
-		},
-		Tags: []*ec2.Tag{
-			{
-				Key:   aws.String("Name"),
-				Value: aws.String(name),
-			},
-			{
-				Key:   aws.String("Class"),
-				Value: aws.String(class),
-			},
-		},
-		DryRun: aws.Bool(dryRun),
-	}
-	_, err = svc.CreateTags(snapshotTagsParams)
-
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
-		}
-		return err
-	}
-
-	return nil
-
+	return createSnapshotResp, err
 }
 
 // Public function with confirmation terminal prompt

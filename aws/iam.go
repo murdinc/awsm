@@ -2,25 +2,29 @@ package aws
 
 import (
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/dustin/go-humanize"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
-type IAMUsers []IAM
+type IAMUsers []IAMUser
 
-type IAM struct {
-	UserName         string
-	UserId           string
-	CreateDate       string
-	Arn              string
-	PasswordLastUsed string
+type IAMUser struct {
+	UserName              string
+	UserId                string
+	CreateDate            time.Time
+	CreatedHuman          string
+	Arn                   string
+	PasswordLastUsed      time.Time
+	PasswordLastUsedHuman string
 }
 
-func GetIAMUser(username string) (IAM, error) {
+func GetIAMUser(username string) (IAMUser, error) {
 	svc := iam.New(session.New())
 
 	params := &iam.GetUserInput{
@@ -29,18 +33,13 @@ func GetIAMUser(username string) (IAM, error) {
 
 	resp, err := svc.GetUser(params)
 	if err != nil {
-		return IAM{}, err
+		return IAMUser{}, err
 	}
 
-	user := IAM{
-		UserName:   aws.StringValue(resp.User.UserName),
-		UserId:     aws.StringValue(resp.User.UserId),
-		CreateDate: resp.User.CreateDate.String(),
-		Arn:        aws.StringValue(resp.User.Arn),
-		//PasswordLastUsed: user.PasswordLastUsed.String(), // TODO why dont some users have this, and why does it fail when its not present?
-	}
+	user := new(IAMUser)
+	user.Marshall(resp.User)
 
-	return user, nil
+	return *user, nil
 }
 
 func GetIAMUsers(search string) (*IAMUsers, error) {
@@ -56,17 +55,22 @@ func GetIAMUsers(search string) (*IAMUsers, error) {
 
 	iam := make(IAMUsers, len(result.Users))
 	for i, user := range result.Users {
-		iam[i] = IAM{
-			UserName:   aws.StringValue(user.UserName),
-			UserId:     aws.StringValue(user.UserId),
-			CreateDate: user.CreateDate.String(),
-			Arn:        aws.StringValue(user.Arn),
-			//PasswordLastUsed: user.PasswordLastUsed.String(), // TODO why dont some users have this, and why does it fail when its not present?
-		}
+		iam[i].Marshall(user)
 	}
 	*iamList = append(*iamList, iam[:]...)
 
 	return iamList, nil
+}
+
+func (i *IAMUser) Marshall(user *iam.User) {
+	i.UserName = aws.StringValue(user.UserName)
+	i.UserId = aws.StringValue(user.UserId)
+	i.CreateDate = aws.TimeValue(user.CreateDate) // robots
+	i.CreatedHuman = humanize.Time(i.CreateDate)  // humans
+	i.Arn = aws.StringValue(user.Arn)
+	i.PasswordLastUsed = aws.TimeValue(user.PasswordLastUsed)   // robots
+	i.PasswordLastUsedHuman = humanize.Time(i.PasswordLastUsed) // humans
+
 }
 
 func (i *IAMUsers) PrintTable() {
@@ -77,13 +81,14 @@ func (i *IAMUsers) PrintTable() {
 		rows[index] = []string{
 			val.UserName,
 			val.UserId,
-			val.CreateDate,
+			val.CreatedHuman,
+			val.PasswordLastUsedHuman,
 			val.Arn,
 			//val.PasswordLastUsed,
 		}
 	}
 
-	table.SetHeader([]string{"User Name", "Id", "Creation Date", "Arn"}) //, "Password Last Used"})
+	table.SetHeader([]string{"User Name", "Id", "Created", "Last Used", "Arn"}) //, "Password Last Used"})
 
 	table.AppendBulk(rows)
 	table.Render()
