@@ -4,11 +4,11 @@
 ## Intro
 **awsm** is an alternative interface for Amazon Web Services. It's designed to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions. It's goal is to introduce as few new concepts as possible, and provide powerful tools that require only a few inputs to use.
 
-**awsm** is a CLI and a web interface. Configuration of Classes (see Concepts) is done though the web inerface, and you can build your infrastructure in the CLI or the web interface.
+**awsm** is a cli and a web interface. Configuration of Classes (see Concepts) is done though the web interface, and you can build your infrastructure in the cli or the web interface.
 
 
 ## Origin
-This repo is a Golang rewrite of one of the automation tools I've built for my colleagues on the Production/Engineering Team of Salon (salon.com). Each implementation has incorporated things we have learned along our path, with the motivation of promoting the use of secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining a distributed AWS infrastructures. Many of the concepts were influenced by scripts that were originally written when Salon moved from a colo to the cloud, and from a conference talk from the devs who built Netflix/asgard at the first re:Invent conference.
+This repo is a Golang rewrite of one of the automation tools I've built for my colleagues on the Production/Engineering Team of Salon (salon.com). Each implementation has incorporated things we have learned along our path, with the motivation of promoting the use of secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining distributed AWS infrastructures. Many of the concepts were influenced by scripts that were originally written when Salon moved from a colo to the cloud, and from a conference talk from the devs who built Netflix/asgard at the first re:Invent conference.
 
 
 ## New Concepts
@@ -26,7 +26,7 @@ This repo is a Golang rewrite of one of the automation tools I've built for my c
 
 
 
-## CLI Commands
+## Commands (CLI)
 * dashboard - "Launch the awsm Dashboard GUI"
 * attachVolume - "Attach an AWS EBS Volume to and EC2 Instance"
 * copyImage - "Copy an AWS Machine Image to another region"
