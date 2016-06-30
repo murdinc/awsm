@@ -1,26 +1,32 @@
 # awsm
-> AWS Interface written in Golang
+> AWS Interface
 
 ## Intro
 **awsm** is an alternative interface for Amazon Web Services. It's designed to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions. It's goal is to introduce as few new concepts as possible, and provide powerful tools that require only a few inputs to use.
 
+**awsm** is a CLI and a web interface. Configuration of Classes (see Concepts) is done though the web inerface, and you can build your infrastructure in the CLI or the web interface.
+
 
 ## Origin
-This repo is a Golang rewrite of one of the automation tools I built for my colleagues at Salon (salon.com) on the Production/Engineering Team. Each implementation has incorporated things we have learned, with the motivation of promoting the use of more secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining a distributed AWS infrastructures. Many of the concepts were influenced by scripts that were originally written when Salon moved from a colo to the cloud, and from a conference talk from the devs who built Netflix/asgard at the first re:Invent conference.
+This repo is a Golang rewrite of one of the automation tools I've built for my colleagues on the Production/Engineering Team of Salon (salon.com). Each implementation has incorporated things we have learned along our path, with the motivation of promoting the use of secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining a distributed AWS infrastructures. Many of the concepts were influenced by scripts that were originally written when Salon moved from a colo to the cloud, and from a conference talk from the devs who built Netflix/asgard at the first re:Invent conference.
 
 
 ## New Concepts
-**Class** (short for classification) is a group of settings for any AWS services that is stored in a SimpleDB database. Classes can be used to bootstrap assets in any AWS region, allowing you to configure once, and run anywhere.
+**Class** (short for classification) is a group of settings for any AWS service, stored in a SimpleDB database by awsm. Classes can be used to bootstrap assets in any AWS region, allowing you to configure once, and run anywhere.
 
-**Propagation** allows you to (optionally) copy/backup assets to other regions when you create them. Currently: EBS Snapshots, AMI Images, and Launch Configurations are available for propagation allowing you to automatically have access to the latest versions of those as you create them.
+**Propagation** allows you to (optionally) copy/backup assets to other regions when you create them. Currently: EBS Snapshots, AMI Images, and Launch Configurations are available for propagation - allowing you to automatically have access to the latest versions of those as you create them.
 
-**Retention** (also optional) is the number of previous versions of assets to retain. Older EBS Snapshots, AMI Images, and Launch Configurations are rotated out as new ones are created, automating the task of clearing them out. EBS Snapshots and AMI's that referenced in existing Launch Configurations are never removed.
+**Retention** (also optional) is the number of previous versions of assets to retain. Older EBS Snapshots, AMI's, and Launch Configurations can be rotated out as new ones are created**, automating the task of clearing them out. **EBS Snapshots and AMI's that are referenced in existing Launch Configurations are never touched.
 
 
 ## Installation
 
 
-## Commands
+## Configuration
+
+
+
+## CLI Commands
 * dashboard - "Launch the awsm Dashboard GUI"
 * attachVolume - "Attach an AWS EBS Volume to and EC2 Instance"
 * copyImage - "Copy an AWS Machine Image to another region"
@@ -65,6 +71,10 @@ This repo is a Golang rewrite of one of the automation tools I built for my coll
 * listSimpleDBDomains - "Lists AWS SimpleDB Domains"
 * listVolumes - "Lists AWS EBS Volumes"
 * listVpcs - "Lists AWS Vpcs"
+
+
+## Development
+
 
 ## Roadmap
 
