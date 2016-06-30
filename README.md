@@ -1,13 +1,24 @@
 # awsm
-> AWS iMproved
+> AWS Interface written in Golang
 
 ## Intro
-**awsm** is an alternative interface for Amazon Web Services. It is intended to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions.
+**awsm** is an alternative interface for Amazon Web Services. It's designed to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions. It's goal is to introduce as few new concepts as possible, and provide powerful tools that require only a few inputs to use.
+
 
 ## Origin
-This application is the fourth rewrite of one of the tools I have built to make my duties as a one-man Infrastructure / DevOps team of Salon as agile as a much larger team. Each implementation has incorporated things I have learned during my career, with the motivation of promoting the use of more secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining distributed AWS infrastructures.
+This repo is a Golang rewrite of one of the automation tools I built for my colleagues at Salon (salon.com) on the Production/Engineering Team. Each implementation has incorporated things we have learned, with the motivation of promoting the use of more secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining a distributed AWS infrastructures. Many of the concepts were influenced by scripts that were originally written when Salon moved from a colo to the cloud, and from a conference talk from the devs who built Netflix/asgard at the first re:Invent conference.
+
+
+## New Concepts
+**Class** (short for classification) is a group of settings for any AWS services that is stored in a SimpleDB database. Classes can be used to bootstrap assets in any AWS region, allowing you to configure once, and run anywhere.
+
+**Propagation** allows you to (optionally) copy/backup assets to other regions when you create them. Currently: EBS Snapshots, AMI Images, and Launch Configurations are available for propagation allowing you to automatically have access to the latest versions of those as you create them.
+
+**Retention** (also optional) is the number of previous versions of assets to retain. Older EBS Snapshots, AMI Images, and Launch Configurations are rotated out as new ones are created, automating the task of clearing them out. EBS Snapshots and AMI's that referenced in existing Launch Configurations are never removed.
+
 
 ## Installation
+
 
 ## Commands
 * dashboard - "Launch the awsm Dashboard GUI"
@@ -16,9 +27,11 @@ This application is the fourth rewrite of one of the tools I have built to make 
 * copySnapshot - "Copy an AWS EBS Snapshot to another region"
 * createAddress - "Create an AWS Elastic IP Address"
 * createIAMUser - "Create an IAM User"
+* createImage - "Create an AWS Machine Image from a running instance"
 * createKeyPair - "Create and upload an AWS Key Pair"
 * createSimpleDBDomain - "Create an AWS SimpleDB Domain"
 * createSnapshot - "Create an AWS EBS snapshot of a volume"
+* createVolume - "Create an AWS EBS volume"
 * createVpc - "Create an AWS VPC"
 * createSubnet - "Create an AWS VPC Subnet"
 * deleteAddresses - "Delete AWS Elastic IP Addresses"
@@ -35,6 +48,7 @@ This application is the fourth rewrite of one of the tools I have built to make 
 * startInstances - "Start AWS instances"
 * rebootInstances - "Reboot AWS instances"
 * terminateInstances - "Terminate AWS instances"
+* launchInstance - "Launch an EC2 instance"
 * listAddresses - "Lists AWS Elastic IP Addresses"
 * listAlarms - "Lists CloudWatch Alarms"
 * listAutoScaleGroups - "Lists AutoScale Groups"
@@ -55,12 +69,9 @@ This application is the fourth rewrite of one of the tools I have built to make 
 ## Roadmap
 
 * createAutoScaleGroup - "Create an AWS AutoScaling Group"
-* createImage - "Create an AWS Machine Image from a running instance"
 * createLaunchConfiguration - "Create an AWS AutoScaling Launch Configuration"
-* createVolume - "Create an AWS EBS volume"
 * deleteAutoScaleGroup - "Delete AWS AutoScaling Groups"
 * deleteLaunchConfiguration - "Delete AWS AutoScaling Launch Configurations"
-* launchInstance - "Launch an EC2 instance"
 * resumeProcesses - "Resume autoscaling processes on a specific autoscaling group"
 * runCommand - "Run a command on a set of instances"
 * suspendProcesses - "Stop autoscaling processes on a specific autoscaling group"
