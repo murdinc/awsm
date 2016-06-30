@@ -153,7 +153,7 @@ func (v *Vpc) GetVpcSubnetByTag(key, value string) (Subnet, error) {
 		return Subnet{}, errors.New("No Subnet found with [" + key + "] of [" + value + "] in [" + v.Region + "] VPC [" + v.Name + "], Aborting!")
 	case 1:
 		subnet := new(Subnet)
-		subnet.Marshal(result.Subnets[0], v.Region)
+		subnet.Marshal(result.Subnets[0], v.Region, &Vpcs{*v})
 		return *subnet, nil
 	}
 

@@ -343,6 +343,12 @@ func RotateSnapshots(class string, cfg config.SnapshotClassConfig, dryRun bool) 
 	var wg sync.WaitGroup
 	var errs []error
 
+	launchConfigs, err := GetLaunchConfigurations()
+	if err != nil {
+		return errors.New("Error while retrieving the list of assets to exclude from rotation!")
+	}
+	excludedSnaps := launchConfigs.LockedSnapshotIds()
+
 	regions := GetRegionList()
 
 	for _, region := range regions {
@@ -351,15 +357,24 @@ func RotateSnapshots(class string, cfg config.SnapshotClassConfig, dryRun bool) 
 		go func(region *ec2.Region) {
 			defer wg.Done()
 
-			// Get the snapshots
+			// Get all the snapshots of this class in this region
 			snapshots, err := GetSnapshotsByTag(*region.RegionName, "Class", class)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering snapshot list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
 			}
 
+			// Exclude the snapshots being used in Launch Configurations
+			for i, snap := range snapshots {
+				if excludedSnaps[snap.SnapshotId] {
+					terminal.Information("Snapshot [" + snap.Name + " (" + snap.SnapshotId + ") ] is being used in a launch configuration, skipping!")
+					snapshots = append(snapshots[:i], snapshots[i+1:]...)
+				}
+			}
+
 			// Delete the oldest ones if we have more than the retention number
 			if len(snapshots) > cfg.Retain {
+				sort.Sort(snapshots) // important!
 				ds := snapshots[cfg.Retain:]
 				deleteSnapshots(&ds, dryRun)
 			}

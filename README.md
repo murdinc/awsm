@@ -11,12 +11,12 @@
 This repo is a Golang rewrite of one of the automation tools I've built for my colleagues on the Production/Engineering Team of Salon (salon.com). Each implementation has incorporated things we have learned along our path, with the motivation of promoting the use of secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining distributed AWS infrastructures. Many of the concepts were influenced by scripts that were originally written when Salon moved from a colo to the cloud, and from a conference talk from the devs who built Netflix/asgard at the first re:Invent conference.
 
 
-## New Concepts
+## Features
 **Class** (short for classification) is a group of settings for any AWS service, stored in a SimpleDB database by awsm. Classes can be used to bootstrap assets in any AWS region, allowing you to configure once, and run anywhere.
 
 **Propagation** allows you to (optionally) copy/backup assets to other regions when you create them. Currently: EBS Snapshots, AMI Images, and Launch Configurations are available for propagation - allowing you to automatically have access to the latest versions of those as you create them.
 
-**Retention** (also optional) is the number of previous versions of assets to retain. Older EBS Snapshots, AMI's, and Launch Configurations can be rotated out as new ones are created**, automating the task of clearing them out. **EBS Snapshots and AMI's that are referenced in existing Launch Configurations are never touched.
+**Retention** (also optional) is the number of previous versions of assets to retain. Older EBS Snapshots, AMI's, and Launch Configurations can be rotated out as new ones are created, automating the task of clearing them out. EBS Snapshots and AMI's that are referenced in existing Launch Configurations are never touched.
 
 
 ## Installation
@@ -41,7 +41,7 @@ This repo is a Golang rewrite of one of the automation tools I've built for my c
 * createVpc - "Create an AWS VPC"
 * createSubnet - "Create an AWS VPC Subnet"
 * deleteAddresses - "Delete AWS Elastic IP Addresses"
-* deleteIAMUsesr - "Delete AWS IAM Users"
+* deleteIAMUsers - "Delete AWS IAM Users"
 * deleteImages - "Delete AWS Machine Images"
 * deleteKeyPairs - "Delete AWS KeyPairs"
 * deleteSnapshots - "Delete AWS EBS Snapshots"

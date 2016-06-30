@@ -29,7 +29,10 @@ type AutoScaleGroup struct {
 	Cooldown          string
 	AvailabilityZones string
 	Region            string
-	Subnet            string
+	VpcName           string
+	VpcId             string
+	SubnetName        string
+	SubnetId          string
 }
 
 func GetAutoScaleGroups() (*AutoScaleGroups, []error) {
@@ -88,7 +91,10 @@ func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region strin
 	a.MaxSize = fmt.Sprint(aws.Int64Value(autoscalegroup.MaxSize))
 	a.Cooldown = fmt.Sprint(aws.Int64Value(autoscalegroup.DefaultCooldown))
 	a.AvailabilityZones = strings.Join(aws.StringValueSlice(autoscalegroup.AvailabilityZones), ", ")
-	a.Subnet = subList.GetSubnetName(aws.StringValue(autoscalegroup.VPCZoneIdentifier))
+	a.SubnetId = aws.StringValue(autoscalegroup.VPCZoneIdentifier)
+	a.SubnetName = subList.GetSubnetName(a.SubnetId)
+	a.VpcId = subList.GetVpcIdBySubnetId(a.SubnetId)
+	a.VpcName = subList.GetVpcNameBySubnetId(a.SubnetId)
 	a.Region = region
 }
 
@@ -109,11 +115,12 @@ func (i *AutoScaleGroups) PrintTable() {
 			val.MaxSize,
 			val.Cooldown,
 			val.AvailabilityZones,
-			val.Subnet,
+			val.VpcName,
+			val.SubnetName,
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Health Check", "Launch Config", "Load Balancers", "Instances", "Desired Capacity", "Min Size", "Max Size", "Cooldown", "Availability Zones", "Subnet"})
+	table.SetHeader([]string{"Name", "Class", "Health Check", "Launch Config", "Load Balancers", "Instances", "Desired Capacity", "Min Size", "Max Size", "Cooldown", "Availability Zones", "VPC", "Subnet"})
 
 	table.AppendBulk(rows)
 	table.Render()

@@ -35,6 +35,17 @@ type Image struct {
 	Region       string
 }
 
+func (i *Images) GetImageName(id string) string {
+	for _, img := range *i {
+		if img.ImageId == id && img.Name != "" {
+			return img.Name
+		} else if img.ImageId == id {
+			return id
+		}
+	}
+	return id
+}
+
 func GetImagesByTag(region, key, value string) (Images, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -307,6 +318,12 @@ func RotateImages(class string, cfg config.ImageClassConfig, dryRun bool) error 
 	var wg sync.WaitGroup
 	var errs []error
 
+	launchConfigs, err := GetLaunchConfigurations()
+	if err != nil {
+		return errors.New("Error while retrieving the list of assets to exclude from rotation!")
+	}
+	excludedImages := launchConfigs.LockedImageIds()
+
 	regions := GetRegionList()
 
 	for _, region := range regions {
@@ -315,15 +332,24 @@ func RotateImages(class string, cfg config.ImageClassConfig, dryRun bool) error 
 		go func(region *ec2.Region) {
 			defer wg.Done()
 
-			// Get the images
+			// Get the images of this class in this region
 			images, err := GetImagesByTag(*region.RegionName, "Class", class)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering image list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
 			}
 
+			// Exclude the images being used in Launch Configurations
+			for i, image := range images {
+				if excludedImages[image.ImageId] {
+					terminal.Information("Image [" + image.Name + " (" + image.ImageId + ") ] is being used in a launch configuration, skipping!")
+					images = append(images[:i], images[i+1:]...)
+				}
+			}
+
 			// Delete the oldest ones if we have more than the retention number
 			if len(images) > cfg.Retain {
+				sort.Sort(images) // important!
 				di := images[cfg.Retain:]
 				deleteImages(&di, dryRun)
 			}

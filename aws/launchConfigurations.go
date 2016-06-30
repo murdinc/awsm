@@ -21,6 +21,7 @@ type LaunchConfigs []LaunchConfig
 
 type LaunchConfig struct {
 	Name           string
+	ImageName      string
 	ImageId        string
 	InstanceType   string
 	KeyName        string
@@ -29,6 +30,7 @@ type LaunchConfig struct {
 	CreatedHuman   string
 	Region         string
 	EbsOptimized   bool
+	SnapshotIds    []string
 }
 
 func GetLaunchConfigurations() (*LaunchConfigs, []error) {
@@ -64,35 +66,54 @@ func GetRegionLaunchConfigurations(region string, lcList *LaunchConfigs) error {
 
 	secGrpList := new(SecurityGroups)
 	err = GetRegionSecurityGroups(region, secGrpList)
-	if err != nil {
-		return err
-	}
+
+	imgList := new(Images)
+	GetRegionImages(region, imgList, "", false)
 
 	lc := make(LaunchConfigs, len(result.LaunchConfigurations))
 	for i, config := range result.LaunchConfigurations {
-		lc[i].Marshal(config, region, secGrpList)
+		lc[i].Marshal(config, region, secGrpList, imgList)
 	}
 	*lcList = append(*lcList, lc[:]...)
 
 	return nil
 }
 
-func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region string, secGrpList *SecurityGroups) {
+func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region string, secGrpList *SecurityGroups, imgList *Images) {
+	secGroupNames := secGrpList.GetSecurityGroupNames(aws.StringValueSlice(config.SecurityGroups))
+	secGroupNamesSorted := sort.StringSlice(secGroupNames[0:])
+	secGroupNamesSorted.Sort()
+
 	l.Name = aws.StringValue(config.LaunchConfigurationName)
 	l.ImageId = aws.StringValue(config.ImageId)
+	l.ImageName = imgList.GetImageName(l.ImageId)
 	l.InstanceType = aws.StringValue(config.InstanceType)
 	l.KeyName = aws.StringValue(config.KeyName)
 	l.CreationTime = aws.TimeValue(config.CreatedTime) // robots
 	l.CreatedHuman = humanize.Time(l.CreationTime)     // humans
-	config.EbsOptimized = config.EbsOptimized
+	l.EbsOptimized = aws.BoolValue(config.EbsOptimized)
+	l.SecurityGroups = strings.Join(secGroupNamesSorted, ", ")
 	l.Region = region
 
-	secGroupNames := secGrpList.GetSecurityGroupNames(aws.StringValueSlice(config.SecurityGroups))
+	for _, snapshot := range config.BlockDeviceMappings {
+		l.SnapshotIds = append(l.SnapshotIds, *snapshot.Ebs.SnapshotId)
+	}
+}
 
-	secGroupNamesSorted := sort.StringSlice(secGroupNames[0:])
-	secGroupNamesSorted.Sort()
+func (i *LaunchConfigs) LockedSnapshotIds() (ids map[string]bool) {
+	for _, config := range *i {
+		for _, snap := range config.SnapshotIds {
+			ids[snap] = true
+		}
+	}
+	return ids
+}
 
-	l.SecurityGroups = strings.Join(secGroupNamesSorted, ", ")
+func (i *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
+	for _, config := range *i {
+		ids[config.ImageId] = true
+	}
+	return ids
 }
 
 func (i *LaunchConfigs) PrintTable() {
@@ -102,6 +123,7 @@ func (i *LaunchConfigs) PrintTable() {
 	for index, val := range *i {
 		rows[index] = []string{
 			val.Name,
+			val.ImageName,
 			val.ImageId,
 			val.InstanceType,
 			val.KeyName,
@@ -112,7 +134,7 @@ func (i *LaunchConfigs) PrintTable() {
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Image Id", "Instance Type", "Key Name", "Security Groups", "Created", "EBS Optimized", "Region"})
+	table.SetHeader([]string{"Name", "Image Name", "Image Id", "Instance Type", "Key Name", "Security Groups", "Created", "EBS Optimized", "Region"})
 
 	table.AppendBulk(rows)
 	table.Render()

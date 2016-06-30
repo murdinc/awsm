@@ -27,7 +27,8 @@ type Instance struct {
 	PrivateIp        string
 	PublicIp         string
 	InstanceId       string
-	AMI              string
+	AMIId            string
+	AMIName          string
 	Root             string
 	Size             string
 	Virtualization   string
@@ -79,7 +80,7 @@ func (i *Instances) GetInstanceName(id string) string {
 	return id
 }
 
-func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subnets, vpcList *Vpcs) {
+func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subnets, vpcList *Vpcs, imgList *Images) {
 
 	subnet := subList.GetSubnetName(aws.StringValue(instance.SubnetId))
 	vpc := vpcList.GetVpcName(aws.StringValue(instance.VpcId))
@@ -90,7 +91,8 @@ func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subne
 	i.AvailabilityZone = aws.StringValue(instance.Placement.AvailabilityZone)
 	i.PrivateIp = aws.StringValue(instance.PrivateIpAddress)
 	i.PublicIp = aws.StringValue(instance.PublicIpAddress)
-	i.AMI = aws.StringValue(instance.ImageId)
+	i.AMIId = aws.StringValue(instance.ImageId)
+	i.AMIName = imgList.GetImageName(i.AMIId)
 	i.Root = aws.StringValue(instance.RootDeviceType)
 	i.Size = aws.StringValue(instance.InstanceType)
 	i.Virtualization = aws.StringValue(instance.VirtualizationType)
@@ -112,13 +114,15 @@ func GetRegionInstances(region string, instList *Instances, search string, runni
 
 	subList := new(Subnets)
 	vpcList := new(Vpcs)
+	imgList := new(Images)
 	GetRegionSubnets(region, subList, "")
 	GetRegionVpcs(region, vpcList, "")
+	GetRegionImages(region, imgList, "", false)
 
 	for _, reservation := range result.Reservations {
 		inst := make(Instances, len(reservation.Instances))
 		for i, instance := range reservation.Instances {
-			inst[i].Marshal(instance, region, subList, vpcList)
+			inst[i].Marshal(instance, region, subList, vpcList, imgList)
 		}
 
 		if search != "" {
@@ -160,7 +164,8 @@ func (i *Instances) PrintTable() {
 			val.PrivateIp,
 			val.PublicIp,
 			val.InstanceId,
-			val.AMI,
+			val.AMIName,
+			val.AMIId,
 			val.Root,
 			val.Size,
 			val.Virtualization,
@@ -172,7 +177,7 @@ func (i *Instances) PrintTable() {
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Private IP", "Public IP", "Instance Id", "AMI", "Root", "Size", "Virtualization", "State", "Key Pair", "Availability Zone", "VPC", "Subnet"})
+	table.SetHeader([]string{"Name", "Class", "Private IP", "Public IP", "Instance Id", "AMI Name", "AMI Id", "Root", "Size", "Virtualization", "State", "Key Pair", "AZ", "VPC", "Subnet"})
 
 	table.AppendBulk(rows)
 	table.Render()
@@ -437,7 +442,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	terminal.Information("Finished Launching Instance!")
 
 	inst := make(Instances, 1)
-	inst[1].Marshal(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc})
+	inst[1].Marshal(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc}, &Images{ami})
 
 	inst.PrintTable()
 

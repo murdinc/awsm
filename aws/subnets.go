@@ -23,18 +23,18 @@ type Subnet struct {
 	Name             string
 	Class            string
 	SubnetId         string
+	VpcName          string
 	VpcId            string
 	State            string
 	AvailabilityZone string
 	Default          string
 	CIDRBlock        string
 	AvailableIPs     string
-	MapPublicIp      string
+	MapPublicIp      bool
 	Region           string
 }
 
 func GetSubnetByTag(region, key, value string) (Subnet, error) {
-
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeSubnetsInput{
@@ -60,8 +60,11 @@ func GetSubnetByTag(region, key, value string) (Subnet, error) {
 	case 0:
 		return Subnet{}, errors.New("No Subnet found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 	case 1:
+		vpcList := new(Vpcs)
+		GetRegionVpcs(region, vpcList, "")
+
 		subnet := new(Subnet)
-		subnet.Marshal(result.Subnets[0], region)
+		subnet.Marshal(result.Subnets[0], region, vpcList)
 		return *subnet, nil
 	}
 
@@ -92,16 +95,18 @@ func GetSubnets(search string) (*Subnets, []error) {
 	return subList, errs
 }
 
-func (s *Subnet) Marshal(subnet *ec2.Subnet, region string) {
+func (s *Subnet) Marshal(subnet *ec2.Subnet, region string, vpcList *Vpcs) {
 	s.Name = GetTagValue("Name", subnet.Tags)
 	s.Class = GetTagValue("Class", subnet.Tags)
 	s.SubnetId = aws.StringValue(subnet.SubnetId)
 	s.VpcId = aws.StringValue(subnet.VpcId)
+	s.VpcName = vpcList.GetVpcName(s.VpcId)
 	s.State = aws.StringValue(subnet.State)
 	s.AvailabilityZone = aws.StringValue(subnet.AvailabilityZone)
 	s.Default = fmt.Sprintf("%t", aws.BoolValue(subnet.DefaultForAz))
 	s.CIDRBlock = aws.StringValue(subnet.CidrBlock)
 	s.AvailableIPs = fmt.Sprint(aws.Int64Value(subnet.AvailableIpAddressCount))
+	s.MapPublicIp = aws.BoolValue(subnet.MapPublicIpOnLaunch)
 	s.Region = region
 }
 
@@ -113,9 +118,12 @@ func GetRegionSubnets(region string, subList *Subnets, search string) error {
 		return err
 	}
 
+	vpcList := new(Vpcs)
+	GetRegionVpcs(region, vpcList, "")
+
 	subs := make(Subnets, len(result.Subnets))
 	for i, subnet := range result.Subnets {
-		subs[i].Marshal(subnet, region)
+		subs[i].Marshal(subnet, region, vpcList)
 	}
 
 	if search != "" {
@@ -160,9 +168,12 @@ func GetSubnetsByVpcId(vpcId string, region string) (Subnets, error) {
 		return Subnets{}, err
 	}
 
+	vpcList := new(Vpcs)
+	GetRegionVpcs(region, vpcList, "")
+
 	subList := make(Subnets, len(result.Subnets))
 	for i, subnet := range result.Subnets {
-		subList[i].Marshal(subnet, region)
+		subList[i].Marshal(subnet, region, vpcList)
 	}
 
 	return Subnets{}, nil
@@ -177,29 +188,26 @@ func (i *Subnets) GetSubnetName(id string) string {
 	return id
 }
 
-func (i *Subnets) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			val.SubnetId,
-			val.VpcId,
-			val.State,
-			val.AvailabilityZone,
-			val.Default,
-			val.CIDRBlock,
-			val.AvailableIPs,
-			val.MapPublicIp,
+func (i *Subnets) GetVpcIdBySubnetId(id string) string {
+	for _, subnet := range *i {
+		if subnet.SubnetId == id && subnet.VpcName != "" {
+			return subnet.VpcName
+		} else if subnet.SubnetId == id {
+			return subnet.VpcId
 		}
 	}
+	return ""
+}
 
-	table.SetHeader([]string{"Name", "Class", "Subnet Id", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"})
-
-	table.AppendBulk(rows)
-	table.Render()
+func (i *Subnets) GetVpcNameBySubnetId(id string) string {
+	for _, subnet := range *i {
+		if subnet.SubnetId == id && subnet.VpcName != "" {
+			return subnet.VpcName
+		} else if subnet.SubnetId == id {
+			return subnet.VpcId
+		}
+	}
+	return ""
 }
 
 func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
@@ -332,4 +340,30 @@ func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 	}
 
 	return nil
+}
+
+func (i *Subnets) PrintTable() {
+	table := tablewriter.NewWriter(os.Stdout)
+
+	rows := make([][]string, len(*i))
+	for index, val := range *i {
+		rows[index] = []string{
+			val.Name,
+			val.Class,
+			val.SubnetId,
+			val.VpcName,
+			val.VpcId,
+			val.State,
+			val.AvailabilityZone,
+			val.Default,
+			val.CIDRBlock,
+			val.AvailableIPs,
+			fmt.Sprintf("%t", val.MapPublicIp),
+		}
+	}
+
+	table.SetHeader([]string{"Name", "Class", "Subnet Id", "VPC", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"})
+
+	table.AppendBulk(rows)
+	table.Render()
 }
