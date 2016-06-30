@@ -32,12 +32,12 @@ func (c *SubnetClassConfig) LoadConfig(class string) error {
 		return err
 	}
 
-	c.Marshall(data.Attributes)
+	c.Marshal(data.Attributes)
 
 	return nil
 }
 
-func (c *SubnetClassConfig) Marshall(attributes []*simpledb.Attribute) {
+func (c *SubnetClassConfig) Marshal(attributes []*simpledb.Attribute) {
 	for _, attribute := range attributes {
 
 		val := *attribute.Value
@@ -63,7 +63,7 @@ func LoadAllSubnetConfigs() (SubnetClassConfigs, error) {
 	for _, item := range data.Items {
 		name := strings.Replace(*item.Name, configType+"/", "", -1)
 		cfg := new(SubnetClassConfig)
-		cfg.Marshall(item.Attributes)
+		cfg.Marshal(item.Attributes)
 		configs[name] = *cfg
 	}
 

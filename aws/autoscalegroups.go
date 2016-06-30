@@ -17,18 +17,19 @@ import (
 type AutoScaleGroups []AutoScaleGroup
 
 type AutoScaleGroup struct {
-	Name             string
-	Class            string
-	HealthCheck      string
-	LaunchConfig     string
-	LoadBalancer     string
-	Instances        string
-	DesiredCapacity  string
-	MinSize          string
-	MaxSize          string
-	Cooldown         string
-	AvailabilityZone string
-	Subnets          string
+	Name              string
+	Class             string
+	HealthCheck       string
+	LaunchConfig      string
+	LoadBalancers     string
+	Instances         string
+	DesiredCapacity   string
+	MinSize           string
+	MaxSize           string
+	Cooldown          string
+	AvailabilityZones string
+	Region            string
+	Subnet            string
 }
 
 func GetAutoScaleGroups() (*AutoScaleGroups, []error) {
@@ -43,7 +44,7 @@ func GetAutoScaleGroups() (*AutoScaleGroups, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionAutoScaleGroups(region.RegionName, asgList)
+			err := GetRegionAutoScaleGroups(*region.RegionName, asgList)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering autoscale group list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -55,34 +56,40 @@ func GetAutoScaleGroups() (*AutoScaleGroups, []error) {
 	return asgList, errs
 }
 
-func GetRegionAutoScaleGroups(region *string, asgList *AutoScaleGroups) error {
-	svc := autoscaling.New(session.New(&aws.Config{Region: region}))
+func GetRegionAutoScaleGroups(region string, asgList *AutoScaleGroups) error {
+	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
 
 	if err != nil {
 		return err
 	}
 
+	subList := new(Subnets)
+	GetRegionSubnets(region, subList, "")
+
 	asg := make(AutoScaleGroups, len(result.AutoScalingGroups))
 	for i, autoscalegroup := range result.AutoScalingGroups {
-		asg[i] = AutoScaleGroup{
-			Name:             aws.StringValue(autoscalegroup.AutoScalingGroupName),
-			Class:            GetTagValue("Class", autoscalegroup.Tags),
-			HealthCheck:      aws.StringValue(autoscalegroup.HealthCheckType),
-			LaunchConfig:     aws.StringValue(autoscalegroup.LaunchConfigurationName),
-			LoadBalancer:     strings.Join(aws.StringValueSlice(autoscalegroup.LoadBalancerNames), ","),
-			Instances:        fmt.Sprint(len(autoscalegroup.Instances)),
-			DesiredCapacity:  fmt.Sprint(aws.Int64Value(autoscalegroup.DesiredCapacity)),
-			MinSize:          fmt.Sprint(aws.Int64Value(autoscalegroup.MinSize)),
-			MaxSize:          fmt.Sprint(aws.Int64Value(autoscalegroup.MaxSize)),
-			Cooldown:         fmt.Sprint(aws.Int64Value(autoscalegroup.DefaultCooldown)),
-			AvailabilityZone: strings.Join(aws.StringValueSlice(autoscalegroup.AvailabilityZones), ","),
-			//Subnets: aws.StringValue(autoscalegroup.PlacementGroup), // TODO
-		}
+		asg[i].Marshal(autoscalegroup, region, subList)
 	}
 	*asgList = append(*asgList, asg[:]...)
 
 	return nil
+}
+
+func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region string, subList *Subnets) {
+	a.Name = aws.StringValue(autoscalegroup.AutoScalingGroupName)
+	a.Class = GetTagValue("Class", autoscalegroup.Tags)
+	a.HealthCheck = aws.StringValue(autoscalegroup.HealthCheckType)
+	a.LaunchConfig = aws.StringValue(autoscalegroup.LaunchConfigurationName)
+	a.LoadBalancers = strings.Join(aws.StringValueSlice(autoscalegroup.LoadBalancerNames), ", ")
+	a.Instances = fmt.Sprint(len(autoscalegroup.Instances))
+	a.DesiredCapacity = fmt.Sprint(aws.Int64Value(autoscalegroup.DesiredCapacity))
+	a.MinSize = fmt.Sprint(aws.Int64Value(autoscalegroup.MinSize))
+	a.MaxSize = fmt.Sprint(aws.Int64Value(autoscalegroup.MaxSize))
+	a.Cooldown = fmt.Sprint(aws.Int64Value(autoscalegroup.DefaultCooldown))
+	a.AvailabilityZones = strings.Join(aws.StringValueSlice(autoscalegroup.AvailabilityZones), ", ")
+	a.Subnet = subList.GetSubnetName(aws.StringValue(autoscalegroup.VPCZoneIdentifier))
+	a.Region = region
 }
 
 func (i *AutoScaleGroups) PrintTable() {
@@ -95,18 +102,18 @@ func (i *AutoScaleGroups) PrintTable() {
 			val.Class,
 			val.HealthCheck,
 			val.LaunchConfig,
-			val.LoadBalancer,
+			val.LoadBalancers,
 			val.Instances,
 			val.DesiredCapacity,
 			val.MinSize,
 			val.MaxSize,
 			val.Cooldown,
-			val.AvailabilityZone,
-			val.Subnets,
+			val.AvailabilityZones,
+			val.Subnet,
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Health Check", "Launch Config", "Load Balancers", "Instances", "Desired Capacity", "Min Size", "Max Size", "Cooldown", "Availability Zone", "Subnets"})
+	table.SetHeader([]string{"Name", "Class", "Health Check", "Launch Config", "Load Balancers", "Instances", "Desired Capacity", "Min Size", "Max Size", "Cooldown", "Availability Zones", "Subnet"})
 
 	table.AppendBulk(rows)
 	table.Render()

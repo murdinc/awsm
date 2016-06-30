@@ -58,7 +58,7 @@ func GetVpcByTag(region, key, value string) (Vpc, error) {
 		return Vpc{}, errors.New("No VPC found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 	case 1:
 		vpc := new(Vpc)
-		vpc.Marshall(result.Vpcs[0], region)
+		vpc.Marshal(result.Vpcs[0], region)
 		return *vpc, nil
 	}
 
@@ -98,7 +98,7 @@ func (v *Vpc) GetVpcSecurityGroupByTag(key, value string) (SecurityGroup, error)
 		return SecurityGroup{}, errors.New("No VPC Security Group found with [" + key + "] of [" + value + "] in [" + v.Region + "], Aborting!")
 	case 1:
 		sec := new(SecurityGroup)
-		sec.Marshall(result.SecurityGroups[0], v.Region)
+		sec.Marshal(result.SecurityGroups[0], v.Region)
 		return *sec, nil
 	}
 
@@ -153,7 +153,7 @@ func (v *Vpc) GetVpcSubnetByTag(key, value string) (Subnet, error) {
 		return Subnet{}, errors.New("No Subnet found with [" + key + "] of [" + value + "] in [" + v.Region + "] VPC [" + v.Name + "], Aborting!")
 	case 1:
 		subnet := new(Subnet)
-		subnet.Marshall(result.Subnets[0], v.Region)
+		subnet.Marshal(result.Subnets[0], v.Region)
 		return *subnet, nil
 	}
 
@@ -184,7 +184,7 @@ func GetVpcs(search string) (*Vpcs, []error) {
 	return vpcList, errs
 }
 
-func (v *Vpc) Marshall(vpc *ec2.Vpc, region string) {
+func (v *Vpc) Marshal(vpc *ec2.Vpc, region string) {
 	v.Name = GetTagValue("Name", vpc.Tags)
 	v.Class = GetTagValue("Class", vpc.Tags)
 	v.VpcId = aws.StringValue(vpc.VpcId)
@@ -206,7 +206,7 @@ func GetRegionVpcs(region string, vpcList *Vpcs, search string) error {
 
 	vpcs := make(Vpcs, len(result.Vpcs))
 	for i, vpc := range result.Vpcs {
-		vpcs[i].Marshall(vpc, region)
+		vpcs[i].Marshal(vpc, region)
 	}
 
 	if search != "" {

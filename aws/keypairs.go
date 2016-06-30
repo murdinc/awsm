@@ -56,7 +56,7 @@ func GetKeyPairByName(region, name string) (KeyPair, error) {
 		return KeyPair{}, errors.New("No KeyPair found named [" + name + "] in [" + region + "]!")
 	case 1:
 		keyPair := new(KeyPair)
-		keyPair.Marshall(result.KeyPairs[0], region)
+		keyPair.Marshal(result.KeyPairs[0], region)
 		return *keyPair, nil
 	}
 
@@ -89,7 +89,7 @@ func GetKeyPairs(search string) (*KeyPairs, []error) {
 	return keyList, errs
 }
 
-func (k *KeyPair) Marshall(keyPair *ec2.KeyPairInfo, region string) {
+func (k *KeyPair) Marshal(keyPair *ec2.KeyPairInfo, region string) {
 	k.KeyName = aws.StringValue(keyPair.KeyName)
 	k.KeyFingerprint = aws.StringValue(keyPair.KeyFingerprint)
 	k.Region = region
@@ -104,7 +104,7 @@ func GetRegionKeyPairs(region string, keyList *KeyPairs, search string) error {
 
 	key := make(KeyPairs, len(result.KeyPairs))
 	for i, keyPair := range result.KeyPairs {
-		key[i].Marshall(keyPair, region)
+		key[i].Marshal(keyPair, region)
 	}
 
 	if search != "" {

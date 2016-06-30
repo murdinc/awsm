@@ -55,7 +55,7 @@ func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 
 	snapList := make(Snapshots, len(result.Snapshots))
 	for i, snapshot := range result.Snapshots {
-		snapList[i].Marshall(snapshot, region)
+		snapList[i].Marshal(snapshot, region)
 	}
 
 	if len(snapList) == 0 {
@@ -110,7 +110,7 @@ func GetSnapshots(search string, completed bool) (*Snapshots, []error) {
 	return snapList, errs
 }
 
-func (s *Snapshot) Marshall(snapshot *ec2.Snapshot, region string) {
+func (s *Snapshot) Marshal(snapshot *ec2.Snapshot, region string) {
 	s.Name = GetTagValue("Name", snapshot.Tags)
 	s.Class = GetTagValue("Class", snapshot.Tags)
 	s.Description = aws.StringValue(snapshot.Description)
@@ -143,7 +143,7 @@ func GetRegionSnapshots(region string, snapList *Snapshots, search string, compl
 
 	snap := make(Snapshots, len(result.Snapshots))
 	for i, snapshot := range result.Snapshots {
-		snap[i].Marshall(snapshot, region)
+		snap[i].Marshal(snapshot, region)
 	}
 
 	if search != "" {

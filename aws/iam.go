@@ -37,7 +37,7 @@ func GetIAMUser(username string) (IAMUser, error) {
 	}
 
 	user := new(IAMUser)
-	user.Marshall(resp.User)
+	user.Marshal(resp.User)
 
 	return *user, nil
 }
@@ -55,14 +55,14 @@ func GetIAMUsers(search string) (*IAMUsers, error) {
 
 	iam := make(IAMUsers, len(result.Users))
 	for i, user := range result.Users {
-		iam[i].Marshall(user)
+		iam[i].Marshal(user)
 	}
 	*iamList = append(*iamList, iam[:]...)
 
 	return iamList, nil
 }
 
-func (i *IAMUser) Marshall(user *iam.User) {
+func (i *IAMUser) Marshal(user *iam.User) {
 	i.UserName = aws.StringValue(user.UserName)
 	i.UserId = aws.StringValue(user.UserId)
 	i.CreateDate = aws.TimeValue(user.CreateDate) // robots
@@ -70,7 +70,6 @@ func (i *IAMUser) Marshall(user *iam.User) {
 	i.Arn = aws.StringValue(user.Arn)
 	i.PasswordLastUsed = aws.TimeValue(user.PasswordLastUsed)   // robots
 	i.PasswordLastUsedHuman = humanize.Time(i.PasswordLastUsed) // humans
-
 }
 
 func (i *IAMUsers) PrintTable() {
@@ -88,7 +87,7 @@ func (i *IAMUsers) PrintTable() {
 		}
 	}
 
-	table.SetHeader([]string{"User Name", "Id", "Created", "Last Used", "Arn"}) //, "Password Last Used"})
+	table.SetHeader([]string{"User Name", "Id", "Created", "Last Used", "Arn"})
 
 	table.AppendBulk(rows)
 	table.Render()

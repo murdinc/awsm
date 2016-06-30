@@ -72,13 +72,13 @@ func GetVolumeByTag(region, key, value string) (Volume, error) {
 		return Volume{}, errors.New("No Volume found with tag [" + key + "] of [" + value + "].")
 	case 1:
 		volume := new(Volume)
-		volume.Marshall(result.Volumes[0], region, instList)
+		volume.Marshal(result.Volumes[0], region, instList)
 		return *volume, nil
 	}
 
 	volList := make(Volumes, len(result.Volumes))
 	for i, volume := range result.Volumes {
-		volList[i].Marshall(volume, region, instList)
+		volList[i].Marshal(volume, region, instList)
 	}
 
 	sort.Sort(volList)
@@ -125,7 +125,7 @@ func GetRegionVolumes(region string, volList *Volumes, search string, available 
 
 	vol := make(Volumes, len(result.Volumes))
 	for i, volume := range result.Volumes {
-		vol[i].Marshall(volume, region, instList)
+		vol[i].Marshal(volume, region, instList)
 	}
 
 	if search != "" {
@@ -405,7 +405,7 @@ func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
 	return nil
 }
 
-func (v *Volume) Marshall(volume *ec2.Volume, region string, instList *Instances) {
+func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances) {
 	v.Name = GetTagValue("Name", volume.Tags)
 	v.Class = GetTagValue("Class", volume.Tags)
 	v.VolumeId = aws.StringValue(volume.VolumeId)

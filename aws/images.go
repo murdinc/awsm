@@ -54,7 +54,7 @@ func GetImagesByTag(region, key, value string) (Images, error) {
 
 	imgList := make(Images, len(result.Images))
 	for i, image := range result.Images {
-		imgList[i].Marshall(image, region)
+		imgList[i].Marshal(image, region)
 	}
 
 	if len(imgList) == 0 {
@@ -106,7 +106,7 @@ func GetRegionImages(region string, imgList *Images, search string, available bo
 
 	img := make(Images, len(result.Images))
 	for i, image := range result.Images {
-		img[i].Marshall(image, region)
+		img[i].Marshal(image, region)
 	}
 
 	if search != "" {
@@ -398,7 +398,7 @@ func createImage(instanceId, name, region string, dryRun bool) (*ec2.CreateImage
 	return createImageResp, err
 }
 
-func (i *Image) Marshall(image *ec2.Image, region string) {
+func (i *Image) Marshal(image *ec2.Image, region string) {
 	var snapshotId, volSize string
 	root := aws.StringValue(image.RootDeviceType)
 

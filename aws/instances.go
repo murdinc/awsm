@@ -79,7 +79,7 @@ func (i *Instances) GetInstanceName(id string) string {
 	return id
 }
 
-func (i *Instance) Marshall(instance *ec2.Instance, region string, subList *Subnets, vpcList *Vpcs) {
+func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subnets, vpcList *Vpcs) {
 
 	subnet := subList.GetSubnetName(aws.StringValue(instance.SubnetId))
 	vpc := vpcList.GetVpcName(aws.StringValue(instance.VpcId))
@@ -118,7 +118,7 @@ func GetRegionInstances(region string, instList *Instances, search string, runni
 	for _, reservation := range result.Reservations {
 		inst := make(Instances, len(reservation.Instances))
 		for i, instance := range reservation.Instances {
-			inst[i].Marshall(instance, region, subList, vpcList)
+			inst[i].Marshal(instance, region, subList, vpcList)
 		}
 
 		if search != "" {
@@ -437,7 +437,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	terminal.Information("Finished Launching Instance!")
 
 	inst := make(Instances, 1)
-	inst[1].Marshall(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc})
+	inst[1].Marshal(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc})
 
 	inst.PrintTable()
 

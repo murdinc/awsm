@@ -23,8 +23,21 @@ type SecurityGroup struct {
 	Region      string
 }
 
-func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
+func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
+	names := make([]string, len(ids))
+	for i, id := range ids {
+		for _, secGrp := range *s {
+			if secGrp.GroupId == id && secGrp.Name != "" {
+				names[i] = secGrp.Name
+			} else if secGrp.GroupId == id {
+				names[i] = secGrp.GroupId
+			}
+		}
+	}
+	return names
+}
 
+func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeSecurityGroupsInput{
@@ -50,7 +63,7 @@ func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
 		return SecurityGroup{}, errors.New("No Security Group found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 	case 1:
 		sec := new(SecurityGroup)
-		sec.Marshall(result.SecurityGroups[0], region)
+		sec.Marshal(result.SecurityGroups[0], region)
 		return *sec, nil
 	}
 
@@ -75,7 +88,7 @@ func GetSecurityGroups() (*SecurityGroups, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
-	sgroupList := new(SecurityGroups)
+	secGrpList := new(SecurityGroups)
 	regions := GetRegionList()
 
 	for _, region := range regions {
@@ -83,7 +96,7 @@ func GetSecurityGroups() (*SecurityGroups, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionSecurityGroups(*region.RegionName, sgroupList)
+			err := GetRegionSecurityGroups(*region.RegionName, secGrpList)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering security group list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -92,10 +105,10 @@ func GetSecurityGroups() (*SecurityGroups, []error) {
 	}
 	wg.Wait()
 
-	return sgroupList, errs
+	return secGrpList, errs
 }
 
-func (s *SecurityGroup) Marshall(securitygroup *ec2.SecurityGroup, region string) {
+func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string) {
 
 	s.Name = aws.StringValue(securitygroup.GroupName)
 	s.GroupId = aws.StringValue(securitygroup.GroupId)
@@ -104,7 +117,7 @@ func (s *SecurityGroup) Marshall(securitygroup *ec2.SecurityGroup, region string
 	s.Region = region
 }
 
-func GetRegionSecurityGroups(region string, sgroupList *SecurityGroups) error {
+func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{})
 
@@ -114,9 +127,9 @@ func GetRegionSecurityGroups(region string, sgroupList *SecurityGroups) error {
 
 	sgroup := make(SecurityGroups, len(result.SecurityGroups))
 	for i, securitygroup := range result.SecurityGroups {
-		sgroup[i].Marshall(securitygroup, region)
+		sgroup[i].Marshal(securitygroup, region)
 	}
-	*sgroupList = append(*sgroupList, sgroup[:]...)
+	*secGrpList = append(*secGrpList, sgroup[:]...)
 
 	return nil
 }

@@ -56,7 +56,7 @@ func GetAddresses(search string, available bool) (*Addresses, []error) {
 	return ipList, errs
 }
 
-func (a *Address) Marshall(address *ec2.Address, region string, instList *Instances) {
+func (a *Address) Marshal(address *ec2.Address, region string, instList *Instances) {
 
 	a.AllocationId = aws.StringValue(address.AllocationId)
 	a.PublicIp = aws.StringValue(address.PublicIp)
@@ -91,7 +91,7 @@ func GetRegionAddresses(region string, adrList *Addresses, search string, availa
 
 	adr := make(Addresses, len(result.Addresses))
 	for i, address := range result.Addresses {
-		adr[i].Marshall(address, region, instList)
+		adr[i].Marshal(address, region, instList)
 	}
 
 	if search != "" {
@@ -207,7 +207,7 @@ func deleteAddresses(addrList *Addresses, dryRun bool) (err error) {
 		params := &ec2.ReleaseAddressInput{
 			AllocationId: aws.String(addr.AllocationId),
 			DryRun:       aws.Bool(dryRun),
-			//PublicIp: aws.String("String"), // TODO required for ec2 classic
+			//PublicIp: aws.String(addr.PublicIp), // TODO required for ec2 classic
 		}
 
 		_, err := svc.ReleaseAddress(params)

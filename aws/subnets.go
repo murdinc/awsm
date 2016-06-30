@@ -61,7 +61,7 @@ func GetSubnetByTag(region, key, value string) (Subnet, error) {
 		return Subnet{}, errors.New("No Subnet found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 	case 1:
 		subnet := new(Subnet)
-		subnet.Marshall(result.Subnets[0], region)
+		subnet.Marshal(result.Subnets[0], region)
 		return *subnet, nil
 	}
 
@@ -92,7 +92,7 @@ func GetSubnets(search string) (*Subnets, []error) {
 	return subList, errs
 }
 
-func (s *Subnet) Marshall(subnet *ec2.Subnet, region string) {
+func (s *Subnet) Marshal(subnet *ec2.Subnet, region string) {
 	s.Name = GetTagValue("Name", subnet.Tags)
 	s.Class = GetTagValue("Class", subnet.Tags)
 	s.SubnetId = aws.StringValue(subnet.SubnetId)
@@ -115,7 +115,7 @@ func GetRegionSubnets(region string, subList *Subnets, search string) error {
 
 	subs := make(Subnets, len(result.Subnets))
 	for i, subnet := range result.Subnets {
-		subs[i].Marshall(subnet, region)
+		subs[i].Marshal(subnet, region)
 	}
 
 	if search != "" {
@@ -162,7 +162,7 @@ func GetSubnetsByVpcId(vpcId string, region string) (Subnets, error) {
 
 	subList := make(Subnets, len(result.Subnets))
 	for i, subnet := range result.Subnets {
-		subList[i].Marshall(subnet, region)
+		subList[i].Marshal(subnet, region)
 	}
 
 	return Subnets{}, nil

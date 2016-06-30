@@ -30,12 +30,12 @@ func (c *VpcClassConfig) LoadConfig(class string) error {
 		return err
 	}
 
-	c.Marshall(data.Attributes)
+	c.Marshal(data.Attributes)
 
 	return nil
 }
 
-func (c *VpcClassConfig) Marshall(attributes []*simpledb.Attribute) {
+func (c *VpcClassConfig) Marshal(attributes []*simpledb.Attribute) {
 	for _, attribute := range attributes {
 
 		val := *attribute.Value
@@ -63,7 +63,7 @@ func LoadAllVpcConfigs() (VpcClassConfigs, error) {
 	for _, item := range data.Items {
 		name := strings.Replace(*item.Name, configType+"/", "", -1)
 		cfg := new(VpcClassConfig)
-		cfg.Marshall(item.Attributes)
+		cfg.Marshal(item.Attributes)
 		configs[name] = *cfg
 	}
 
