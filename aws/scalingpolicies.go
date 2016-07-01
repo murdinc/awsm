@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,11 +18,14 @@ type ScalingPolicies []ScalingPolicy
 
 type ScalingPolicy struct {
 	Name               string
+	Arn                string
 	AdjustmentType     string
-	Adjustment         string
+	Adjustment         int
+	AdjustmentStr      string
 	Cooldown           string
 	AutoScaleGroupName string
-	Alarms             string
+	AlarmArns          []string
+	AlarmNames         string
 	Region             string
 }
 
@@ -37,7 +41,7 @@ func GetScalingPolicies() (*ScalingPolicies, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionScalingPolicies(region.RegionName, spList)
+			err := GetRegionScalingPolicies(*region.RegionName, spList)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering scaling policy list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -49,29 +53,66 @@ func GetScalingPolicies() (*ScalingPolicies, []error) {
 	return spList, errs
 }
 
-func GetRegionScalingPolicies(region *string, spList *ScalingPolicies) error {
-	svc := autoscaling.New(session.New(&aws.Config{Region: region}))
+func GetRegionScalingPolicies(region string, spList *ScalingPolicies) error {
+	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribePolicies(&autoscaling.DescribePoliciesInput{})
-
 	if err != nil {
 		return err
 	}
 
 	sp := make(ScalingPolicies, len(result.ScalingPolicies))
-	for i, scalingpolicy := range result.ScalingPolicies {
-		sp[i] = ScalingPolicy{
-			Name:               aws.StringValue(scalingpolicy.PolicyName),
-			AdjustmentType:     aws.StringValue(scalingpolicy.AdjustmentType),
-			Adjustment:         fmt.Sprint(aws.Int64Value(scalingpolicy.ScalingAdjustment)),
-			Cooldown:           fmt.Sprint(aws.Int64Value(scalingpolicy.Cooldown)),
-			AutoScaleGroupName: aws.StringValue(scalingpolicy.AutoScalingGroupName),
-			//Alarms:             strings.Join(aws.StringValueSlice(scalingpolicy.Alarms), ","), // TODO
-			Region: *region,
-		}
+	for i, policy := range result.ScalingPolicies {
+		sp[i].Marshal(policy, region)
 	}
 	*spList = append(*spList, sp[:]...)
 
 	return nil
+}
+
+func (p *ScalingPolicies) GetPolicyNameByArn(arn string) string {
+	for _, policy := range *p {
+		if policy.Arn == arn && policy.Name != "" {
+			return policy.Name
+		} else if policy.Arn == arn {
+			return policy.Arn
+		}
+	}
+	return arn
+}
+
+func (p *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string) {
+	adjustment := int(aws.Int64Value(policy.ScalingAdjustment))
+	adjustmentStr := fmt.Sprint(adjustment)
+	if adjustment >= 1 {
+		adjustmentStr = fmt.Sprintf("+%d", adjustment)
+	}
+
+	var alarmArns []string
+	var alarmNames []string
+
+	for _, alarm := range policy.Alarms {
+		arnStr := aws.StringValue(alarm.AlarmARN)
+		alarmArns = append(alarmArns, arnStr)
+
+		arn, err := ParseArn(arnStr)
+		if err == nil {
+			alarmNames = append(alarmNames, arn.Resource)
+		} else {
+			alarmNames = append(alarmNames, "??????")
+		}
+	}
+
+	p.Name = aws.StringValue(policy.PolicyName)
+	p.Arn = aws.StringValue(policy.PolicyARN)
+	p.AdjustmentType = aws.StringValue(policy.AdjustmentType)
+	p.Adjustment = adjustment
+	p.AdjustmentStr = adjustmentStr
+	p.Cooldown = fmt.Sprint(aws.Int64Value(policy.Cooldown))
+	p.AutoScaleGroupName = aws.StringValue(policy.AutoScalingGroupName)
+	p.AlarmArns = alarmArns
+	p.AlarmNames = strings.Join(alarmNames, ", ")
+
+	p.Region = region
 }
 
 func (i *ScalingPolicies) PrintTable() {
@@ -82,10 +123,10 @@ func (i *ScalingPolicies) PrintTable() {
 		rows[index] = []string{
 			val.Name,
 			val.AdjustmentType,
-			val.Adjustment,
-			val.Cooldown,
+			val.AdjustmentStr,
+			val.Cooldown + " sec.",
 			val.AutoScaleGroupName,
-			val.Alarms,
+			val.AlarmNames,
 			val.Region,
 		}
 	}
