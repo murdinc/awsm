@@ -124,7 +124,7 @@ func CreateAddress(region, domain string, dryRun bool) error {
 	}
 
 	// Validate the region
-	if !ValidateRegion(region) {
+	if !ValidRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 

@@ -21,7 +21,7 @@ func GetRegionList() []*ec2.Region {
 	return resp.Regions
 }
 
-func ValidateRegion(region string) bool {
+func ValidRegion(region string) bool {
 	vregions := GetRegionList()
 	for _, vregion := range vregions {
 		if region == aws.StringValue(vregion.RegionName) {

@@ -193,11 +193,11 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 	launchConfigurationCfg.Increment(class)
 	terminal.Information(fmt.Sprintf("New version of launch configuration is [%d]", launchConfigurationCfg.Version))
 
-	// Get the AZ list
-	azs, _ := GetAZs()
+	for _, region := range launchConfigurationCfg.Regions {
 
-	for _, az := range launchConfigurationCfg.AvailabilityZones {
-		region := azs.GetRegion(az)
+		if !ValidRegion(region) {
+			return errors.New("Region [" + region + "] is not valid!")
+		}
 
 		// EBS
 		ebsVolumes := make([]*autoscaling.BlockDeviceMapping, len(instanceCfg.EBSVolumes))
@@ -250,9 +250,8 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			return err
 		} else {
 			terminal.Information("Found AMI [" + ami.ImageId + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]")
+			params.ImageId = aws.String(ami.ImageId)
 		}
-
-		params.ImageId = aws.String(ami.ImageId)
 
 		// KeyPair
 		keyPair, err := GetKeyPairByName(region, instanceCfg.KeyName)
@@ -260,9 +259,8 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			return err
 		} else {
 			terminal.Information("Found KeyPair [" + keyPair.KeyName + "] in [" + keyPair.Region + "]")
+			params.KeyName = aws.String(keyPair.KeyName)
 		}
-
-		params.KeyName = aws.String(keyPair.KeyName)
 
 		// VPC / Subnet
 		var vpc Vpc

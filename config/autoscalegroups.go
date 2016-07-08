@@ -5,40 +5,42 @@ import "strconv"
 type AutoScaleGroupClassConfigs map[string]AutoScaleGroupClassConfig
 
 type AutoScaleGroupClassConfig struct {
-	Propagate              bool
-	Retain                 int
-	AvailabilityZones      []string
-	DesiredCapacity        int
-	MinSize                int
-	MaxSize                int
-	DefaultCooldown        int
-	SubnetClass            string
-	HealthCheckType        string
-	HealthCheckGracePeriod int
-	TerminationPolicies    []string //?
-	ScalingPolicies        []string //?
-	LoadBalancerNames      []string
-	Alarms                 []string
+	LaunchConfigurationClass string
+	Propagate                bool
+	Retain                   int
+	AvailabilityZones        []string
+	DesiredCapacity          int
+	MinSize                  int
+	MaxSize                  int
+	DefaultCooldown          int
+	SubnetClass              string
+	HealthCheckType          string
+	HealthCheckGracePeriod   int
+	TerminationPolicies      []string //?
+	ScalingPolicies          []string //?
+	LoadBalancerNames        []string
+	Alarms                   []string
 }
 
 func DefaultAutoScaleGroupClasses() AutoScaleGroupClassConfigs {
 	defaultASGs := make(AutoScaleGroupClassConfigs)
 
 	defaultASGs["prod"] = AutoScaleGroupClassConfig{
-		Propagate:              true,
-		Retain:                 5,
-		AvailabilityZones:      []string{"us-west-2a", "us-east-1a"},
-		DesiredCapacity:        2,
-		MinSize:                1,
-		MaxSize:                4,
-		DefaultCooldown:        60,
-		SubnetClass:            "private",
-		HealthCheckType:        "ELB",
-		HealthCheckGracePeriod: 360,
-		TerminationPolicies:    []string{"NewestInstance"},
-		ScalingPolicies:        []string{"scaleUp", "scaleDown"},
-		LoadBalancerNames:      []string{"prod"},
-		Alarms:                 []string{"CPUAlarmHigh", "CPUAlarmLow"},
+		LaunchConfigurationClass: "prod",
+		Propagate:                true,
+		Retain:                   5,
+		AvailabilityZones:        []string{"us-west-2a", "us-east-1a"},
+		DesiredCapacity:          2,
+		MinSize:                  1,
+		MaxSize:                  4,
+		DefaultCooldown:          60,
+		SubnetClass:              "private",
+		HealthCheckType:          "ELB",
+		HealthCheckGracePeriod:   360,
+		TerminationPolicies:      []string{"OldestInstance"},
+		ScalingPolicies:          []string{"scaleUp", "scaleDown"},
+		LoadBalancerNames:        []string{"prod"},
+		Alarms:                   []string{"CPUAlarmHigh", "CPUAlarmLow"},
 	}
 
 	return defaultASGs
@@ -56,6 +58,9 @@ func (c *AutoScaleGroupClassConfig) LoadConfig(class string) error {
 		val := *attribute.Value
 
 		switch *attribute.Name {
+
+		case "LaunchConfigurationClass":
+			c.LaunchConfigurationClass = val
 
 		case "Propagate":
 			c.Propagate, _ = strconv.ParseBool(val)

@@ -112,7 +112,7 @@ func (i *SimpleDBDomains) PrintTable() {
 func CreateSimpleDBDomain(domain, region string) error {
 
 	// Validate the region
-	if !ValidateRegion(region) {
+	if !ValidRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 

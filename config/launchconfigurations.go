@@ -5,22 +5,22 @@ import "strconv"
 type LaunchConfigurationClassConfigs map[string]LaunchConfigurationClassConfig
 
 type LaunchConfigurationClassConfig struct {
-	Version           int
-	InstanceClass     string
-	Propagate         bool
-	Retain            int
-	AvailabilityZones []string
+	Version       int
+	InstanceClass string
+	Propagate     bool
+	Retain        int
+	Regions       []string
 }
 
 func DefaultLaunchConfigurationClasses() LaunchConfigurationClassConfigs {
 	defaultLCs := make(LaunchConfigurationClassConfigs)
 
 	defaultLCs["prod"] = LaunchConfigurationClassConfig{
-		Version:           1,
-		InstanceClass:     "prod",
-		Propagate:         true,
-		Retain:            5,
-		AvailabilityZones: []string{"us-west-2a", "us-east-1a", "eu-west-1a"},
+		Version:       1,
+		InstanceClass: "prod",
+		Propagate:     true,
+		Retain:        5,
+		Regions:       []string{"us-west-2", "us-east-1", "eu-west-1"},
 	}
 
 	return defaultLCs
@@ -45,8 +45,8 @@ func (c *LaunchConfigurationClassConfig) LoadConfig(class string) error {
 		case "InstanceClass":
 			c.InstanceClass = val
 
-		case "AvailabilityZones":
-			c.AvailabilityZones = append(c.AvailabilityZones, val)
+		case "Regions":
+			c.Regions = append(c.Regions, val)
 
 		case "Propagate":
 			c.Propagate, _ = strconv.ParseBool(val)
