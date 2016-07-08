@@ -320,7 +320,7 @@ func launchconfigurationsPage(ctx *iris.Context) {
 
 	data := make(map[string]interface{})
 
-	launchconfigurations, errs := GetLaunchConfigurations()
+	launchconfigurations, errs := GetLaunchConfigurations("")
 
 	data["LaunchConfigurations"] = launchconfigurations
 	data["Errors"] = errs
@@ -332,7 +332,7 @@ func autoscalegroupsPage(ctx *iris.Context) {
 
 	data := make(map[string]interface{})
 
-	autoscalegroups, errs := GetAutoScaleGroups()
+	autoscalegroups, errs := GetAutoScaleGroups("")
 
 	data["AutoScaleGroups"] = autoscalegroups
 	data["Errors"] = errs

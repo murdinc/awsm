@@ -98,7 +98,7 @@ func (v *Vpc) GetVpcSecurityGroupByTag(key, value string) (SecurityGroup, error)
 		return SecurityGroup{}, errors.New("No VPC Security Group found with [" + key + "] of [" + value + "] in [" + v.Region + "], Aborting!")
 	case 1:
 		sec := new(SecurityGroup)
-		sec.Marshal(result.SecurityGroups[0], v.Region)
+		sec.Marshal(result.SecurityGroups[0], v.Region, &Vpcs{*v})
 		return *sec, nil
 	}
 

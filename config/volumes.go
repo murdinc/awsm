@@ -58,18 +58,13 @@ func (c *VolumeClassConfig) LoadConfig(class string) error {
 			c.DeviceName = val
 
 		case "VolumeSize":
-			c.VolumeSize, err = strconv.Atoi(val)
+			c.VolumeSize, _ = strconv.Atoi(val)
 
 		case "DeleteOnTermination":
 			c.DeleteOnTermination, _ = strconv.ParseBool(val)
 
 		case "MountPoint":
 			c.MountPoint = val
-
-			/*
-				case "Encrypted":
-					c.Encrypted, _ = strconv.ParseBool(val)
-			*/
 
 		case "Snapshot":
 			c.Snapshot = val
@@ -79,6 +74,11 @@ func (c *VolumeClassConfig) LoadConfig(class string) error {
 
 		case "Iops":
 			c.Iops, _ = strconv.Atoi(val)
+
+			/*
+				case "Encrypted":
+					c.Encrypted, _ = strconv.ParseBool(val)
+			*/
 
 		}
 	}

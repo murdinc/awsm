@@ -71,17 +71,6 @@ func GetRegionAlarms(region string, alList *Alarms) error {
 	return nil
 }
 
-func (a *Alarms) GetAlarmNameByArn(arn string) string {
-	for _, alarm := range *a {
-		if alarm.Arn == arn && alarm.Name != "" {
-			return alarm.Name
-		} else if alarm.Arn == arn {
-			return alarm.Arn
-		}
-	}
-	return arn
-}
-
 func (a *Alarm) Marshal(alarm *cloudwatch.MetricAlarm, region string) {
 	var dimensions []string
 	var operator string

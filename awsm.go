@@ -145,10 +145,22 @@ func main() {
 			},
 		},
 		{
-			Name:  "createAutoScaleGroup",
-			Usage: "Create an AWS AutoScaling Group",
+			Name:  "createAutoScaleGroups",
+			Usage: "Create an AWS AutoScaling Groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of the autoscale groups to create",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				errs := aws.CreateAutoScaleGroups(c.NamedArg("class"), dryRun)
+				if errs != nil {
+					return cli.NewExitError("Error Creating AutoScale Groups!", 1)
+				} else {
+					terminal.Information("Done!")
+				}
 				return nil
 			},
 		},
@@ -204,10 +216,22 @@ func main() {
 			},
 		},
 		{
-			Name:  "createLaunchConfiguration",
-			Usage: "Create an AWS AutoScaling Launch Configuration",
+			Name:  "createLaunchConfigurations",
+			Usage: "Create an AWS AutoScaling Launch Configurations",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of the autoscale groups to create",
+					Optional:    false,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.CreateLaunchConfigurations(c.NamedArg("class"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				} else {
+					terminal.Information("Done!")
+				}
 				return nil
 			},
 		},
@@ -474,10 +498,25 @@ func main() {
 			},
 		},
 		{
-			Name:  "deleteLaunchConfiguration",
+			Name:  "deleteLaunchConfigurations",
 			Usage: "Delete AWS AutoScaling Launch Configurations",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for the launch configuration to delete",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to delete the launch configuration from",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.DeleteLaunchConfigurations(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -784,8 +823,15 @@ func main() {
 		{
 			Name:  "listAutoScaleGroups",
 			Usage: "Lists AutoScale Groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				groups, errs := aws.GetAutoScaleGroups()
+				groups, errs := aws.GetAutoScaleGroups(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Auto Scale Groups!", 1)
 				} else {
@@ -877,8 +923,15 @@ func main() {
 		{
 			Name:  "listLaunchConfigurations",
 			Usage: "Lists Launch Configurations",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				launchConfigs, errs := aws.GetLaunchConfigurations()
+				launchConfigs, errs := aws.GetLaunchConfigurations(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Launch Configurations!", 1)
 				} else {
@@ -1028,9 +1081,24 @@ func main() {
 		},
 		{
 			Name:  "resumeProcesses",
-			Usage: "Resume autoscaling processes on a specific autoscaling group",
+			Usage: "Resume scaling processes on autoscaling groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for the autoscaling group to resume",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to resume the processes in",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.ResumeProcesses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -1044,9 +1112,24 @@ func main() {
 		},
 		{
 			Name:  "suspendProcesses",
-			Usage: "Stop autoscaling processes on a specific autoscaling group",
+			Usage: "Suspend scaling processes on autoscaling groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for the autoscaling group to suspend",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to suspend the processes in",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.SuspendProcesses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},

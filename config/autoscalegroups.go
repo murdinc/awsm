@@ -1,10 +1,10 @@
 package config
 
+import "strconv"
+
 type AutoScaleGroupClassConfigs map[string]AutoScaleGroupClassConfig
 
 type AutoScaleGroupClassConfig struct {
-	Type                   string
-	InstanceClass          string
 	Propagate              bool
 	Retain                 int
 	AvailabilityZones      []string
@@ -12,11 +12,11 @@ type AutoScaleGroupClassConfig struct {
 	MinSize                int
 	MaxSize                int
 	DefaultCooldown        int
-	Subnet                 string
+	SubnetClass            string
 	HealthCheckType        string
 	HealthCheckGracePeriod int
 	TerminationPolicies    []string //?
-	ScalingPolicies        string
+	ScalingPolicies        []string //?
 	LoadBalancerNames      []string
 	Alarms                 []string
 }
@@ -25,8 +25,6 @@ func DefaultAutoScaleGroupClasses() AutoScaleGroupClassConfigs {
 	defaultASGs := make(AutoScaleGroupClassConfigs)
 
 	defaultASGs["prod"] = AutoScaleGroupClassConfig{
-		Type:                   "version",
-		InstanceClass:          "prod",
 		Propagate:              true,
 		Retain:                 5,
 		AvailabilityZones:      []string{"us-west-2a", "us-east-1a"},
@@ -34,11 +32,11 @@ func DefaultAutoScaleGroupClasses() AutoScaleGroupClassConfigs {
 		MinSize:                1,
 		MaxSize:                4,
 		DefaultCooldown:        60,
-		Subnet:                 "private",
+		SubnetClass:            "private",
 		HealthCheckType:        "ELB",
 		HealthCheckGracePeriod: 360,
 		TerminationPolicies:    []string{"NewestInstance"},
-		ScalingPolicies:        "default",
+		ScalingPolicies:        []string{"scaleUp", "scaleDown"},
 		LoadBalancerNames:      []string{"prod"},
 		Alarms:                 []string{"CPUAlarmHigh", "CPUAlarmLow"},
 	}
@@ -47,39 +45,63 @@ func DefaultAutoScaleGroupClasses() AutoScaleGroupClassConfigs {
 }
 
 func (c *AutoScaleGroupClassConfig) LoadConfig(class string) error {
-	/*
-		data, err := GetClassConfig("ec2", class)
-		if err != nil {
-			return err
+
+	data, err := GetClassConfig("autoscale", class)
+	if err != nil {
+		return err
+	}
+
+	for _, attribute := range data.Attributes {
+
+		val := *attribute.Value
+
+		switch *attribute.Name {
+
+		case "Propagate":
+			c.Propagate, _ = strconv.ParseBool(val)
+
+		case "Retain":
+			c.Retain, _ = strconv.Atoi(val)
+
+		case "AvailabilityZones":
+			c.AvailabilityZones = append(c.AvailabilityZones, val)
+
+		case "DesiredCapacity":
+			c.DesiredCapacity, _ = strconv.Atoi(val)
+
+		case "MinSize":
+			c.MinSize, _ = strconv.Atoi(val)
+
+		case "MaxSize":
+			c.MaxSize, _ = strconv.Atoi(val)
+
+		case "DefaultCooldown":
+			c.DefaultCooldown, _ = strconv.Atoi(val)
+
+		case "SubnetClass":
+			c.SubnetClass = val
+
+		case "HealthCheckType":
+			c.HealthCheckType = val
+
+		case "HealthCheckGracePeriod":
+			c.HealthCheckGracePeriod, _ = strconv.Atoi(val)
+
+		case "TerminationPolicies":
+			c.TerminationPolicies = append(c.TerminationPolicies, val)
+
+		case "ScalingPolicies":
+			c.ScalingPolicies = append(c.ScalingPolicies, val)
+
+		case "LoadBalancerNames":
+			c.LoadBalancerNames = append(c.LoadBalancerNames, val)
+
+		case "Alarms":
+			c.Alarms = append(c.Alarms, val)
+
 		}
+	}
 
-		for _, attribute := range data.Attributes {
-
-			val := *attribute.Value
-
-			switch *attribute.Name {
-
-			case "InstanceType":
-				c.InstanceType = val
-
-			case "SecurityGroups":
-				c.SecurityGroups = append(c.SecurityGroups, val)
-
-			case "Subnet":
-				c.Subnet = val
-
-			case "PublicIpAddress":
-				c.PublicIpAddress, _ = strconv.ParseBool(val)
-
-			case "AMI":
-				c.AMI = val
-
-			case "Keys":
-				c.Keys = append(c.SecurityGroups, val)
-
-			}
-		}
-	*/
 	return nil
 
 }

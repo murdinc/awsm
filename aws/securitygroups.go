@@ -17,9 +17,11 @@ type SecurityGroups []SecurityGroup
 
 type SecurityGroup struct {
 	Name        string
+	Class       string
 	GroupId     string
 	Description string
 	Vpc         string
+	VpcId       string
 	Region      string
 }
 
@@ -62,8 +64,11 @@ func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
 	case 0:
 		return SecurityGroup{}, errors.New("No Security Group found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 	case 1:
+		vpcList := new(Vpcs)
+		GetRegionVpcs(region, vpcList, "")
+
 		sec := new(SecurityGroup)
-		sec.Marshal(result.SecurityGroups[0], region)
+		sec.Marshal(result.SecurityGroups[0], region, vpcList)
 		return *sec, nil
 	}
 
@@ -108,12 +113,16 @@ func GetSecurityGroups() (*SecurityGroups, []error) {
 	return secGrpList, errs
 }
 
-func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string) {
+func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string, vpcList *Vpcs) {
+
+	vpc := vpcList.GetVpcName(aws.StringValue(securitygroup.VpcId))
 
 	s.Name = aws.StringValue(securitygroup.GroupName)
+	s.Class = GetTagValue("Class", securitygroup.Tags)
 	s.GroupId = aws.StringValue(securitygroup.GroupId)
 	s.Description = aws.StringValue(securitygroup.Description)
-	s.Vpc = aws.StringValue(securitygroup.VpcId)
+	s.Vpc = vpc
+	s.VpcId = aws.StringValue(securitygroup.VpcId)
 	s.Region = region
 }
 
@@ -125,9 +134,12 @@ func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups) error {
 		return err
 	}
 
+	vpcList := new(Vpcs)
+	GetRegionVpcs(region, vpcList, "")
+
 	sgroup := make(SecurityGroups, len(result.SecurityGroups))
 	for i, securitygroup := range result.SecurityGroups {
-		sgroup[i].Marshal(securitygroup, region)
+		sgroup[i].Marshal(securitygroup, region, vpcList)
 	}
 	*secGrpList = append(*secGrpList, sgroup[:]...)
 
@@ -141,6 +153,7 @@ func (i *SecurityGroups) PrintTable() {
 	for index, val := range *i {
 		rows[index] = []string{
 			val.Name,
+			val.Class,
 			val.GroupId,
 			val.Description,
 			val.Vpc,
@@ -148,7 +161,7 @@ func (i *SecurityGroups) PrintTable() {
 		}
 	}
 
-	table.SetHeader([]string{"Name", "Group Id", "Description", "Vpc", "Region"})
+	table.SetHeader([]string{"Name", "Class", "Group Id", "Description", "Vpc", "Region"})
 
 	table.AppendBulk(rows)
 	table.Render()

@@ -343,7 +343,7 @@ func RotateSnapshots(class string, cfg config.SnapshotClassConfig, dryRun bool) 
 	var wg sync.WaitGroup
 	var errs []error
 
-	launchConfigs, err := GetLaunchConfigurations()
+	launchConfigs, err := GetLaunchConfigurations("")
 	if err != nil {
 		return errors.New("Error while retrieving the list of assets to exclude from rotation!")
 	}

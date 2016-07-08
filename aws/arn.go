@@ -8,7 +8,7 @@ import (
 /*
 	Went the route of parsing ARNs because some AWS resources reference
 	each other by ARN, like Alarms and Scaling Policies. Hitting the API
-	to make thes human friendly when Marshalling would cause an infinite-loop. :-(
+	to make these human friendly before Marshalling would cause an infinite-loop. :-(
 */
 
 type ARN struct {
@@ -17,11 +17,11 @@ type ARN struct {
 	Service              string
 	Region               string
 	AccountId            string
-	ResourceType         string
 	PolicyId             string
 	GroupId              string
 	AutoScalingGroupName string
 	PolicyName           string
+	ResourceType         string
 	Resource             string
 }
 

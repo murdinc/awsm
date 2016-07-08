@@ -50,8 +50,10 @@ This repo is a Golang rewrite of one of the automation tools I've built for my c
 * deleteSubnets - "Delete AWS VPC Subnets"
 * deleteVpcs - "Delete AWS VPCs"
 * detachVolume - "Detach an AWS EBS Volume"
+* resumeProcesses - "Resume scaling processes on autoscaling groups"
 * stopInstances - "Stop AWS instances"
 * startInstances - "Start AWS instances"
+* suspendProcesses - "Suspend scaling processes on autoscaling groups"
 * rebootInstances - "Reboot AWS instances"
 * terminateInstances - "Terminate AWS instances"
 * launchInstance - "Launch an EC2 instance"
@@ -80,9 +82,13 @@ This repo is a Golang rewrite of one of the automation tools I've built for my c
 
 * createAutoScaleGroup - "Create an AWS AutoScaling Group"
 * createLaunchConfiguration - "Create an AWS AutoScaling Launch Configuration"
+
 * deleteAutoScaleGroup - "Delete AWS AutoScaling Groups"
 * deleteLaunchConfiguration - "Delete AWS AutoScaling Launch Configurations"
-* resumeProcesses - "Resume autoscaling processes on a specific autoscaling group"
+
 * runCommand - "Run a command on a set of instances"
-* suspendProcesses - "Stop autoscaling processes on a specific autoscaling group"
 * updateAutoScaleGroup - "Update an AWS AutoScaling Group"
+
+
+
+

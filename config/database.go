@@ -77,6 +77,12 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
+	case "launchconfig":
+		for class, config := range configInterface.(LaunchConfigurationClassConfigs) {
+			itemName = configType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
+		}
+
 	case "scalingpolicy":
 		for class, config := range configInterface.(ScalingPolicyConfigs) {
 			itemName = configType + "/" + class
@@ -89,13 +95,13 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-		/*
-			case "securitygroup":
-				for class, config := range configInterface.(AlarmClassConfigs) {
-					itemName = configType + "/" + class
-					itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
-				}
-		*/
+	/*
+		case "securitygroup":
+			for class, config := range configInterface.(SecurityGroupClassConfigs) {
+				itemName = configType + "/" + class
+				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			}
+	*/
 
 	default:
 		terminal.ErrorLine("InsertClassConfigs does not have switch for [" + configType + "]! No configurations of this type are being installed!")
@@ -133,6 +139,7 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 
 }
 
+/*
 func DeleteConfig() {
 
 }
@@ -140,6 +147,7 @@ func DeleteConfig() {
 func UpdateConfig() {
 
 }
+*/
 
 func GetItemByName(configName string) (*simpledb.GetAttributesOutput, error) {
 
@@ -168,7 +176,7 @@ func GetItemsByType(configType string) (*simpledb.SelectOutput, error) {
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 
 	params := &simpledb.SelectInput{
-		SelectExpression: aws.String(fmt.Sprintf("select * from awsm where ConfigType = '%s'", configType)), // Required
+		SelectExpression: aws.String(fmt.Sprintf("select * from awsm where ConfigType = '%s'", configType)),
 		ConsistentRead:   aws.Bool(true),
 		//NextToken:        aws.String("String"),
 	}
@@ -208,6 +216,7 @@ func CreateAwsmDatabase() error {
 	InsertClassConfigs("alarm", DefaultAlarms())
 	InsertClassConfigs("ami", DefaultImageClasses())
 	InsertClassConfigs("scalingpolicy", DefaultScalingPolicies())
+	InsertClassConfigs("launchconfig", DefaultLaunchConfigurationClasses())
 	InsertClassConfigs("ebs-volume", DefaultVolumeClasses())
 	InsertClassConfigs("ebs-snapshot", DefaultSnapshotClasses())
 	InsertClassConfigs("autoscale", DefaultAutoScaleGroupClasses())

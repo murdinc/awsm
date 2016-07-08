@@ -196,7 +196,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	if err != nil {
 		return err
 	} else {
-		terminal.Information("Found Instance Class Configuration for [" + class + "]!")
+		terminal.Information("Found Instance class configuration for [" + class + "]!")
 	}
 
 	// AZ
@@ -209,7 +209,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	region := azs.GetRegion(az)
 
-	// AMI Image
+	// AMI
 	ami, err := GetLatestImageByTag(region, "Class", instanceCfg.AMI)
 	if err != nil {
 		return err
@@ -217,7 +217,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		terminal.Information("Found AMI [" + ami.ImageId + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]!")
 	}
 
-	// EBS Volumes
+	// EBS
 	ebsVolumes := make([]*ec2.BlockDeviceMapping, len(instanceCfg.EBSVolumes))
 	for i, ebsClass := range instanceCfg.EBSVolumes {
 		var volCfg config.VolumeClassConfig
@@ -242,9 +242,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 				//Encrypted:           aws.Bool(volCfg.Encrypted),
 				SnapshotId: aws.String(latestSnapshot.SnapshotId),
 				VolumeSize: aws.Int64(int64(volCfg.VolumeSize)),
-
 				VolumeType: aws.String(volCfg.VolumeType),
-				//Iops:       aws.Int64(int64(volCfg.Iops)),
 			},
 			//NoDevice:    aws.String("String"),
 			//VirtualName: aws.String("String"),
@@ -478,7 +476,7 @@ func TerminateInstances(search, region string, dryRun bool) (err error) {
 		// Print the table
 		instList.PrintTable()
 	} else {
-		return errors.New("No Instances found, Aborting!")
+		return errors.New("No Instances found!")
 	}
 
 	// Confirm
@@ -571,8 +569,9 @@ func StopInstances(search, region string, dryRun bool) (err error) {
 
 // Private function without the confirmation terminal prompts
 func stopInstances(instList *Instances, dryRun bool) (err error) {
+	azs, _ := GetAZs()
+
 	for _, instance := range *instList {
-		azs, _ := GetAZs()
 
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
 
@@ -643,8 +642,10 @@ func StartInstances(search, region string, dryRun bool) (err error) {
 
 // Private function without the confirmation terminal prompts
 func startInstances(instList *Instances, dryRun bool) (err error) {
+
+	azs, _ := GetAZs()
+
 	for _, instance := range *instList {
-		azs, _ := GetAZs()
 
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
 

@@ -98,7 +98,7 @@ func (p *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string
 		if err == nil {
 			alarmNames = append(alarmNames, arn.Resource)
 		} else {
-			alarmNames = append(alarmNames, "??????")
+			alarmNames = append(alarmNames, "?????")
 		}
 	}
 

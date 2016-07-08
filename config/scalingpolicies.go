@@ -1,5 +1,7 @@
 package config
 
+import "strconv"
+
 type ScalingPolicyConfigs map[string]ScalingPolicyConfig
 
 type ScalingPolicyConfig struct {
@@ -30,39 +32,33 @@ func DefaultScalingPolicies() ScalingPolicyConfigs {
 }
 
 func (c *ScalingPolicyConfig) LoadConfig(class string) error {
-	/*
-		data, err := GetClassConfig("ec2", class)
-		if err != nil {
-			return err
+
+	data, err := GetClassConfig("scalingpolicy", class)
+	if err != nil {
+		return err
+	}
+
+	for _, attribute := range data.Attributes {
+
+		val := *attribute.Value
+
+		switch *attribute.Name {
+
+		case "ScalingAdjustment":
+			c.ScalingAdjustment, _ = strconv.Atoi(val)
+
+		case "AdjustmentType":
+			c.AdjustmentType = val
+
+		case "Cooldown":
+			c.Cooldown, _ = strconv.Atoi(val)
+
+		case "Alarms":
+			c.Alarms = append(c.Alarms, val)
+
 		}
+	}
 
-		for _, attribute := range data.Attributes {
-
-			val := *attribute.Value
-
-			switch *attribute.Name {
-
-			case "InstanceType":
-				c.InstanceType = val
-
-			case "SecurityGroups":
-				c.SecurityGroups = append(c.SecurityGroups, val)
-
-			case "Subnet":
-				c.Subnet = val
-
-			case "PublicIpAddress":
-				c.PublicIpAddress, _ = strconv.ParseBool(val)
-
-			case "AMI":
-				c.AMI = val
-
-			case "Keys":
-				c.Keys = append(c.SecurityGroups, val)
-
-			}
-		}
-	*/
 	return nil
 
 }
