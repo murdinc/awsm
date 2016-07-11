@@ -1,6 +1,8 @@
 # awsm
 > AWS Interface
 
+# Note: This tool is not yet complete, it is being heavily developed currently.
+
 ## Intro
 **awsm** is an alternative interface for Amazon Web Services. It's designed to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions. It's goal is to introduce as few new concepts as possible, and provide powerful tools that require only a few inputs to use.
 
