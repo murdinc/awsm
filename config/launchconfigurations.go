@@ -7,7 +7,6 @@ type LaunchConfigurationClassConfigs map[string]LaunchConfigurationClassConfig
 type LaunchConfigurationClassConfig struct {
 	Version       int
 	InstanceClass string
-	Propagate     bool
 	Retain        int
 	Regions       []string
 }
@@ -18,7 +17,6 @@ func DefaultLaunchConfigurationClasses() LaunchConfigurationClassConfigs {
 	defaultLCs["prod"] = LaunchConfigurationClassConfig{
 		Version:       1,
 		InstanceClass: "prod",
-		Propagate:     true,
 		Retain:        5,
 		Regions:       []string{"us-west-2", "us-east-1", "eu-west-1"},
 	}
@@ -47,9 +45,6 @@ func (c *LaunchConfigurationClassConfig) LoadConfig(class string) error {
 
 		case "Regions":
 			c.Regions = append(c.Regions, val)
-
-		case "Propagate":
-			c.Propagate, _ = strconv.ParseBool(val)
 
 		case "Retain":
 			c.Retain, _ = strconv.Atoi(val)

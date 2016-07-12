@@ -38,6 +38,27 @@ type LaunchConfig struct {
 	SnapshotIds    []string
 }
 
+func GetLaunchConfigurationsByName(region, name string) (LaunchConfigs, error) {
+
+	lcList := new(LaunchConfigs)
+	err := GetRegionLaunchConfigurations(region, lcList, "")
+
+	lcs := *lcList
+
+	term := regexp.MustCompile(name)
+	for i, lc := range lcs {
+		if !term.MatchString(lc.Name) {
+			lcs = append(lcs[:i], lcs[i+1:]...)
+		}
+	}
+
+	if len(lcs) == 0 {
+		return lcs, errors.New("No Launch Configurations found with name of [" + name + "] in [" + region + "].")
+	}
+
+	return lcs, err
+}
+
 func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -65,7 +86,7 @@ func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
 func GetRegionLaunchConfigurations(region string, lcList *LaunchConfigs, search string) error {
 	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeLaunchConfigurations(&autoscaling.DescribeLaunchConfigurationsInput{})
-	if err != nil {
+	if err != nil || len(result.LaunchConfigurations) == 0 {
 		return err
 	}
 
@@ -142,8 +163,8 @@ func (i *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
 func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 	// Verify the launch config class input
-	var launchConfigurationCfg config.LaunchConfigurationClassConfig
-	err = launchConfigurationCfg.LoadConfig(class)
+	var cfg config.LaunchConfigurationClassConfig
+	err = cfg.LoadConfig(class)
 	if err != nil {
 		return err
 	} else {
@@ -152,15 +173,15 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 	// Instance Class Config
 	var instanceCfg config.InstanceClassConfig
-	err = instanceCfg.LoadConfig(launchConfigurationCfg.InstanceClass)
+	err = instanceCfg.LoadConfig(cfg.InstanceClass)
 	if err != nil {
 		return err
 	} else {
-		terminal.Information("Found Instance class configuration for [" + launchConfigurationCfg.InstanceClass + "]")
+		terminal.Information("Found Instance class configuration for [" + cfg.InstanceClass + "]")
 	}
 
 	params := &autoscaling.CreateLaunchConfigurationInput{
-		LaunchConfigurationName:  aws.String(fmt.Sprintf("%s-v%d", class, launchConfigurationCfg.Version)),
+		LaunchConfigurationName:  aws.String(fmt.Sprintf("%s-v%d", class, cfg.Version)),
 		AssociatePublicIpAddress: aws.Bool(instanceCfg.PublicIpAddress),
 		InstanceMonitoring: &autoscaling.InstanceMonitoring{
 			Enabled: aws.Bool(instanceCfg.Monitoring),
@@ -189,11 +210,11 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 	}
 
 	// Increment the version
-	terminal.Information(fmt.Sprintf("Previous version of launch configuration is [%d]", launchConfigurationCfg.Version))
-	launchConfigurationCfg.Increment(class)
-	terminal.Information(fmt.Sprintf("New version of launch configuration is [%d]", launchConfigurationCfg.Version))
+	terminal.Information(fmt.Sprintf("Previous version of launch configuration is [%d]", cfg.Version))
+	cfg.Increment(class)
+	terminal.Information(fmt.Sprintf("New version of launch configuration is [%d]", cfg.Version))
 
-	for _, region := range launchConfigurationCfg.Regions {
+	for _, region := range cfg.Regions {
 
 		if !ValidRegion(region) {
 			return errors.New("Region [" + region + "] is not valid!")
@@ -265,7 +286,6 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		// VPC / Subnet
 		var vpc Vpc
 		var subnet Subnet
-		//var subnetId string
 		secGroupIds := make([]*string, len(instanceCfg.SecurityGroups))
 		if instanceCfg.Vpc != "" && instanceCfg.Subnet != "" {
 			// VPC
@@ -281,7 +301,6 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			if err != nil {
 				return err
 			} else {
-				//subnetId = subnet.SubnetId
 				terminal.Information("Found Subnet [" + subnet.SubnetId + "] in VPC [" + subnet.VpcId + "]")
 			}
 
@@ -326,7 +345,79 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 	}
 
+	// Rotate out older launch configurations
+	if cfg.Retain > 1 {
+		err := RotateLaunchConfigurations(class, cfg, dryRun)
+		if err != nil {
+			terminal.ShowErrorMessage(fmt.Sprintf("Error rotating [%s] launch configurations!", class), err.Error())
+			return err
+		}
+	}
+
 	return nil
+}
+
+func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClassConfig, dryRun bool) error {
+	var wg sync.WaitGroup
+	var errs []error
+
+	autoScaleGroups, err := GetAutoScaleGroups("")
+	if err != nil {
+		return errors.New("Error while retrieving the list of launch configurations to exclude from rotation!")
+	}
+	excludedConfigs := autoScaleGroups.LockedLaunchConfigurations()
+
+	regions := GetRegionList()
+
+	for _, region := range regions {
+		wg.Add(1)
+
+		go func(region *ec2.Region) {
+			defer wg.Done()
+
+			// Get all the launch configs of this class in this region
+			launchConfigs, err := GetLaunchConfigurationsByName(*region.RegionName, class)
+			if err != nil {
+				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering launch configuration list for region [%s]", *region.RegionName), err.Error())
+				errs = append(errs, err)
+			}
+
+			// Exclude the launch configs being used in Autoscale Groups
+			for i, lc := range launchConfigs {
+				if excludedConfigs[lc.Name] {
+					terminal.Information("Launch Configuration [" + lc.Name + ") ] is being used in an autoscale group, skipping!")
+					launchConfigs = append(launchConfigs[:i], launchConfigs[i+1:]...)
+				}
+			}
+
+			// Delete the oldest ones if we have more than the retention number
+			if len(launchConfigs) > cfg.Retain {
+				sort.Sort(launchConfigs) // important!
+				ds := launchConfigs[cfg.Retain:]
+				deleteLaunchConfigurations(&ds, dryRun)
+			}
+
+		}(region)
+	}
+	wg.Wait()
+
+	if errs != nil {
+		return errors.New("Error rotating snapshots for [" + class + "]!")
+	}
+
+	return nil
+}
+
+func (v LaunchConfigs) Len() int {
+	return len(v)
+}
+
+func (v LaunchConfigs) Swap(i, j int) {
+	v[i], v[j] = v[j], v[i]
+}
+
+func (v LaunchConfigs) Less(i, j int) bool {
+	return v[i].CreationTime.After(v[j].CreationTime)
 }
 
 func DeleteLaunchConfigurations(search, region string, dryRun bool) (err error) {

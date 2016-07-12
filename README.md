@@ -9,10 +9,6 @@
 **awsm** is a cli and a web interface. Configuration of Classes (see Concepts) is done though the web interface, and you can build your infrastructure in the cli or the web interface.
 
 
-## Origin
-This repo is a Golang rewrite of one of the automation tools I've built for my colleagues on the Production/Engineering Team of Salon (salon.com). Each implementation has incorporated things we have learned along our path, with the motivation of promoting the use of secure and redundant infrastructure designs by providing tools that automate many of the tasks involved with setting up and maintaining distributed AWS infrastructures. Many of the concepts were influenced by scripts that were originally written when Salon moved from a colo to the cloud, and from a conference talk from the devs who built Netflix/asgard at the first re:Invent conference.
-
-
 ## Features
 **Class** (short for classification) is a group of settings for any AWS service, stored in a SimpleDB database by awsm. Classes can be used to bootstrap assets in any AWS region, allowing you to configure once, and run anywhere.
 
@@ -77,17 +73,13 @@ This repo is a Golang rewrite of one of the automation tools I've built for my c
 * listVpcs - "Lists AWS Vpcs"
 
 
-## Development
-
 
 ## Roadmap
 
 * createAutoScaleGroup - "Create an AWS AutoScaling Group"
 * createLaunchConfiguration - "Create an AWS AutoScaling Launch Configuration"
-
 * deleteAutoScaleGroup - "Delete AWS AutoScaling Groups"
 * deleteLaunchConfiguration - "Delete AWS AutoScaling Launch Configurations"
-
 * runCommand - "Run a command on a set of instances"
 * updateAutoScaleGroup - "Update an AWS AutoScaling Group"
 

@@ -120,6 +120,13 @@ func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region strin
 	a.Region = region
 }
 
+func (a *AutoScaleGroups) LockedLaunchConfigurations() (ids map[string]bool) {
+	for _, asg := range *a {
+		ids[asg.LaunchConfig] = true
+	}
+	return ids
+}
+
 func CreateAutoScaleGroups(class string, dryRun bool) error {
 
 	// Verify the class input
