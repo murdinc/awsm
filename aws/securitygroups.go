@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
+	"regexp"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -89,7 +91,7 @@ func GetSecurityGroupByTagMulti(region, key string, value []string) (SecurityGro
 	return secList, nil
 }
 
-func GetSecurityGroups() (*SecurityGroups, []error) {
+func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -101,7 +103,7 @@ func GetSecurityGroups() (*SecurityGroups, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionSecurityGroups(*region.RegionName, secGrpList)
+			err := GetRegionSecurityGroups(*region.RegionName, secGrpList, search)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering security group list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -126,7 +128,7 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 	s.Region = region
 }
 
-func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups) error {
+func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{})
 
@@ -141,7 +143,25 @@ func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups) error {
 	for i, securitygroup := range result.SecurityGroups {
 		sgroup[i].Marshal(securitygroup, region, vpcList)
 	}
-	*secGrpList = append(*secGrpList, sgroup[:]...)
+
+	if search != "" {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, in := range sgroup {
+			rSec := reflect.ValueOf(in)
+
+			for k := 0; k < rSec.NumField(); k++ {
+				sVal := rSec.Field(k).String()
+
+				if term.MatchString(sVal) {
+					*secGrpList = append(*secGrpList, sgroup[i])
+					continue Loop
+				}
+			}
+		}
+	} else {
+		*secGrpList = append(*secGrpList, sgroup[:]...)
+	}
 
 	return nil
 }

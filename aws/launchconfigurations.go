@@ -91,7 +91,7 @@ func GetRegionLaunchConfigurations(region string, lcList *LaunchConfigs, search 
 	}
 
 	secGrpList := new(SecurityGroups)
-	err = GetRegionSecurityGroups(region, secGrpList)
+	err = GetRegionSecurityGroups(region, secGrpList, "")
 
 	imgList := new(Images)
 	GetRegionImages(region, imgList, "", false)

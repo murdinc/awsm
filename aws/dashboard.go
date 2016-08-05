@@ -3,6 +3,7 @@ package aws
 import (
 	"os/user"
 
+	"github.com/iris-contrib/template/html"
 	"github.com/kataras/iris"
 	"github.com/murdinc/awsm/config"
 	"github.com/toqueteos/webbrowser"
@@ -33,8 +34,9 @@ func RunDashboard(devMode bool) {
 	iris.Config.DisableBanner = true
 
 	// Template Configuration
-	iris.Config.Render.Template.Directory = guiLocation
-	iris.Config.Render.Template.Layout = "templates/layout.html"
+	iris.UseTemplate(html.New(html.Config{
+		Layout: "templates/layout.html",
+	})).Directory(guiLocation, ".html")
 
 	// Static Asset Folders
 	iris.StaticWeb("/js", guiLocation, 0)
@@ -124,7 +126,7 @@ func postData(ctx *iris.Context) {
 
 	switch typ {
 	case "instance":
-		err = LaunchInstance(ctx.PostFormValue("class"), ctx.PostFormValue("sequence"), ctx.PostFormValue("az"), true)
+		err = LaunchInstance(ctx.FormValueString("class"), ctx.FormValueString("sequence"), ctx.FormValueString("az"), true)
 
 	case "vpc":
 
@@ -290,7 +292,7 @@ func securitygroupsPage(ctx *iris.Context) {
 
 	data := make(map[string]interface{})
 
-	securitygroups, errs := GetSecurityGroups()
+	securitygroups, errs := GetSecurityGroups("")
 
 	data["SecurityGroups"] = securitygroups
 	data["Errors"] = errs

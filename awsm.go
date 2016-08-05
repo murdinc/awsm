@@ -38,6 +38,26 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
+			Name:  "createLocalKeyPair",
+			Usage: "Create and a local Key Pair",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the key pair",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				_, err := aws.MakeKeyPair(c.NamedArg("name"), dryRun)
+				if err != nil {
+					return cli.NewExitError("Error Creating Local KeyPair!", 1)
+				} else {
+					terminal.Information("Done!")
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "dashboard",
 			Usage: "Launch the awsm Dashboard GUI",
 			Flags: []cli.Flag{
@@ -969,8 +989,15 @@ func main() {
 		{
 			Name:  "listSecurityGroups",
 			Usage: "Lists Security Groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Action: func(c *cli.Context) error {
-				groups, errs := aws.GetSecurityGroups()
+				groups, errs := aws.GetSecurityGroups(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Security Groups!", 1)
 				} else {
