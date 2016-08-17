@@ -74,7 +74,7 @@ func main() {
 		},
 		{
 			Name:  "attachVolume",
-			Usage: "Attach an AWS EBS Volume to and EC2 Instance",
+			Usage: "Attach an AWS EBS Volume to an EC2 Instance",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "volume",

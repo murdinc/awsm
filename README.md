@@ -26,7 +26,7 @@
 
 ## Commands (CLI)
 * dashboard - "Launch the awsm Dashboard GUI"
-* attachVolume - "Attach an AWS EBS Volume to and EC2 Instance"
+* attachVolume - "Attach an AWS EBS Volume to an EC2 Instance"
 * copyImage - "Copy an AWS Machine Image to another region"
 * copySnapshot - "Copy an AWS EBS Snapshot to another region"
 * createAddress - "Create an AWS Elastic IP Address"

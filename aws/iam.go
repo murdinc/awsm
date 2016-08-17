@@ -43,23 +43,20 @@ func GetIAMUser(username string) (IAMUser, error) {
 }
 
 func GetIAMUsers(search string) (*IAMUsers, error) {
-	iamList := new(IAMUsers)
-
 	svc := iam.New(session.New())
 	result, err := svc.ListUsers(&iam.ListUsersInput{}) // TODO truncated?
 
 	if err != nil {
 		terminal.ShowErrorMessage("Error gathering IAM Users list", err.Error())
-		return iamList, err
+		return &IAMUsers{}, err
 	}
 
-	iam := make(IAMUsers, len(result.Users))
+	iamList := make(IAMUsers, len(result.Users))
 	for i, user := range result.Users {
-		iam[i].Marshal(user)
+		iamList[i].Marshal(user)
 	}
-	*iamList = append(*iamList, iam[:]...)
 
-	return iamList, nil
+	return &iamList, nil
 }
 
 func (i *IAMUser) Marshal(user *iam.User) {

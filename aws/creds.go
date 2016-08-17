@@ -42,6 +42,9 @@ func CheckCreds() bool {
 
 // addCredsDialog is the dialog for the new creds setup
 func (a *awsmCreds) addCredsDialog() {
+
+	// TODO prompt for default, or named alternatives
+
 	accessKey := terminal.PromptString("What is your AWS Access Key Id?")
 	secretKey := terminal.PromptString("What is your AWS Secret Access Key?")
 
