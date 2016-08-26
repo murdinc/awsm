@@ -79,6 +79,7 @@
 
 ## Roadmap
 
+* The un-camelCase-ing of the commands
 * runCommand - "Run a command on a set of instances"
 * Testing all the commands
 * Writing Tests
