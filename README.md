@@ -71,17 +71,20 @@
 * listSimpleDBDomains - "Lists AWS SimpleDB Domains"
 * listVolumes - "Lists AWS EBS Volumes"
 * listVpcs - "Lists AWS Vpcs"
-
-
-
-## Roadmap
-
 * createAutoScaleGroup - "Create an AWS AutoScaling Group"
 * createLaunchConfiguration - "Create an AWS AutoScaling Launch Configuration"
 * deleteAutoScaleGroup - "Delete AWS AutoScaling Groups"
 * deleteLaunchConfiguration - "Delete AWS AutoScaling Launch Configurations"
-* runCommand - "Run a command on a set of instances"
 * updateAutoScaleGroup - "Update an AWS AutoScaling Group"
+
+## Roadmap
+
+* runCommand - "Run a command on a set of instances"
+* Testing all the commands
+* Writing Tests
+* API and redoing Dashboard
+
+
 
 
 
