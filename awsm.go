@@ -19,6 +19,7 @@ func main() {
 
 	var dryRun bool
 	var force bool
+	var double bool // optional flag when updating an auto-scale group
 
 	app := cli.NewApp()
 	app.Name = "awsm"
@@ -51,8 +52,6 @@ func main() {
 				_, err := aws.MakeKeyPair(c.NamedArg("name"), dryRun)
 				if err != nil {
 					return cli.NewExitError("Error Creating Local KeyPair!", 1)
-				} else {
-					terminal.Information("Done!")
 				}
 				return nil
 			},
@@ -170,16 +169,14 @@ func main() {
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "class",
-					Description: "The class of the autoscale groups to create",
+					Description: "The class of the autoscaling groups to create",
 					Optional:    false,
 				},
 			},
 			Action: func(c *cli.Context) error {
-				errs := aws.CreateAutoScaleGroups(c.NamedArg("class"), dryRun)
-				if errs != nil {
-					return cli.NewExitError("Error Creating AutoScale Groups!", 1)
-				} else {
-					terminal.Information("Done!")
+				err := aws.CreateAutoScaleGroups(c.NamedArg("class"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -241,7 +238,7 @@ func main() {
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "class",
-					Description: "The class of the autoscale groups to create",
+					Description: "The class of the launch configuration groups to create",
 					Optional:    false,
 				},
 			},
@@ -249,8 +246,6 @@ func main() {
 				err := aws.CreateLaunchConfigurations(c.NamedArg("class"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
-				} else {
-					terminal.Information("Done!")
 				}
 				return nil
 			},
@@ -269,8 +264,6 @@ func main() {
 				errs := aws.CreateAndImportKeyPair(c.NamedArg("name"), dryRun)
 				if errs != nil {
 					return cli.NewExitError("Error Creating KeyPair!", 1)
-				} else {
-					terminal.Information("Done!")
 				}
 				return nil
 			},
@@ -449,10 +442,32 @@ func main() {
 			},
 		},
 		{
-			Name:  "deleteAutoScaleGroup",
+			Name:  "deleteAutoScaleGroups",
 			Usage: "Delete AWS AutoScaling Groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for the autoscaling group to delete",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to delete the autoscaling group from",
+					Optional:    true,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "force",
+					Destination: &force,
+					Usage:       "force (Force deletes all instances and lifecycle actions)",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.DeleteAutoScaleGroups(c.NamedArg("search"), c.NamedArg("region"), force, dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},
@@ -511,8 +526,7 @@ func main() {
 				errs := aws.DeleteKeyPairs(c.NamedArg("name"), dryRun)
 				if errs != nil {
 					return cli.NewExitError("Errors Deleting KeyPair!", 1)
-				} else {
-					terminal.Information("Done!")
+
 				}
 				return nil
 			},
@@ -1163,8 +1177,30 @@ func main() {
 		{
 			Name:  "updateAutoScaleGroup",
 			Usage: "Update an AWS AutoScaling Group",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term autoscaling group to update",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "version",
+					Description: "The version of the launch configuration group to use (defaults to the most recent)",
+					Optional:    true,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "double",
+					Destination: &double,
+					Usage:       "double (Doubles the desired-capacity and max-capacity)",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				// TODO
+				err := aws.UpdateAutoScaleGroups(c.NamedArg("search"), c.NamedArg("version"), double, dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
 				return nil
 			},
 		},

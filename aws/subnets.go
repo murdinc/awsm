@@ -34,6 +34,20 @@ type Subnet struct {
 	Region           string
 }
 
+func (s *Subnets) GetSubnetNames(ids []string) []string {
+	names := make([]string, len(ids))
+	for i, id := range ids {
+		for _, sub := range *s {
+			if sub.SubnetId == id && sub.Name != "" {
+				names[i] = sub.Name
+			} else if sub.SubnetId == id {
+				names[i] = sub.SubnetId
+			}
+		}
+	}
+	return names
+}
+
 func GetSubnetByTag(region, key, value string) (Subnet, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -306,7 +320,7 @@ func DeleteSubnets(name, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to delete these Subnets") {
+	if !terminal.PromptBool("Are you sure you want to delete these Subnets?") {
 		return errors.New("Aborting!")
 	}
 

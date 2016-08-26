@@ -181,7 +181,7 @@ func DeleteAddresses(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to delete these Addresses") {
+	if !terminal.PromptBool("Are you sure you want to delete these Addresses?") {
 		return errors.New("Aborting!")
 	}
 

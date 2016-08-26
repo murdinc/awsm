@@ -38,25 +38,45 @@ type LaunchConfig struct {
 	SnapshotIds    []string
 }
 
+func GetLaunchConfigurationName(region, class string, version int) string {
+	name := fmt.Sprintf("%s-v%d", class, version)
+	_, err := GetLaunchConfigurationsByName(region, name)
+	if err != nil {
+		return ""
+	}
+
+	return name
+}
+
 func GetLaunchConfigurationsByName(region, name string) (LaunchConfigs, error) {
 
-	lcList := new(LaunchConfigs)
-	err := GetRegionLaunchConfigurations(region, lcList, "")
-
-	lcs := *lcList
-
-	term := regexp.MustCompile(name)
-	for i, lc := range lcs {
-		if !term.MatchString(lc.Name) {
-			lcs = append(lcs[:i], lcs[i+1:]...)
-		}
+	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+	params := &autoscaling.DescribeLaunchConfigurationsInput{
+		LaunchConfigurationNames: []*string{
+			aws.String(name),
+		},
+	}
+	result, err := svc.DescribeLaunchConfigurations(params)
+	if err != nil || len(result.LaunchConfigurations) == 0 {
+		return LaunchConfigs{}, err
 	}
 
-	if len(lcs) == 0 {
-		return lcs, errors.New("No Launch Configurations found with name of [" + name + "] in [" + region + "].")
+	secGrpList := new(SecurityGroups)
+	err = GetRegionSecurityGroups(region, secGrpList, "")
+
+	imgList := new(Images)
+	GetRegionImages(region, imgList, "", false)
+
+	lcList := make(LaunchConfigs, len(result.LaunchConfigurations))
+	for i, config := range result.LaunchConfigurations {
+		lcList[i].Marshal(config, region, secGrpList, imgList)
 	}
 
-	return lcs, err
+	if len(lcList) == 0 {
+		return lcList, errors.New("No Launch Configurations found with name of [" + name + "] in [" + region + "].")
+	}
+
+	return lcList, err
 }
 
 func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
@@ -180,6 +200,11 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		terminal.Information("Found Instance class configuration for [" + cfg.InstanceClass + "]")
 	}
 
+	// Increment the version
+	terminal.Information(fmt.Sprintf("Previous version of launch configuration is [%d]", cfg.Version))
+	cfg.Increment(class)
+	terminal.Information(fmt.Sprintf("New version of launch configuration is [%d]", cfg.Version))
+
 	params := &autoscaling.CreateLaunchConfigurationInput{
 		LaunchConfigurationName:  aws.String(fmt.Sprintf("%s-v%d", class, cfg.Version)),
 		AssociatePublicIpAddress: aws.Bool(instanceCfg.PublicIpAddress),
@@ -208,11 +233,6 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			params.IamInstanceProfile = aws.String(iam.Arn)
 		}
 	}
-
-	// Increment the version
-	terminal.Information(fmt.Sprintf("Previous version of launch configuration is [%d]", cfg.Version))
-	cfg.Increment(class)
-	terminal.Information(fmt.Sprintf("New version of launch configuration is [%d]", cfg.Version))
 
 	for _, region := range cfg.Regions {
 
@@ -336,7 +356,6 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		_, err = svc.CreateLaunchConfiguration(params)
 
 		if err != nil {
-			//fmt.Println(err)
 			if awsErr, ok := err.(awserr.Error); ok {
 				return errors.New(awsErr.Message())
 			}
@@ -448,7 +467,7 @@ func DeleteLaunchConfigurations(search, region string, dryRun bool) (err error) 
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to delete these Launch Configurations") {
+	if !terminal.PromptBool("Are you sure you want to delete these Launch Configurations?") {
 		return errors.New("Aborting!")
 	}
 

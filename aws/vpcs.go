@@ -343,7 +343,7 @@ func DeleteVpcs(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to delete these VPCs") {
+	if !terminal.PromptBool("Are you sure you want to delete these VPCs?") {
 		return errors.New("Aborting!")
 	}
 

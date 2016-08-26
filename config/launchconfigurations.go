@@ -15,7 +15,7 @@ func DefaultLaunchConfigurationClasses() LaunchConfigurationClassConfigs {
 	defaultLCs := make(LaunchConfigurationClassConfigs)
 
 	defaultLCs["prod"] = LaunchConfigurationClassConfig{
-		Version:       1,
+		Version:       0,
 		InstanceClass: "prod",
 		Retain:        5,
 		Regions:       []string{"us-west-2", "us-east-1", "eu-west-1"},

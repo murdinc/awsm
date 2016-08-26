@@ -457,7 +457,7 @@ func DeleteSnapshots(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to delete these Snapshots") {
+	if !terminal.PromptBool("Are you sure you want to delete these Snapshots?") {
 		return errors.New("Aborting!")
 	}
 

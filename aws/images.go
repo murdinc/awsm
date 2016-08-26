@@ -479,7 +479,7 @@ func DeleteImages(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to delete these Volumes") {
+	if !terminal.PromptBool("Are you sure you want to delete these Volumes?") {
 		return errors.New("Aborting!")
 	}
 

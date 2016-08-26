@@ -92,3 +92,18 @@ func (a *AZs) GetRegion(az string) string {
 	}
 	return ""
 }
+
+func (a *AZs) GetRegionMap(azList []string) map[string][]string {
+	azs, _ := GetAZs()
+
+	regionMap := make(map[string][]string)
+
+	// Get the list of regions from the AZs
+	for _, az := range azList {
+		region := azs.GetRegion(az)
+		regionMap[region] = append(regionMap[region], az)
+
+	}
+
+	return regionMap
+}

@@ -103,6 +103,9 @@ func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subne
 	i.SubnetId = aws.StringValue(instance.SubnetId)
 	i.Subnet = subnet
 	i.Region = region
+
+	// TODO
+	//instance.SecurityGroups
 }
 
 func GetRegionInstances(region string, instList *Instances, search string, running bool) error {
@@ -480,7 +483,7 @@ func TerminateInstances(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to terminate these Instances") {
+	if !terminal.PromptBool("Are you sure you want to terminate these Instances?") {
 		return errors.New("Aborting!")
 	}
 
@@ -552,7 +555,7 @@ func StopInstances(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to stop these Instances") {
+	if !terminal.PromptBool("Are you sure you want to stop these Instances?") {
 		return errors.New("Aborting!")
 	}
 
@@ -625,7 +628,7 @@ func StartInstances(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to start these Instances") {
+	if !terminal.PromptBool("Are you sure you want to start these Instances?") {
 		return errors.New("Aborting!")
 	}
 
@@ -699,7 +702,7 @@ func RebootInstances(search, region string, dryRun bool) (err error) {
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to reboot these Instances") {
+	if !terminal.PromptBool("Are you sure you want to reboot these Instances?") {
 		return errors.New("Aborting!")
 	}
 

@@ -16,8 +16,8 @@ type AutoScaleGroupClassConfig struct {
 	SubnetClass              string
 	HealthCheckType          string
 	HealthCheckGracePeriod   int
-	TerminationPolicies      []string //?
-	ScalingPolicies          []string //?
+	TerminationPolicies      []string // ?
+	ScalingPolicies          []string // ?
 	LoadBalancerNames        []string
 	Alarms                   []string
 }
@@ -108,5 +108,4 @@ func (c *AutoScaleGroupClassConfig) LoadConfig(class string) error {
 	}
 
 	return nil
-
 }

@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/cli"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
@@ -120,86 +122,206 @@ func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region strin
 	a.Region = region
 }
 
-func (a *AutoScaleGroups) LockedLaunchConfigurations() (ids map[string]bool) {
+func (a *AutoScaleGroups) LockedLaunchConfigurations() map[string]bool {
+
+	ids := make(map[string]bool, len(*a))
 	for _, asg := range *a {
 		ids[asg.LaunchConfig] = true
 	}
 	return ids
 }
 
-func CreateAutoScaleGroups(class string, dryRun bool) error {
+func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 
-	// Verify the class input
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
 
-	// Verify that the current launch configuration exists in the regions of this ASG class
+	// Verify the asg config class input
+	var cfg config.AutoScaleGroupClassConfig
+	err = cfg.LoadConfig(class)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found Autoscaling group class configuration for [" + class + "]")
+	}
 
-	/*
-		svc := autoscaling.New(session.New())
+	// Verify the launchconfig class input
+	var launchConfigurationCfg config.LaunchConfigurationClassConfig
+	err = launchConfigurationCfg.LoadConfig(cfg.LaunchConfigurationClass)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
+	}
+
+	// Get the AZs
+	azs, errs := GetAZs()
+	if errs != nil {
+		return errors.New("Error gathering region list")
+	}
+
+	//for region, regionAZs := range azs.GetRegionMap(cfg.AvailabilityZones) {
+	for region, regionAZs := range azs.GetRegionMap(cfg.AvailabilityZones) {
+
+		// Verify that the latest Launch Configuration is available in this region
+		lcName := GetLaunchConfigurationName(region, cfg.LaunchConfigurationClass, launchConfigurationCfg.Version)
+		if lcName == "" {
+			return fmt.Errorf("Launch Configuration [%s] version [%d] is not available in [%s]!", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region)
+		} else {
+			terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region))
+		}
+
+		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 		params := &autoscaling.CreateAutoScalingGroupInput{
-			AutoScalingGroupName: aws.String("XmlStringMaxLen255"), // Required
-			MaxSize:              aws.Int64(1),                     // Required
-			MinSize:              aws.Int64(1),                     // Required
-			AvailabilityZones: []*string{
-				aws.String("XmlStringMaxLen255"), // Required
-				// More values...
-			},
-			DefaultCooldown:         aws.Int64(1),
-			DesiredCapacity:         aws.Int64(1),
-			HealthCheckGracePeriod:  aws.Int64(1),
-			HealthCheckType:         aws.String("XmlStringMaxLen32"),
-			InstanceId:              aws.String("XmlStringMaxLen19"),
-			LaunchConfigurationName: aws.String("ResourceName"),
-			LoadBalancerNames: []*string{
-				aws.String("XmlStringMaxLen255"), // Required
-				// More values...
-			},
-			NewInstancesProtectedFromScaleIn: aws.Bool(true),
-			PlacementGroup:                   aws.String("XmlStringMaxLen255"),
+			AutoScalingGroupName:    aws.String(class),
+			MaxSize:                 aws.Int64(int64(cfg.MaxSize)),
+			MinSize:                 aws.Int64(int64(cfg.MinSize)),
+			DefaultCooldown:         aws.Int64(int64(cfg.DefaultCooldown)),
+			DesiredCapacity:         aws.Int64(int64(cfg.DesiredCapacity)),
+			HealthCheckGracePeriod:  aws.Int64(int64(cfg.HealthCheckGracePeriod)),
+			HealthCheckType:         aws.String(cfg.HealthCheckType),
+			LaunchConfigurationName: aws.String(lcName),
+			// InstanceId:                       aws.String("XmlStringMaxLen19"),  // TODO ?
+			// NewInstancesProtectedFromScaleIn: aws.Bool(true),                   // TODO ?
+			// PlacementGroup:                   aws.String("XmlStringMaxLen255"), // TODO ?
 			Tags: []*autoscaling.Tag{
-				{ // Required
-					Key:               aws.String("TagKey"), // Required
+				{
+					// Name
+					Key:               aws.String("Name"),
 					PropagateAtLaunch: aws.Bool(true),
-					ResourceId:        aws.String("XmlString"),
-					ResourceType:      aws.String("XmlString"),
-					Value:             aws.String("TagValue"),
+					ResourceId:        aws.String(class),
+					ResourceType:      aws.String("auto-scaling-group"),
+					Value:             aws.String(lcName),
 				},
-				// More values...
+				{
+					// Class
+					Key:               aws.String("Class"),
+					PropagateAtLaunch: aws.Bool(true),
+					ResourceId:        aws.String(class),
+					ResourceType:      aws.String("auto-scaling-group"),
+					Value:             aws.String(class),
+				},
 			},
-			TerminationPolicies: []*string{
-				aws.String("XmlStringMaxLen1600"), // Required
-				// More values...
-			},
-			VPCZoneIdentifier: aws.String("XmlStringMaxLen255"),
-		}
-		resp, err := svc.CreateAutoScalingGroup(params)
-
-		if err != nil {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return
 		}
 
-		// Pretty-print the response data.
-		fmt.Println(resp)
-	*/
+		subList := new(Subnets)
+		var vpcs []string
+
+		if cfg.SubnetClass != "" {
+			err := GetRegionSubnets(region, subList, "")
+			if err != nil {
+				return err
+			}
+		}
+
+		// Set the AZs
+		for _, az := range regionAZs {
+			if !azs.ValidAZ(az) {
+				return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
+			} else {
+				terminal.Information("Found Availability Zone [" + az + "]!")
+			}
+
+			params.AvailabilityZones = append(params.AvailabilityZones, aws.String(az))
+
+			for _, sub := range *subList {
+				if sub.Class == cfg.SubnetClass && sub.AvailabilityZone == az {
+					vpcs = append(vpcs, sub.SubnetId)
+				}
+			}
+
+		}
+
+		// Set the VPCZoneIdentifier (SubnetIds seperated by comma)
+		params.VPCZoneIdentifier = aws.String(strings.Join(vpcs, ", "))
+
+		// Set the Load Balancers
+		for _, elb := range cfg.LoadBalancerNames {
+			params.LoadBalancerNames = append(params.LoadBalancerNames, aws.String(elb))
+		}
+
+		// Set the Termination Policies
+		for _, terminationPolicy := range cfg.LoadBalancerNames {
+			params.TerminationPolicies = append(params.TerminationPolicies, aws.String(terminationPolicy)) // ??
+		}
+
+		fmt.Println(params)
+
+		// Create it!
+		if !dryRun {
+			resp, err := svc.CreateAutoScalingGroup(params)
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					return errors.New(awsErr.Message())
+				}
+				return err
+			}
+
+			fmt.Println(resp)
+
+			terminal.Information("Done!")
+		}
+
+	}
+
 	return nil
 
 }
 
-func UpdateAutoScaleGroups(class string, dryRun bool) error {
-	/*
-		svc := autoscaling.New(session.New())
+// Public function with confirmation terminal prompt
+func UpdateAutoScaleGroups(name, version string, double, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	asgList, _ := GetAutoScaleGroups(name)
+
+	if len(*asgList) > 0 {
+		// Print the table
+		asgList.PrintTable()
+	} else {
+		return errors.New("No AutoScaling Groups found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to update these AutoScaling Groups?") {
+		return errors.New("Aborting!")
+	}
+
+	// Delete 'Em
+	if !dryRun {
+		err = updateAutoScaleGroups(asgList, version, double)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+			return err
+		}
+
+		terminal.Information("Done!")
+	}
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double bool) (err error) {
+	for _, asg := range *asgList {
+		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(asg.Region)}))
 
 		params := &autoscaling.UpdateAutoScalingGroupInput{
-			AutoScalingGroupName: aws.String("ResourceName"), // Required
+			AutoScalingGroupName: aws.String(asg.Name),
 			AvailabilityZones: []*string{
 				aws.String("XmlStringMaxLen255"), // Required
 				// More values...
 			},
-			DefaultCooldown:         aws.Int64(1),
-			DesiredCapacity:         aws.Int64(1),
+			//DefaultCooldown:         aws.Int64(int64(asg.Cooldown)),
+			//DesiredCapacity:         aws.Int64(int64(asg.DesiredCapacity)),
 			HealthCheckGracePeriod:  aws.Int64(1),
 			HealthCheckType:         aws.String("XmlStringMaxLen32"),
 			LaunchConfigurationName: aws.String("ResourceName"),
@@ -213,22 +335,134 @@ func UpdateAutoScaleGroups(class string, dryRun bool) error {
 			},
 			VPCZoneIdentifier: aws.String("XmlStringMaxLen255"),
 		}
-		resp, err := svc.UpdateAutoScalingGroup(params)
 
+		/*
+
+			params := &autoscaling.CreateAutoScalingGroupInput{
+				AutoScalingGroupName:    aws.String(class),
+				MaxSize:                 aws.Int64(int64(cfg.MaxSize)),
+				MinSize:                 aws.Int64(int64(cfg.MinSize)),
+				DefaultCooldown:         aws.Int64(int64(cfg.DefaultCooldown)),
+				DesiredCapacity:         aws.Int64(int64(cfg.DesiredCapacity)),
+				HealthCheckGracePeriod:  aws.Int64(int64(cfg.HealthCheckGracePeriod)),
+				HealthCheckType:         aws.String(cfg.HealthCheckType),
+				LaunchConfigurationName: aws.String(lcName),
+				// InstanceId:                       aws.String("XmlStringMaxLen19"),  // TODO ?
+				// NewInstancesProtectedFromScaleIn: aws.Bool(true),                   // TODO ?
+				// PlacementGroup:                   aws.String("XmlStringMaxLen255"), // TODO ?
+				Tags: []*autoscaling.Tag{
+					{
+						// Name
+						Key:               aws.String("Name"),
+						PropagateAtLaunch: aws.Bool(true),
+						ResourceId:        aws.String(class),
+						ResourceType:      aws.String("auto-scaling-group"),
+						Value:             aws.String(lcName),
+					},
+					{
+						// Class
+						Key:               aws.String("Class"),
+						PropagateAtLaunch: aws.Bool(true),
+						ResourceId:        aws.String(class),
+						ResourceType:      aws.String("auto-scaling-group"),
+						Value:             aws.String(class),
+					},
+				},
+			}
+
+		*/
+
+		_, err := svc.UpdateAutoScalingGroup(params)
 		if err != nil {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+			return err
 		}
 
-		// Pretty-print the response data.
-		fmt.Println(resp)
-	*/
+		terminal.Information("Deleted AutoScaling Group [" + asg.Name + "] in [" + asg.Region + "]!")
+	}
+
+	return nil
+}
+
+// Public function with confirmation terminal prompt
+func DeleteAutoScaleGroups(name, region string, force, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	asgList := new(AutoScaleGroups)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionAutoScaleGroups(region, asgList, name)
+	} else {
+		asgList, _ = GetAutoScaleGroups(name)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering AutoScaling Groups list")
+	}
+
+	if len(*asgList) > 0 {
+		// Print the table
+		asgList.PrintTable()
+	} else {
+		return errors.New("No AutoScaling Groups found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these AutoScaling Groups?") {
+		return errors.New("Aborting!")
+	}
+
+	// Delete 'Em
+	if !dryRun {
+		err = deleteAutoScaleGroups(asgList, force)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+			return err
+		}
+
+		terminal.Information("Done!")
+	}
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func deleteAutoScaleGroups(asgList *AutoScaleGroups, force bool) (err error) {
+	for _, asg := range *asgList {
+		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(asg.Region)}))
+
+		params := &autoscaling.DeleteAutoScalingGroupInput{
+			AutoScalingGroupName: aws.String(asg.Name),
+			ForceDelete:          aws.Bool(force),
+		}
+
+		_, err := svc.DeleteAutoScalingGroup(params)
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Deleted AutoScaling Group [" + asg.Name + "] in [" + asg.Region + "]!")
+	}
+
 	return nil
 }
 
 func SuspendProcesses(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
 	asgList := new(AutoScaleGroups)
 
 	// Check if we were given a region or not
@@ -290,6 +524,12 @@ func suspendProcesses(asgList *AutoScaleGroups) error {
 }
 
 func ResumeProcesses(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
 	asgList := new(AutoScaleGroups)
 
 	// Check if we were given a region or not
