@@ -80,10 +80,12 @@
 ## Roadmap
 
 * The un-camelCase-ing of the commands
+* Adding support for Application ELBs
 * runCommand - "Run a command on a set of instances"
 * Testing all the commands
 * Writing Tests
 * API and redoing Dashboard
+* Config to JSON import and export
 
 
 

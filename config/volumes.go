@@ -1,6 +1,10 @@
 package config
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type VolumeClassConfigs map[string]VolumeClassConfig
 
@@ -43,12 +47,19 @@ func DefaultVolumeClasses() VolumeClassConfigs {
 
 func (c *VolumeClassConfig) LoadConfig(class string) error {
 
-	data, err := GetClassConfig("ebs-volume", class)
+	data, err := GetClassConfig("volumes", class)
 	if err != nil {
 		return err
 	}
 
-	for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+
+}
+
+func (c *VolumeClassConfig) Marshal(attributes []*simpledb.Attribute) {
+	for _, attribute := range attributes {
 
 		val := *attribute.Value
 
@@ -75,14 +86,11 @@ func (c *VolumeClassConfig) LoadConfig(class string) error {
 		case "Iops":
 			c.Iops, _ = strconv.Atoi(val)
 
-			/*
-				case "Encrypted":
-					c.Encrypted, _ = strconv.ParseBool(val)
+			/* // TODO
+			case "Encrypted":
+				c.Encrypted, _ = strconv.ParseBool(val)
 			*/
 
 		}
 	}
-
-	return nil
-
 }

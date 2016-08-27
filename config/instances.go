@@ -1,6 +1,10 @@
 package config
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type InstanceClassConfigs map[string]InstanceClassConfig
 
@@ -65,12 +69,19 @@ func DefaultInstanceClasses() InstanceClassConfigs {
 
 func (c *InstanceClassConfig) LoadConfig(class string) error {
 
-	data, err := GetClassConfig("ec2", class)
+	data, err := GetClassConfig("instances", class)
 	if err != nil {
 		return err
 	}
 
-	for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+}
+
+func (c *InstanceClassConfig) Marshal(attributes []*simpledb.Attribute) {
+
+	for _, attribute := range attributes {
 
 		val := *attribute.Value
 
@@ -117,6 +128,4 @@ func (c *InstanceClassConfig) LoadConfig(class string) error {
 
 		}
 	}
-
-	return nil
 }

@@ -1,10 +1,6 @@
 package config
 
-import (
-	"strings"
-
-	"github.com/aws/aws-sdk-go/service/simpledb"
-)
+import "github.com/aws/aws-sdk-go/service/simpledb"
 
 type SubnetClassConfigs map[string]SubnetClassConfig
 
@@ -27,7 +23,7 @@ func DefaultSubnetClasses() SubnetClassConfigs {
 }
 
 func (c *SubnetClassConfig) LoadConfig(class string) error {
-	data, err := GetClassConfig("subnet", class)
+	data, err := GetClassConfig("subnets", class)
 	if err != nil {
 		return err
 	}
@@ -49,23 +45,4 @@ func (c *SubnetClassConfig) Marshal(attributes []*simpledb.Attribute) {
 
 		}
 	}
-}
-
-func LoadAllSubnetConfigs() (SubnetClassConfigs, error) {
-	configType := "subnet"
-	data, err := GetAllClassConfigs(configType)
-	if err != nil {
-		return SubnetClassConfigs{}, err
-	}
-
-	configs := make(SubnetClassConfigs)
-
-	for _, item := range data.Items {
-		name := strings.Replace(*item.Name, configType+"/", "", -1)
-		cfg := new(SubnetClassConfig)
-		cfg.Marshal(item.Attributes)
-		configs[name] = *cfg
-	}
-
-	return configs, nil
 }

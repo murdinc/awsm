@@ -22,28 +22,28 @@ import (
 type Instances []Instance
 
 type Instance struct {
-	Name             string
-	Class            string
-	PrivateIp        string
-	PublicIp         string
-	InstanceId       string
-	AMIId            string
-	AMIName          string
-	Root             string
-	Size             string
-	Virtualization   string
-	State            string
-	KeyPair          string
-	AvailabilityZone string
-	VPC              string
-	VPCId            string
-	Subnet           string
-	SubnetId         string
-	IAMUser          string
-	ShutdownBehavior string
-	EbsOptimized     bool // TODO
-	Monitoring       bool // TODO
-	Region           string
+	Name             string `json:"name"`
+	Class            string `json:"class"`
+	PrivateIp        string `json:"privateIp"`
+	PublicIp         string `json:"publicIp"`
+	InstanceId       string `json:"instanceId"`
+	AMIId            string `json:"amiId"`
+	AMIName          string `json:"amiName"`
+	Root             string `json:"root"`
+	Size             string `json:"size"`
+	Virtualization   string `json:"virtualization"`
+	State            string `json:"state"`
+	KeyPair          string `json:"keyPair"`
+	AvailabilityZone string `json:"availabilityZone"`
+	VPC              string `json:"vpc"`
+	VPCId            string `json:"vpcId"`
+	Subnet           string `json:"subnet"`
+	SubnetId         string `json:"subnetId"`
+	IAMUser          string `json:"iamUser"`
+	ShutdownBehavior string `json:"shutdownBehavior"`
+	EbsOptimized     bool   `json:"ebsOptimized"` // TODO
+	Monitoring       bool   `json:"monitoring"`   // TODO
+	Region           string `json:"region"`
 }
 
 func GetInstances(search string, running bool) (*Instances, []error) {

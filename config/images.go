@@ -1,6 +1,10 @@
 package config
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type ImageClassConfigs map[string]ImageClassConfig
 
@@ -25,12 +29,19 @@ func DefaultImageClasses() ImageClassConfigs {
 
 func (c *ImageClassConfig) LoadConfig(class string) error {
 
-	data, err := GetClassConfig("ami", class)
+	data, err := GetClassConfig("images", class)
 	if err != nil {
 		return err
 	}
 
-	for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+
+}
+
+func (c *ImageClassConfig) Marshal(attributes []*simpledb.Attribute) {
+	for _, attribute := range attributes {
 
 		val := *attribute.Value
 
@@ -50,7 +61,4 @@ func (c *ImageClassConfig) LoadConfig(class string) error {
 
 		}
 	}
-
-	return nil
-
 }

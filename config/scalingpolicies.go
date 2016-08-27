@@ -1,27 +1,31 @@
 package config
 
-import "strconv"
+import (
+	"strconv"
 
-type ScalingPolicyConfigs map[string]ScalingPolicyConfig
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
-type ScalingPolicyConfig struct {
+type ScalingPolicyClassConfigs map[string]ScalingPolicyClassConfig
+
+type ScalingPolicyClassConfig struct {
 	ScalingAdjustment int
 	AdjustmentType    string
 	Cooldown          int
 	Alarms            []string
 }
 
-func DefaultScalingPolicies() ScalingPolicyConfigs {
-	defaultScalingPolicies := make(ScalingPolicyConfigs)
+func DefaultScalingPolicies() ScalingPolicyClassConfigs {
+	defaultScalingPolicies := make(ScalingPolicyClassConfigs)
 
-	defaultScalingPolicies["scaleUp"] = ScalingPolicyConfig{
+	defaultScalingPolicies["scaleUp"] = ScalingPolicyClassConfig{
 		ScalingAdjustment: 1,
 		AdjustmentType:    "ChangeInCapacity",
 		Cooldown:          300,
 		Alarms:            []string{"cpuHigh"},
 	}
 
-	defaultScalingPolicies["scaleDown"] = ScalingPolicyConfig{
+	defaultScalingPolicies["scaleDown"] = ScalingPolicyClassConfig{
 		ScalingAdjustment: -1,
 		AdjustmentType:    "ChangeInCapacity",
 		Cooldown:          300,
@@ -31,14 +35,21 @@ func DefaultScalingPolicies() ScalingPolicyConfigs {
 	return defaultScalingPolicies
 }
 
-func (c *ScalingPolicyConfig) LoadConfig(class string) error {
+func (c *ScalingPolicyClassConfig) LoadConfig(class string) error {
 
-	data, err := GetClassConfig("scalingpolicy", class)
+	data, err := GetClassConfig("scalingpolicies", class)
 	if err != nil {
 		return err
 	}
 
-	for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+
+}
+
+func (c *ScalingPolicyClassConfig) Marshal(attributes []*simpledb.Attribute) {
+	for _, attribute := range attributes {
 
 		val := *attribute.Value
 
@@ -58,7 +69,4 @@ func (c *ScalingPolicyConfig) LoadConfig(class string) error {
 
 		}
 	}
-
-	return nil
-
 }

@@ -1,6 +1,10 @@
 package config
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type SnapshotClassConfigs map[string]SnapshotClassConfig
 
@@ -31,12 +35,19 @@ func DefaultSnapshotClasses() SnapshotClassConfigs {
 
 func (c *SnapshotClassConfig) LoadConfig(class string) error {
 
-	data, err := GetClassConfig("ebs-snapshot", class)
+	data, err := GetClassConfig("snapshots", class)
 	if err != nil {
 		return err
 	}
 
-	for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+
+}
+
+func (c *SnapshotClassConfig) Marshal(attributes []*simpledb.Attribute) {
+	for _, attribute := range attributes {
 
 		val := *attribute.Value
 
@@ -55,7 +66,5 @@ func (c *SnapshotClassConfig) LoadConfig(class string) error {
 			c.VolumeId = val
 		}
 	}
-
-	return nil
 
 }

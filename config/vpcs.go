@@ -1,10 +1,6 @@
 package config
 
-import (
-	"strings"
-
-	"github.com/aws/aws-sdk-go/service/simpledb"
-)
+import "github.com/aws/aws-sdk-go/service/simpledb"
 
 type VpcClassConfigs map[string]VpcClassConfig
 
@@ -25,7 +21,7 @@ func DefaultVpcClasses() VpcClassConfigs {
 }
 
 func (c *VpcClassConfig) LoadConfig(class string) error {
-	data, err := GetClassConfig("vpc", class)
+	data, err := GetClassConfig("vpcs", class)
 	if err != nil {
 		return err
 	}
@@ -49,23 +45,4 @@ func (c *VpcClassConfig) Marshal(attributes []*simpledb.Attribute) {
 			c.Tenancy = val
 		}
 	}
-}
-
-func LoadAllVpcConfigs() (VpcClassConfigs, error) {
-	configType := "vpc"
-	data, err := GetAllClassConfigs(configType)
-	if err != nil {
-		return VpcClassConfigs{}, err
-	}
-
-	configs := make(VpcClassConfigs)
-
-	for _, item := range data.Items {
-		name := strings.Replace(*item.Name, configType+"/", "", -1)
-		cfg := new(VpcClassConfig)
-		cfg.Marshal(item.Attributes)
-		configs[name] = *cfg
-	}
-
-	return configs, nil
 }

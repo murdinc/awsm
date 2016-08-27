@@ -1,6 +1,10 @@
 package config
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type AutoScaleGroupClassConfigs map[string]AutoScaleGroupClassConfig
 
@@ -48,12 +52,18 @@ func DefaultAutoScaleGroupClasses() AutoScaleGroupClassConfigs {
 
 func (c *AutoScaleGroupClassConfig) LoadConfig(class string) error {
 
-	data, err := GetClassConfig("autoscale", class)
+	data, err := GetClassConfig("autoscalinggroups", class)
 	if err != nil {
 		return err
 	}
 
-	for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+}
+
+func (c *AutoScaleGroupClassConfig) Marshal(attributes []*simpledb.Attribute) {
+	for _, attribute := range attributes {
 
 		val := *attribute.Value
 
@@ -106,6 +116,4 @@ func (c *AutoScaleGroupClassConfig) LoadConfig(class string) error {
 
 		}
 	}
-
-	return nil
 }

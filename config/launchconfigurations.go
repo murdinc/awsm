@@ -1,6 +1,10 @@
 package config
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type LaunchConfigurationClassConfigs map[string]LaunchConfigurationClassConfig
 
@@ -26,12 +30,19 @@ func DefaultLaunchConfigurationClasses() LaunchConfigurationClassConfigs {
 
 func (c *LaunchConfigurationClassConfig) LoadConfig(class string) error {
 
-	data, err := GetClassConfig("launchconfig", class)
+	data, err := GetClassConfig("launchconfigurations", class)
 	if err != nil {
 		return err
 	}
 
-	for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+
+}
+
+func (c *LaunchConfigurationClassConfig) Marshal(attributes []*simpledb.Attribute) {
+	for _, attribute := range attributes {
 
 		val := *attribute.Value
 
@@ -51,9 +62,6 @@ func (c *LaunchConfigurationClassConfig) LoadConfig(class string) error {
 
 		}
 	}
-
-	return nil
-
 }
 
 func (c *LaunchConfigurationClassConfig) SetVersion(name string, version int) error {

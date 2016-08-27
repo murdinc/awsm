@@ -374,7 +374,7 @@ func newVpcModal(ctx *iris.Context) {
 	data := make(map[string]interface{})
 	regionList := GetRegionList()
 
-	configs, err := config.LoadAllVpcConfigs()
+	configs, err := config.LoadAllConfigs("vpc")
 	if err != nil {
 		data["Errors"] = []error{err}
 	}

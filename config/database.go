@@ -35,68 +35,68 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 
 	// Build Attributes
 	switch configType {
-	case "vpc":
+	case "vpcs":
 		for class, config := range configInterface.(VpcClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "subnet":
+	case "subnets":
 		for class, config := range configInterface.(SubnetClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "ec2":
+	case "instances":
 		for class, config := range configInterface.(InstanceClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "ebs-volume":
+	case "volumes":
 		for class, config := range configInterface.(VolumeClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "ebs-snapshot":
+	case "snapshots":
 		for class, config := range configInterface.(SnapshotClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "ami":
+	case "images":
 		for class, config := range configInterface.(ImageClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "autoscale":
+	case "autoscalinggroups":
 		for class, config := range configInterface.(AutoScaleGroupClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "launchconfig":
+	case "launchconfigurations":
 		for class, config := range configInterface.(LaunchConfigurationClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "scalingpolicy":
-		for class, config := range configInterface.(ScalingPolicyConfigs) {
+	case "scalingpolicies":
+		for class, config := range configInterface.(ScalingPolicyClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
-	case "alarm":
+	case "alarms":
 		for class, config := range configInterface.(AlarmClassConfigs) {
 			itemName = configType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
 		}
 
 	/*
-		case "securitygroup":
+		case "securitygroups":
 			for class, config := range configInterface.(SecurityGroupClassConfigs) {
 				itemName = configType + "/" + class
 				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
@@ -104,7 +104,7 @@ func InsertClassConfigs(configType string, configInterface interface{}) error {
 	*/
 
 	default:
-		terminal.ErrorLine("InsertClassConfigs does not have switch for [" + configType + "]! No configurations of this type are being installed!")
+		return errors.New("InsertClassConfigs does not have switch for [" + configType + "]! No configurations of this type are being installed!")
 
 	}
 
@@ -210,17 +210,17 @@ func CreateAwsmDatabase() error {
 	}
 
 	// Insert our default configs
-	InsertClassConfigs("vpc", DefaultVpcClasses())
-	InsertClassConfigs("subnet", DefaultSubnetClasses())
-	InsertClassConfigs("ec2", DefaultInstanceClasses())
-	InsertClassConfigs("alarm", DefaultAlarms())
-	InsertClassConfigs("ami", DefaultImageClasses())
-	InsertClassConfigs("scalingpolicy", DefaultScalingPolicies())
-	InsertClassConfigs("launchconfig", DefaultLaunchConfigurationClasses())
-	InsertClassConfigs("ebs-volume", DefaultVolumeClasses())
-	InsertClassConfigs("ebs-snapshot", DefaultSnapshotClasses())
-	InsertClassConfigs("autoscale", DefaultAutoScaleGroupClasses())
-	//InsertClassConfigs("securitygroup", DefaultSecurityGroupClasses())
+	InsertClassConfigs("vpcs", DefaultVpcClasses())
+	InsertClassConfigs("subnets", DefaultSubnetClasses())
+	InsertClassConfigs("instances", DefaultInstanceClasses())
+	InsertClassConfigs("alarms", DefaultAlarms())
+	InsertClassConfigs("images", DefaultImageClasses())
+	InsertClassConfigs("scalingpolicies", DefaultScalingPolicies())
+	InsertClassConfigs("launchconfigurations", DefaultLaunchConfigurationClasses())
+	InsertClassConfigs("volumes", DefaultVolumeClasses())
+	InsertClassConfigs("snapshots", DefaultSnapshotClasses())
+	InsertClassConfigs("autoscalinggroups", DefaultAutoScaleGroupClasses())
+	//InsertClassConfigs("securitygroups", DefaultSecurityGroupClasses())
 
 	return nil
 }

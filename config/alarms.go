@@ -1,5 +1,7 @@
 package config
 
+import "github.com/aws/aws-sdk-go/service/simpledb"
+
 type AlarmClassConfigs map[string]AlarmClassConfig
 
 type AlarmClassConfig struct {
@@ -45,13 +47,21 @@ func DefaultAlarms() AlarmClassConfigs {
 }
 
 func (c *AlarmClassConfig) LoadConfig(class string) error {
-	/*
-		data, err := GetClassConfig("ec2", class)
-		if err != nil {
-			return err
-		}
+	data, err := GetClassConfig("alarms", class)
+	if err != nil {
+		return err
+	}
 
-		for _, attribute := range data.Attributes {
+	c.Marshal(data.Attributes)
+
+	return nil
+
+}
+
+func (c *AlarmClassConfig) Marshal(attributes []*simpledb.Attribute) {
+	// TODO
+	/*
+		for _, attribute := range attributes {
 
 			val := *attribute.Value
 
@@ -78,6 +88,5 @@ func (c *AlarmClassConfig) LoadConfig(class string) error {
 			}
 		}
 	*/
-	return nil
 
 }

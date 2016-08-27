@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/murdinc/awsm/api"
 	"github.com/murdinc/awsm/aws"
 	"github.com/murdinc/cli"
 	"github.com/murdinc/terminal"
@@ -39,38 +40,30 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:  "createLocalKeyPair",
-			Usage: "Create and a local Key Pair",
-			Arguments: []cli.Argument{
-				cli.Argument{
-					Name:        "name",
-					Description: "The name of the key pair",
-					Optional:    false,
-				},
-			},
+			Name:  "api",
+			Usage: "Start the awsm api server",
 			Action: func(c *cli.Context) error {
-				_, err := aws.MakeKeyPair(c.NamedArg("name"), dryRun)
-				if err != nil {
-					return cli.NewExitError("Error Creating Local KeyPair!", 1)
-				}
+				api.StartApi()
 				return nil
 			},
 		},
-		{
-			Name:  "dashboard",
-			Usage: "Launch the awsm Dashboard GUI",
-			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name:        "dev-mode",
-					Destination: &dryRun,
-					Usage:       "dev-mode (Don't reopen dashboard on each restart)",
+		/*
+			{
+				Name:  "dashboard",
+				Usage: "Launch the awsm Dashboard GUI",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name:        "dev-mode",
+						Destination: &dryRun,
+						Usage:       "dev-mode (Don't reopen dashboard on each restart)",
+					},
+				},
+				Action: func(c *cli.Context) error {
+					aws.RunDashboard(c.Bool("dev-mode"))
+					return nil
 				},
 			},
-			Action: func(c *cli.Context) error {
-				aws.RunDashboard(c.Bool("dev-mode"))
-				return nil
-			},
-		},
+		*/
 		{
 			Name:  "attachVolume",
 			Usage: "Attach an AWS EBS Volume to an EC2 Instance",
@@ -90,6 +83,24 @@ func main() {
 				err := aws.AttachVolume(c.NamedArg("volume"), c.NamedArg("instance"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "createLocalKeyPair",
+			Usage: "Create and a local Key Pair",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "name",
+					Description: "The name of the key pair",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				_, err := aws.MakeKeyPair(c.NamedArg("name"), dryRun)
+				if err != nil {
+					return cli.NewExitError("Error Creating Local KeyPair!", 1)
 				}
 				return nil
 			},
