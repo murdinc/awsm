@@ -12,17 +12,17 @@ import (
 */
 
 type ARN struct {
-	Arn                  string
-	Partition            string
-	Service              string
-	Region               string
-	AccountId            string
-	PolicyId             string
-	GroupId              string
-	AutoScalingGroupName string
-	PolicyName           string
-	ResourceType         string
-	Resource             string
+	Arn                  string `json:"arn"`
+	Partition            string `json:"partition"`
+	Service              string `json:"service"`
+	Region               string `json:"region"`
+	AccountId            string `json:"accountId"`
+	PolicyId             string `json:"policyId"`
+	GroupId              string `json:"groupId"`
+	AutoScalingGroupName string `json:"autoScalingGroupName"`
+	PolicyName           string `json:"policyName"`
+	ResourceType         string `json:"resourceType"`
+	Resource             string `json:"resource"`
 }
 
 func ParseArn(arnStr string) (*ARN, error) {

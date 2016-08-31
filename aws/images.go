@@ -23,16 +23,16 @@ import (
 type Images []Image
 
 type Image struct {
-	Name         string
-	Class        string
-	CreationDate time.Time
-	CreatedHuman string
-	ImageId      string
-	State        string
-	Root         string
-	SnapshotId   string
-	VolumeSize   string
-	Region       string
+	Name         string    `json:"name"`
+	Class        string    `json:"class"`
+	CreationDate time.Time `json:"creationDate"`
+	CreatedHuman string    `json:"createdHuman"`
+	ImageId      string    `json:"imageId"`
+	State        string    `json:"state"`
+	Root         string    `json:"root"`
+	SnapshotId   string    `json:"snapshotId"`
+	VolumeSize   string    `json:"volumeSize"`
+	Region       string    `json:"region"`
 }
 
 func (i *Images) GetImageName(id string) string {
@@ -314,7 +314,7 @@ func CreateImage(search, class, name string, dryRun bool) error {
 	return nil
 }
 
-func RotateImages(class string, cfg config.ImageClassConfig, dryRun bool) error {
+func RotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 	var wg sync.WaitGroup
 	var errs []error
 

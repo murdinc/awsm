@@ -7,30 +7,30 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type AutoscaleGroupClassConfigs map[string]AutoscaleGroupClassConfig
+type AutoscaleGroupClasses map[string]AutoscaleGroupClass
 
-type AutoscaleGroupClassConfig struct {
-	LaunchConfigurationClass string
-	Propagate                bool
-	Retain                   int
-	AvailabilityZones        []string
-	DesiredCapacity          int
-	MinSize                  int
-	MaxSize                  int
-	DefaultCooldown          int
-	SubnetClass              string
-	HealthCheckType          string
-	HealthCheckGracePeriod   int
-	TerminationPolicies      []string // ?
-	ScalingPolicies          []string // ?
-	LoadBalancerNames        []string
-	Alarms                   []string
+type AutoscaleGroupClass struct {
+	LaunchConfigurationClass string   `json:"launchConfigurationClass"`
+	Propagate                bool     `json:"propagate"`
+	Retain                   int      `json:"retain"`
+	AvailabilityZones        []string `json:"availabilityZones"`
+	DesiredCapacity          int      `json:"desiredCapacity"`
+	MinSize                  int      `json:"minSize"`
+	MaxSize                  int      `json:"maxSize"`
+	DefaultCooldown          int      `json:"defaultCooldown"`
+	SubnetClass              string   `json:"subnetClass"`
+	HealthCheckType          string   `json:"healthCheckType"`
+	HealthCheckGracePeriod   int      `json:"healthCheckGracePeriod"`
+	TerminationPolicies      []string `json:"terminationPolicies"`
+	ScalingPolicies          []string `json:"scalingPolicies"`
+	LoadBalancerNames        []string `json:"loadBalancerNames"`
+	Alarms                   []string `json:"alarms"`
 }
 
-func DefaultAutoscaleGroupClasses() AutoscaleGroupClassConfigs {
-	defaultASGs := make(AutoscaleGroupClassConfigs)
+func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
+	defaultASGs := make(AutoscaleGroupClasses)
 
-	defaultASGs["prod"] = AutoscaleGroupClassConfig{
+	defaultASGs["prod"] = AutoscaleGroupClass{
 		LaunchConfigurationClass: "prod",
 		Propagate:                true,
 		Retain:                   5,
@@ -51,8 +51,8 @@ func DefaultAutoscaleGroupClasses() AutoscaleGroupClassConfigs {
 	return defaultASGs
 }
 
-func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClassConfig, error) {
-	cfgs := make(AutoscaleGroupClassConfigs)
+func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClass, error) {
+	cfgs := make(AutoscaleGroupClasses)
 	item, err := GetItemByName("autoscalinggroups", name)
 	if err != nil {
 		return cfgs[name], err
@@ -62,8 +62,8 @@ func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClassConfigs, error) {
-	cfgs := make(AutoscaleGroupClassConfigs)
+func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClasses, error) {
+	cfgs := make(AutoscaleGroupClasses)
 	items, err := GetItemsByType("autoscalinggroups")
 	if err != nil {
 		return cfgs, err
@@ -73,10 +73,10 @@ func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c AutoscaleGroupClassConfigs) Marshal(items []*simpledb.Item) {
+func (c AutoscaleGroupClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "autoscalinggroups/", "", -1)
-		cfg := new(AutoscaleGroupClassConfig)
+		cfg := new(AutoscaleGroupClass)
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value

@@ -24,21 +24,21 @@ import (
 type Volumes []Volume
 
 type Volume struct {
-	Class            string
-	Name             string
-	VolumeId         string
-	Size             string
-	State            string
-	Iops             string
-	InstanceId       string
-	Attachment       string
-	CreationTime     time.Time
-	CreatedHuman     string
-	VolumeType       string
-	SnapshoId        string
-	DeleteOnTerm     bool
-	AvailabilityZone string
-	Region           string
+	Class            string    `json:"class"`
+	Name             string    `json:"name"`
+	VolumeId         string    `json:"volumeId"`
+	Size             int       `json:"size"`
+	State            string    `json:"state"`
+	Iops             string    `json:"iops"`
+	InstanceId       string    `json:"instanceId"`
+	Attachment       string    `json:"attachment"`
+	CreationTime     time.Time `json:"creationTime"`
+	CreatedHuman     string    `json:"createdHuman"`
+	VolumeType       string    `json:"volumeType"`
+	SnapshoId        string    `json:"snapshotId"`
+	DeleteOnTerm     bool      `json:"deleteOnTerm"`
+	AvailabilityZone string    `json:"availabilityZone"`
+	Region           string    `json:"region"`
 }
 
 func GetVolumeByTag(region, key, value string) (Volume, error) {
@@ -407,7 +407,7 @@ func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances)
 	v.Name = GetTagValue("Name", volume.Tags)
 	v.Class = GetTagValue("Class", volume.Tags)
 	v.VolumeId = aws.StringValue(volume.VolumeId)
-	v.Size = fmt.Sprint(aws.Int64Value(volume.Size))
+	v.Size = int(aws.Int64Value(volume.Size))
 	v.State = aws.StringValue(volume.State)
 	v.Iops = fmt.Sprint(aws.Int64Value(volume.Iops))
 	v.CreationTime = *volume.CreateTime                              // robots

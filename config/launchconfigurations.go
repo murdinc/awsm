@@ -7,19 +7,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type LaunchConfigurationClassConfigs map[string]LaunchConfigurationClassConfig
+type LaunchConfigurationClasses map[string]LaunchConfigurationClass
 
-type LaunchConfigurationClassConfig struct {
-	Version       int
-	InstanceClass string
-	Retain        int
-	Regions       []string
+type LaunchConfigurationClass struct {
+	Version       int      `json:"version"`
+	InstanceClass string   `json:"instanceClass"`
+	Retain        int      `json:"retain"`
+	Regions       []string `json:"regions"`
 }
 
-func DefaultLaunchConfigurationClasses() LaunchConfigurationClassConfigs {
-	defaultLCs := make(LaunchConfigurationClassConfigs)
+func DefaultLaunchConfigurationClasses() LaunchConfigurationClasses {
+	defaultLCs := make(LaunchConfigurationClasses)
 
-	defaultLCs["prod"] = LaunchConfigurationClassConfig{
+	defaultLCs["prod"] = LaunchConfigurationClass{
 		Version:       0,
 		InstanceClass: "prod",
 		Retain:        5,
@@ -29,8 +29,8 @@ func DefaultLaunchConfigurationClasses() LaunchConfigurationClassConfigs {
 	return defaultLCs
 }
 
-func LoadLaunchConfigurationClass(name string) (LaunchConfigurationClassConfig, error) {
-	cfgs := make(LaunchConfigurationClassConfigs)
+func LoadLaunchConfigurationClass(name string) (LaunchConfigurationClass, error) {
+	cfgs := make(LaunchConfigurationClasses)
 	item, err := GetItemByName("launchconfigurations", name)
 	if err != nil {
 		return cfgs[name], err
@@ -39,8 +39,8 @@ func LoadLaunchConfigurationClass(name string) (LaunchConfigurationClassConfig, 
 	return cfgs[name], nil
 }
 
-func LoadAllLaunchConfigurationClasses() (LaunchConfigurationClassConfigs, error) {
-	cfgs := make(LaunchConfigurationClassConfigs)
+func LoadAllLaunchConfigurationClasses() (LaunchConfigurationClasses, error) {
+	cfgs := make(LaunchConfigurationClasses)
 	items, err := GetItemsByType("launchconfigurations")
 	if err != nil {
 		return cfgs, err
@@ -50,10 +50,10 @@ func LoadAllLaunchConfigurationClasses() (LaunchConfigurationClassConfigs, error
 	return cfgs, nil
 }
 
-func (c LaunchConfigurationClassConfigs) Marshal(items []*simpledb.Item) {
+func (c LaunchConfigurationClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "launchconfigurations/", "", -1)
-		cfg := new(LaunchConfigurationClassConfig)
+		cfg := new(LaunchConfigurationClass)
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value
@@ -78,21 +78,21 @@ func (c LaunchConfigurationClassConfigs) Marshal(items []*simpledb.Item) {
 	}
 }
 
-func (c *LaunchConfigurationClassConfig) SetVersion(name string, version int) error {
+func (c *LaunchConfigurationClass) SetVersion(name string, version int) error {
 	c.Version = version
 
-	updateCfgs := make(LaunchConfigurationClassConfigs)
+	updateCfgs := make(LaunchConfigurationClasses)
 	updateCfgs[name] = *c
 
-	return InsertClassConfigs("launchconfig", updateCfgs)
+	return InsertClasses("launchconfig", updateCfgs)
 }
 
-func (c *LaunchConfigurationClassConfig) Increment(name string) error {
+func (c *LaunchConfigurationClass) Increment(name string) error {
 	c.Version += 1
 	return c.SetVersion(name, c.Version)
 }
 
-func (c *LaunchConfigurationClassConfig) Decrement(name string) error {
+func (c *LaunchConfigurationClass) Decrement(name string) error {
 	c.Version -= 1
 	return c.SetVersion(name, c.Version)
 }

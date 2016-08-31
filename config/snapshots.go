@@ -7,25 +7,25 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type SnapshotClassConfigs map[string]SnapshotClassConfig
+type SnapshotClasses map[string]SnapshotClass
 
-type SnapshotClassConfig struct {
-	Retain           int
-	Propagate        bool
-	PropagateRegions []string
-	VolumeId         string
+type SnapshotClass struct {
+	Retain           int      `json:"retain"`
+	Propagate        bool     `json:"propagate"`
+	PropagateRegions []string `json:"propagateRegions"`
+	VolumeId         string   `json:"volumeId"`
 }
 
-func DefaultSnapshotClasses() SnapshotClassConfigs {
-	defaultSnapshots := make(SnapshotClassConfigs)
+func DefaultSnapshotClasses() SnapshotClasses {
+	defaultSnapshots := make(SnapshotClasses)
 
-	defaultSnapshots["git"] = SnapshotClassConfig{
+	defaultSnapshots["git"] = SnapshotClass{
 		Propagate:        true,
 		Retain:           5,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
 	}
 
-	defaultSnapshots["mysql-data"] = SnapshotClassConfig{
+	defaultSnapshots["mysql-data"] = SnapshotClass{
 		Propagate:        true,
 		Retain:           5,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
@@ -34,8 +34,8 @@ func DefaultSnapshotClasses() SnapshotClassConfigs {
 	return defaultSnapshots
 }
 
-func LoadSnapshotClass(name string) (SnapshotClassConfig, error) {
-	cfgs := make(SnapshotClassConfigs)
+func LoadSnapshotClass(name string) (SnapshotClass, error) {
+	cfgs := make(SnapshotClasses)
 	item, err := GetItemByName("snapshots", name)
 	if err != nil {
 		return cfgs[name], err
@@ -45,8 +45,8 @@ func LoadSnapshotClass(name string) (SnapshotClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllSnapshotClasses() (SnapshotClassConfigs, error) {
-	cfgs := make(SnapshotClassConfigs)
+func LoadAllSnapshotClasses() (SnapshotClasses, error) {
+	cfgs := make(SnapshotClasses)
 	items, err := GetItemsByType("snapshots")
 	if err != nil {
 		return cfgs, err
@@ -56,10 +56,10 @@ func LoadAllSnapshotClasses() (SnapshotClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c SnapshotClassConfigs) Marshal(items []*simpledb.Item) {
+func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "snapshots/", "", -1)
-		cfg := new(SnapshotClassConfig)
+		cfg := new(SnapshotClass)
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value

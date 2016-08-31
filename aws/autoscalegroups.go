@@ -23,23 +23,23 @@ import (
 type AutoScaleGroups []AutoScaleGroup
 
 type AutoScaleGroup struct {
-	Name                   string
-	Class                  string
-	HealthCheckType        string
-	HealthCheckGracePeriod int64
-	LaunchConfig           string
-	LoadBalancers          string
-	InstanceCount          int
-	DesiredCapacity        int64
-	MinSize                int64
-	MaxSize                int64
-	DefaultCooldown        int64
-	AvailabilityZones      string
-	VpcName                string
-	VpcId                  string
-	SubnetName             string
-	SubnetId               string
-	Region                 string
+	Name                   string `json:"name"`
+	Class                  string `json:"class"`
+	HealthCheckType        string `json:"healthCheckType"`
+	HealthCheckGracePeriod int    `json:"healthCheckGracePeriod"`
+	LaunchConfig           string `json:"launchConfig"`
+	LoadBalancers          string `json:"loadBalancers"`
+	InstanceCount          int    `json:"instanceCount"`
+	DesiredCapacity        int    `json:"desiredCapacity"`
+	MinSize                int    `json:"minSize"`
+	MaxSize                int    `json:"maxSize"`
+	DefaultCooldown        int    `json:"defaultCooldown"`
+	AvailabilityZones      string `json:"availabilityZones"`
+	VpcName                string `json:"vpcName"`
+	VpcId                  string `json:"vpcId"`
+	SubnetName             string `json:"subnetName"`
+	SubnetId               string `json:"subnetId"`
+	Region                 string `json:"region"`
 	//Instances         string
 }
 
@@ -109,14 +109,14 @@ func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region strin
 	a.Name = aws.StringValue(autoscalegroup.AutoScalingGroupName)
 	a.Class = GetTagValue("Class", autoscalegroup.Tags)
 	a.HealthCheckType = aws.StringValue(autoscalegroup.HealthCheckType)
-	a.HealthCheckGracePeriod = aws.Int64Value(autoscalegroup.HealthCheckGracePeriod)
+	a.HealthCheckGracePeriod = int(aws.Int64Value(autoscalegroup.HealthCheckGracePeriod))
 	a.LaunchConfig = aws.StringValue(autoscalegroup.LaunchConfigurationName)
 	a.LoadBalancers = strings.Join(aws.StringValueSlice(autoscalegroup.LoadBalancerNames), ", ")
 	a.InstanceCount = len(autoscalegroup.Instances)
-	a.DesiredCapacity = aws.Int64Value(autoscalegroup.DesiredCapacity)
-	a.MinSize = aws.Int64Value(autoscalegroup.MinSize)
-	a.MaxSize = aws.Int64Value(autoscalegroup.MaxSize)
-	a.DefaultCooldown = aws.Int64Value(autoscalegroup.DefaultCooldown)
+	a.DesiredCapacity = int(aws.Int64Value(autoscalegroup.DesiredCapacity))
+	a.MinSize = int(aws.Int64Value(autoscalegroup.MinSize))
+	a.MaxSize = int(aws.Int64Value(autoscalegroup.MaxSize))
+	a.DefaultCooldown = int(aws.Int64Value(autoscalegroup.DefaultCooldown))
 	a.AvailabilityZones = strings.Join(aws.StringValueSlice(autoscalegroup.AvailabilityZones), ", ")
 	a.SubnetId = aws.StringValue(autoscalegroup.VPCZoneIdentifier)
 	a.SubnetName = subList.GetSubnetName(a.SubnetId)
@@ -355,8 +355,8 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 				HealthCheckGracePeriod:  aws.Int64(int64(cfg.HealthCheckGracePeriod)),
 				HealthCheckType:         aws.String(cfg.HealthCheckType),
 				LaunchConfigurationName: aws.String(lcName),
-				MaxSize:                 aws.Int64(asg.MaxSize),
-				MinSize:                 aws.Int64(asg.MinSize),
+				MaxSize:                 aws.Int64(int64(asg.MaxSize)),
+				MinSize:                 aws.Int64(int64(asg.MinSize)),
 				//NewInstancesProtectedFromScaleIn: aws.Bool(true), // TODO?
 				//PlacementGroup:                   aws.String("XmlStringMaxLen255"), // TODO
 			}

@@ -7,28 +7,28 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type InstanceClassConfigs map[string]InstanceClassConfig
+type InstanceClasses map[string]InstanceClass
 
-type InstanceClassConfig struct {
-	InstanceType     string
-	SecurityGroups   []string
-	EBSVolumes       []string
-	Vpc              string
-	Subnet           string
-	PublicIpAddress  bool
-	AMI              string
-	KeyName          string
-	EbsOptimized     bool
-	Monitoring       bool
-	ShutdownBehavior string
-	IAMUser          string
-	UserData         string
+type InstanceClass struct {
+	InstanceType     string   `json:"instanceType"`
+	SecurityGroups   []string `json:"securityGroups"`
+	EBSVolumes       []string `json:"ebsVolumes"`
+	Vpc              string   `json:"vpc"`
+	Subnet           string   `json:"subnet"`
+	PublicIpAddress  bool     `json:"publicIpAddress"`
+	AMI              string   `json:"ami"`
+	KeyName          string   `json:"keyName"`
+	EbsOptimized     bool     `json:"ebsOptimized"`
+	Monitoring       bool     `json:"monitoring"`
+	ShutdownBehavior string   `json:"shutdownBehavior"`
+	IAMUser          string   `json:"iamUser"`
+	UserData         string   `json:"userData"`
 }
 
-func DefaultInstanceClasses() InstanceClassConfigs {
-	defaultInstances := make(InstanceClassConfigs)
+func DefaultInstanceClasses() InstanceClasses {
+	defaultInstances := make(InstanceClasses)
 
-	defaultInstances["base"] = InstanceClassConfig{
+	defaultInstances["base"] = InstanceClass{
 		InstanceType:     "t1.micro",
 		SecurityGroups:   []string{"dev"},
 		EBSVolumes:       []string{},
@@ -40,7 +40,7 @@ func DefaultInstanceClasses() InstanceClassConfigs {
 		ShutdownBehavior: "terminate",
 	}
 
-	defaultInstances["dev"] = InstanceClassConfig{
+	defaultInstances["dev"] = InstanceClass{
 		InstanceType:     "r3.large",
 		SecurityGroups:   []string{"all", "dev"},
 		EBSVolumes:       []string{"git-standard", "mysql-data-standard"}, // TODO
@@ -53,7 +53,7 @@ func DefaultInstanceClasses() InstanceClassConfigs {
 		UserData:         "#!/bin/bash \n echo wemadeit > ~/didwemakeit",
 	}
 
-	defaultInstances["prod"] = InstanceClassConfig{
+	defaultInstances["prod"] = InstanceClass{
 		InstanceType:     "r3.large",
 		SecurityGroups:   []string{"dev"},
 		EBSVolumes:       []string{},
@@ -68,8 +68,8 @@ func DefaultInstanceClasses() InstanceClassConfigs {
 	return defaultInstances
 }
 
-func LoadInstanceClass(name string) (InstanceClassConfig, error) {
-	cfgs := make(InstanceClassConfigs)
+func LoadInstanceClass(name string) (InstanceClass, error) {
+	cfgs := make(InstanceClasses)
 	item, err := GetItemByName("instances", name)
 	if err != nil {
 		return cfgs[name], err
@@ -78,8 +78,8 @@ func LoadInstanceClass(name string) (InstanceClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllInstanceClasses() (InstanceClassConfigs, error) {
-	cfgs := make(InstanceClassConfigs)
+func LoadAllInstanceClasses() (InstanceClasses, error) {
+	cfgs := make(InstanceClasses)
 	items, err := GetItemsByType("instances")
 	if err != nil {
 		return cfgs, err
@@ -89,10 +89,10 @@ func LoadAllInstanceClasses() (InstanceClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c InstanceClassConfigs) Marshal(items []*simpledb.Item) {
+func (c InstanceClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "instances/", "", -1)
-		cfg := new(InstanceClassConfig)
+		cfg := new(InstanceClass)
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value

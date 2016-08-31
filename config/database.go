@@ -90,24 +90,24 @@ func CreateAwsmDatabase() error {
 	}
 
 	// Insert our default configs
-	InsertClassConfigs("vpcs", DefaultVpcClasses())
-	InsertClassConfigs("subnets", DefaultSubnetClasses())
-	InsertClassConfigs("instances", DefaultInstanceClasses())
-	InsertClassConfigs("alarms", DefaultAlarms())
-	InsertClassConfigs("images", DefaultImageClasses())
-	InsertClassConfigs("scalingpolicies", DefaultScalingPolicyClasses())
-	InsertClassConfigs("launchconfigurations", DefaultLaunchConfigurationClasses())
-	InsertClassConfigs("volumes", DefaultVolumeClasses())
-	InsertClassConfigs("snapshots", DefaultSnapshotClasses())
-	InsertClassConfigs("autoscalinggroups", DefaultAutoscaleGroupClasses())
-	//InsertClassConfigs("securitygroups", DefaultSecurityGroupClasses())
+	InsertClasses("securitygroups", DefaultSecurityGroupClasses())
+	InsertClasses("vpcs", DefaultVpcClasses())
+	InsertClasses("subnets", DefaultSubnetClasses())
+	InsertClasses("instances", DefaultInstanceClasses())
+	InsertClasses("alarms", DefaultAlarms())
+	InsertClasses("images", DefaultImageClasses())
+	InsertClasses("scalingpolicies", DefaultScalingPolicyClasses())
+	InsertClasses("launchconfigurations", DefaultLaunchConfigurationClasses())
+	InsertClasses("volumes", DefaultVolumeClasses())
+	InsertClasses("snapshots", DefaultSnapshotClasses())
+	InsertClasses("autoscalinggroups", DefaultAutoscaleGroupClasses())
 
 	return nil
 }
 
-func BuildAttributes(config interface{}, classType string) []*simpledb.ReplaceableAttribute {
-	typ := reflect.TypeOf(config)
-	val := reflect.ValueOf(config)
+func BuildAttributes(class interface{}, classType string) []*simpledb.ReplaceableAttribute {
+	typ := reflect.TypeOf(class)
+	val := reflect.ValueOf(class)
 
 	var attributes []*simpledb.ReplaceableAttribute
 
@@ -145,6 +145,7 @@ func BuildAttributes(config interface{}, classType string) []*simpledb.Replaceab
 				Value:   aws.String(fmt.Sprint(val.Field(i).Bool())),
 				Replace: aws.Bool(true),
 			})
+
 		}
 	}
 

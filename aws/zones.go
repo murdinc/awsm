@@ -13,9 +13,9 @@ import (
 type AZs []AZ
 
 type AZ struct {
-	Name   string
-	Region string
-	State  string
+	Name   string `json:"name"`
+	Region string `json:"region"`
+	State  string `json:"state"`
 }
 
 func AZList() []string {

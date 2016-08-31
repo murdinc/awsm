@@ -20,20 +20,20 @@ import (
 type LoadBalancers []LoadBalancer
 
 type LoadBalancer struct {
-	Name                string
-	DNSName             string
-	Region              string
-	AvailabilityZones   string
-	CreatedTime         time.Time
-	CreatedHuman        string
-	SecurityGroups      string
-	Scheme              string
-	VpcId               string
-	Vpc                 string
-	HealthCheckTarget   string
-	HealthCheckInterval string
-	Subnets             string
-	SubnetIds           []string
+	Name                string    `json:"name"`
+	DNSName             string    `json:"dnsName"`
+	Region              string    `json:"region"`
+	AvailabilityZones   string    `json:"availabilityZone"`
+	CreatedTime         time.Time `json:"createdTime"`
+	CreatedHuman        string    `json:"createdHuman"`
+	SecurityGroups      string    `json:"securityGroups"`
+	Scheme              string    `json:"scheme"`
+	VpcId               string    `json:"vpcId"`
+	Vpc                 string    `json:"vpc"`
+	HealthCheckTarget   string    `json:"healthCheckTarget"`
+	HealthCheckInterval string    `json:"healthCheckInterval"`
+	Subnets             string    `json:"subnets"`
+	SubnetIds           []string  `json:"subnetIds"`
 }
 
 func GetLoadBalancers() (*LoadBalancers, []error) {

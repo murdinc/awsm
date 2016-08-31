@@ -20,15 +20,15 @@ import (
 type Vpcs []Vpc
 
 type Vpc struct {
-	Name      string
-	Class     string
-	VpcId     string
-	State     string
-	Default   string
-	CIDRBlock string
-	DHCPOptId string
-	Tenancy   string
-	Region    string
+	Name      string `json:"name"`
+	Class     string `json:"class"`
+	VpcId     string `json:"vpcId"`
+	State     string `json:"state"`
+	Default   bool   `json:"default"`
+	CIDRBlock string `json:"cidrBlock"`
+	DHCPOptId string `json:"dhcpOptId"`
+	Tenancy   string `json:"tenancy"`
+	Region    string `json:"region"`
 }
 
 func GetVpcByTag(region, key, value string) (Vpc, error) {
@@ -189,7 +189,7 @@ func (v *Vpc) Marshal(vpc *ec2.Vpc, region string) {
 	v.Class = GetTagValue("Class", vpc.Tags)
 	v.VpcId = aws.StringValue(vpc.VpcId)
 	v.State = aws.StringValue(vpc.State)
-	v.Default = fmt.Sprintf("%t", aws.BoolValue(vpc.IsDefault))
+	v.Default = aws.BoolValue(vpc.IsDefault)
 	v.CIDRBlock = aws.StringValue(vpc.CidrBlock)
 	v.DHCPOptId = aws.StringValue(vpc.DhcpOptionsId)
 	v.Tenancy = aws.StringValue(vpc.InstanceTenancy)
@@ -250,7 +250,7 @@ func (i *Vpcs) PrintTable() {
 			val.Class,
 			val.VpcId,
 			val.State,
-			val.Default,
+			fmt.Sprintf("%t", val.Default),
 			val.CIDRBlock,
 			val.DHCPOptId,
 			val.Tenancy,

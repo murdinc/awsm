@@ -5,6 +5,7 @@ import (
 
 	"github.com/murdinc/awsm/api"
 	"github.com/murdinc/awsm/aws"
+	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/cli"
 	"github.com/murdinc/terminal"
 )
@@ -13,9 +14,24 @@ import (
 ////////////////..........
 func main() {
 
+	// Check for Creds
 	found := aws.CheckCreds()
 	if !found {
 		return
+	}
+
+	// Check for the awsm db
+	if !config.CheckDB() {
+		create := terminal.BoxPromptBool("No awsm database found!", "Do you want to create one now?")
+		if !create {
+			terminal.Information("Ok then, maybe next time.. ")
+			return
+		}
+		err := config.CreateAwsmDatabase()
+		if err != nil {
+			terminal.ErrorLine(err.Error())
+			return
+		}
 	}
 
 	var dryRun bool

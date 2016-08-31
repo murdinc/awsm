@@ -25,9 +25,9 @@ import (
 type KeyPairs []KeyPair
 
 type KeyPair struct {
-	KeyName        string
-	KeyFingerprint string
-	Region         string
+	KeyName        string `json:"keyName"`
+	KeyFingerprint string `json:"keyFingerprint"`
+	Region         string `json:"region"`
 }
 
 func GetKeyPairByName(region, name string) (KeyPair, error) {

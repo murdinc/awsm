@@ -20,19 +20,23 @@ import (
 type SecurityGroups []SecurityGroup
 
 type SecurityGroup struct {
-	Name        string
-	Class       string
-	GroupId     string
-	Description string
-	Vpc         string
-	VpcId       string
-	Region      string
-	SecurityGroupPermissions
+	Name        string `json:"name"`
+	Class       string `json:"class"`
+	GroupId     string `json:"groupId"`
+	Description string `json:"description"`
+	Vpc         string `json:"vpc"`
+	VpcId       string `json:"vpcId"`
+	Region      string `json:"region"`
+	//SecurityGroupGrants []SecurityGroupGrants
 }
 
-type SecurityGroupPermissions struct {
-	Ingress []*ec2.IpPermission
-	Egress  []*ec2.IpPermission
+type SecurityGroupGrants struct {
+	Name       string
+	Type       string
+	FromPort   int
+	ToPort     int
+	IpProtocol string
+	CidrIp     []string
 }
 
 func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
@@ -171,12 +175,23 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 	s.Description = aws.StringValue(securitygroup.Description)
 	s.Vpc = vpc
 	s.VpcId = aws.StringValue(securitygroup.VpcId)
-	s.SecuirityGroupPermissions.Ingress = securitygroup.IpPermissions
-	s.SecuirityGroupPermissions.Egress = securitygroup.IpPermissionsEgress
+	//s.SecurityGroupGrants.Ingress = securitygroup.IpPermissions
+	//s.SecurityGroupGrants..Egress = securitygroup.IpPermissionsEgress
 	s.Region = region
+
+	//fmt.Println("== Ingress ==")
+	//fmt.Println(s.SecurityGroupPermissions.Ingress)
+	//fmt.Println("== Egress ==")
+	//fmt.Println(s.SecurityGroupPermissions.Egress)
+	//fmt.Println("== == ==")
 }
 
 func (i *SecurityGroups) PrintTable() {
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Security Groups Found!")
+		return
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))

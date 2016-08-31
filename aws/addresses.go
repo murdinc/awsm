@@ -20,16 +20,16 @@ import (
 type Addresses []Address
 
 type Address struct {
-	AllocationId            string
-	PublicIp                string
-	PrivateIp               string
-	Domain                  string
-	InstanceId              string
-	Status                  string
-	Attachment              string
-	NetworkInterfaceId      string
-	NetworkInterfaceOwnerId string
-	Region                  string
+	AllocationId            string `json:"allocationId"`
+	PublicIp                string `json:"publicIp"`
+	PrivateIp               string `json:"privateIp"`
+	Domain                  string `json:"domain"`
+	InstanceId              string `json:"instanceId"`
+	Status                  string `json:"status"`
+	Attachment              string `json:"attachment"`
+	NetworkInterfaceId      string `json:"networkInterfaceId"`
+	NetworkInterfaceOwnerId string `json:"networkOwnerId"`
+	Region                  string `json:"region"`
 }
 
 func GetAddresses(search string, available bool) (*Addresses, []error) {

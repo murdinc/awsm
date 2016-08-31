@@ -7,28 +7,28 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type AlarmClassConfigs map[string]AlarmClassConfig
+type AlarmClasses map[string]AlarmClass
 
-type AlarmClassConfig struct {
-	AlarmDescription        string
-	AlarmActions            []string
-	OKActions               []string
-	InsufficientDataActions []string
-	MetricName              string
-	Namespace               string
-	Statistic               string
-	Period                  int
-	EvaluationPeriods       int
-	Threshold               float64
-	ComparisonOperator      string
-	ActionsEnabled          bool
-	Unit                    string
+type AlarmClass struct {
+	AlarmDescription        string   `json:"alarmDescription"`
+	AlarmActions            []string `json:"alarmActions"`
+	OKActions               []string `json:"okActions"`
+	InsufficientDataActions []string `json:"insufficientDataActions"`
+	MetricName              string   `json:"metricName"`
+	Namespace               string   `json:"namespace`
+	Statistic               string   `json:"statistic"`
+	Period                  int      `json:"period"`
+	EvaluationPeriods       int      `json:"evaluationPeriods"`
+	Threshold               float64  `json:"threshold"`
+	ComparisonOperator      string   `json:"comparisonOperator"`
+	ActionsEnabled          bool     `json:"actionsEnabled"`
+	Unit                    string   `json:"unit"`
 }
 
-func DefaultAlarms() AlarmClassConfigs {
-	defaultAlarms := make(AlarmClassConfigs)
+func DefaultAlarms() AlarmClasses {
+	defaultAlarms := make(AlarmClasses)
 
-	defaultAlarms["cpuHigh"] = AlarmClassConfig{
+	defaultAlarms["cpuHigh"] = AlarmClass{
 		AlarmDescription:   "Scale-up based on CPU",
 		OKActions:          []string{},
 		MetricName:         "CPUUtilization",
@@ -41,7 +41,7 @@ func DefaultAlarms() AlarmClassConfigs {
 		ActionsEnabled:     true,
 	}
 
-	defaultAlarms["cpuLow"] = AlarmClassConfig{
+	defaultAlarms["cpuLow"] = AlarmClass{
 		AlarmDescription:   "Scale-down based on CPU",
 		OKActions:          []string{},
 		MetricName:         "CPUUtilization",
@@ -57,8 +57,8 @@ func DefaultAlarms() AlarmClassConfigs {
 	return defaultAlarms
 }
 
-func LoadAlarmClass(name string) (AlarmClassConfig, error) {
-	cfgs := make(AlarmClassConfigs)
+func LoadAlarmClass(name string) (AlarmClass, error) {
+	cfgs := make(AlarmClasses)
 	item, err := GetItemByName("alarms", name)
 	if err != nil {
 		return cfgs[name], err
@@ -68,8 +68,8 @@ func LoadAlarmClass(name string) (AlarmClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllAlarmClasses() (AlarmClassConfigs, error) {
-	cfgs := make(AlarmClassConfigs)
+func LoadAllAlarmClasses() (AlarmClasses, error) {
+	cfgs := make(AlarmClasses)
 	items, err := GetItemsByType("alarms")
 	if err != nil {
 		return cfgs, err
@@ -79,10 +79,10 @@ func LoadAllAlarmClasses() (AlarmClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c AlarmClassConfigs) Marshal(items []*simpledb.Item) {
+func (c AlarmClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "alarms/", "", -1)
-		cfg := new(AlarmClassConfig)
+		cfg := new(AlarmClass)
 
 		for _, attribute := range item.Attributes {
 

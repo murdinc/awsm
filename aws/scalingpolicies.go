@@ -17,16 +17,16 @@ import (
 type ScalingPolicies []ScalingPolicy
 
 type ScalingPolicy struct {
-	Name               string
-	Arn                string
-	AdjustmentType     string
-	Adjustment         int
-	AdjustmentStr      string
-	Cooldown           string
-	AutoScaleGroupName string
-	AlarmArns          []string
-	AlarmNames         string
-	Region             string
+	Name               string   `json:"name"`
+	Arn                string   `json:"arn"`
+	AdjustmentType     string   `json:"adjustmentType"`
+	Adjustment         int      `json:"adjustment"`
+	AdjustmentStr      string   `json:"adjustmentStr"`
+	Cooldown           string   `json:"cooldown"`
+	AutoScaleGroupName string   `json:"autoScaleGroupName"`
+	AlarmArns          []string `json:"alarmArns"`
+	AlarmNames         string   `json:"alarmNames"`
+	Region             string   `json:"region"`
 }
 
 func GetScalingPolicies() (*ScalingPolicies, []error) {

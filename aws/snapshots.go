@@ -23,17 +23,17 @@ import (
 type Snapshots []Snapshot
 
 type Snapshot struct {
-	Name         string
-	Class        string
-	Description  string
-	SnapshotId   string
-	VolumeId     string
-	State        string
-	StartTime    time.Time
-	CreatedHuman string
-	Progress     string
-	VolumeSize   string
-	Region       string
+	Name         string    `json:"name"`
+	Class        string    `json:"class"`
+	Description  string    `json:"description"`
+	SnapshotId   string    `json:"snapshotId"`
+	VolumeId     string    `json:"volumeId"`
+	State        string    `json:"state"`
+	StartTime    time.Time `json:"startTime"`
+	CreatedHuman string    `json:"createdHuman"`
+	Progress     string    `json:"progress"`
+	VolumeSize   string    `json:"volumeSize"`
+	Region       string    `json:"region"`
 }
 
 func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
@@ -338,7 +338,7 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 	return nil
 }
 
-func RotateSnapshots(class string, cfg config.SnapshotClassConfig, dryRun bool) error {
+func RotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error {
 	var wg sync.WaitGroup
 	var errs []error
 

@@ -7,26 +7,26 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type ScalingPolicyClassConfigs map[string]ScalingPolicyClassConfig
+type ScalingPolicyClasses map[string]ScalingPolicyClass
 
-type ScalingPolicyClassConfig struct {
-	ScalingAdjustment int
-	AdjustmentType    string
-	Cooldown          int
-	Alarms            []string
+type ScalingPolicyClass struct {
+	ScalingAdjustment int      `json:"scalingAdjustment"`
+	AdjustmentType    string   `json:"adjustmentType"`
+	Cooldown          int      `json:"cooldown"`
+	Alarms            []string `json:"alarms"`
 }
 
-func DefaultScalingPolicyClasses() ScalingPolicyClassConfigs {
-	defaultScalingPolicies := make(ScalingPolicyClassConfigs)
+func DefaultScalingPolicyClasses() ScalingPolicyClasses {
+	defaultScalingPolicies := make(ScalingPolicyClasses)
 
-	defaultScalingPolicies["scaleUp"] = ScalingPolicyClassConfig{
+	defaultScalingPolicies["scaleUp"] = ScalingPolicyClass{
 		ScalingAdjustment: 1,
 		AdjustmentType:    "ChangeInCapacity",
 		Cooldown:          300,
 		Alarms:            []string{"cpuHigh"},
 	}
 
-	defaultScalingPolicies["scaleDown"] = ScalingPolicyClassConfig{
+	defaultScalingPolicies["scaleDown"] = ScalingPolicyClass{
 		ScalingAdjustment: -1,
 		AdjustmentType:    "ChangeInCapacity",
 		Cooldown:          300,
@@ -36,8 +36,8 @@ func DefaultScalingPolicyClasses() ScalingPolicyClassConfigs {
 	return defaultScalingPolicies
 }
 
-func LoadScalingPolicyClass(name string) (ScalingPolicyClassConfig, error) {
-	cfgs := make(ScalingPolicyClassConfigs)
+func LoadScalingPolicyClass(name string) (ScalingPolicyClass, error) {
+	cfgs := make(ScalingPolicyClasses)
 	item, err := GetItemByName("scalingpolicies", name)
 	if err != nil {
 		return cfgs[name], err
@@ -47,8 +47,8 @@ func LoadScalingPolicyClass(name string) (ScalingPolicyClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllScalingPolicyClasses() (ScalingPolicyClassConfigs, error) {
-	cfgs := make(ScalingPolicyClassConfigs)
+func LoadAllScalingPolicyClasses() (ScalingPolicyClasses, error) {
+	cfgs := make(ScalingPolicyClasses)
 	items, err := GetItemsByType("scalingpolicies")
 	if err != nil {
 		return cfgs, err
@@ -58,10 +58,10 @@ func LoadAllScalingPolicyClasses() (ScalingPolicyClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c ScalingPolicyClassConfigs) Marshal(items []*simpledb.Item) {
+func (c ScalingPolicyClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "scalingpolicies/", "", -1)
-		cfg := new(ScalingPolicyClassConfig)
+		cfg := new(ScalingPolicyClass)
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value

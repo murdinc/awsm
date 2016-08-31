@@ -7,23 +7,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type VolumeClassConfigs map[string]VolumeClassConfig
+type VolumeClasses map[string]VolumeClass
 
-type VolumeClassConfig struct {
-	DeviceName          string
-	VolumeSize          int
-	DeleteOnTermination bool
-	MountPoint          string
-	Snapshot            string
-	VolumeType          string
-	Iops                int
-	Encrypted           bool
+type VolumeClass struct {
+	DeviceName          string `json:"deviceName"`
+	VolumeSize          int    `json:"volumeSize"`
+	DeleteOnTermination bool   `json:"deleteOnTermination"`
+	MountPoint          string `json:"mountPoint"`
+	Snapshot            string `json:"snapshot"`
+	VolumeType          string `json:"volumeType"`
+	Iops                int    `json:"iops"`
+	Encrypted           bool   `json:"encrypted"`
 }
 
-func DefaultVolumeClasses() VolumeClassConfigs {
-	defaultVolumes := make(VolumeClassConfigs)
+func DefaultVolumeClasses() VolumeClasses {
+	defaultVolumes := make(VolumeClasses)
 
-	defaultVolumes["git-standard"] = VolumeClassConfig{
+	defaultVolumes["git-standard"] = VolumeClass{
 		DeviceName:          "/dev/xvdf",
 		VolumeSize:          30,
 		DeleteOnTermination: true,
@@ -33,7 +33,7 @@ func DefaultVolumeClasses() VolumeClassConfigs {
 		VolumeType:          "standard",
 	}
 
-	defaultVolumes["mysql-data-standard"] = VolumeClassConfig{
+	defaultVolumes["mysql-data-standard"] = VolumeClass{
 		DeviceName:          "/dev/xvdg",
 		VolumeSize:          100,
 		DeleteOnTermination: true,
@@ -46,8 +46,8 @@ func DefaultVolumeClasses() VolumeClassConfigs {
 	return defaultVolumes
 }
 
-func LoadVolumeClass(name string) (VolumeClassConfig, error) {
-	cfgs := make(VolumeClassConfigs)
+func LoadVolumeClass(name string) (VolumeClass, error) {
+	cfgs := make(VolumeClasses)
 	item, err := GetItemByName("volumes", name)
 	if err != nil {
 		return cfgs[name], err
@@ -57,8 +57,8 @@ func LoadVolumeClass(name string) (VolumeClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllVolumeClasses() (VolumeClassConfigs, error) {
-	cfgs := make(VolumeClassConfigs)
+func LoadAllVolumeClasses() (VolumeClasses, error) {
+	cfgs := make(VolumeClasses)
 	items, err := GetItemsByType("volumes")
 	if err != nil {
 		return cfgs, err
@@ -68,10 +68,10 @@ func LoadAllVolumeClasses() (VolumeClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c VolumeClassConfigs) Marshal(items []*simpledb.Item) {
+func (c VolumeClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "volumes/", "", -1)
-		cfg := new(VolumeClassConfig)
+		cfg := new(VolumeClass)
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value

@@ -15,13 +15,13 @@ import (
 type IAMUsers []IAMUser
 
 type IAMUser struct {
-	UserName              string
-	UserId                string
-	CreateDate            time.Time
-	CreatedHuman          string
-	Arn                   string
-	PasswordLastUsed      time.Time
-	PasswordLastUsedHuman string
+	UserName              string    `json:"userName"`
+	UserId                string    `json:"userId"`
+	CreateDate            time.Time `json:"createDate"`
+	CreatedHuman          string    `json:"createdHumand"`
+	Arn                   string    `json:"arn"`
+	PasswordLastUsed      time.Time `json:"passwordLastUsed"`
+	PasswordLastUsedHuman string    `json:"passwordLastUsedHuman"`
 }
 
 func GetIAMUser(username string) (IAMUser, error) {

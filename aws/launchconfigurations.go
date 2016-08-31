@@ -25,17 +25,17 @@ import (
 type LaunchConfigs []LaunchConfig
 
 type LaunchConfig struct {
-	Name           string
-	ImageName      string
-	ImageId        string
-	InstanceType   string
-	KeyName        string
-	SecurityGroups string
-	CreationTime   time.Time
-	CreatedHuman   string
-	Region         string
-	EbsOptimized   bool
-	SnapshotIds    []string
+	Name           string    `json:"name"`
+	ImageName      string    `json:"imageName"`
+	ImageId        string    `json:"imageId"`
+	InstanceType   string    `json:"instanceType"`
+	KeyName        string    `json:"keyName"`
+	SecurityGroups string    `json:"securityGroups"`
+	CreationTime   time.Time `json:"creationTime"`
+	CreatedHuman   string    `json:"createdHuman"`
+	Region         string    `json:"region"`
+	EbsOptimized   bool      `json:"ebsOptimized"`
+	SnapshotIds    []string  `json:"snapshotId"`
 }
 
 func GetLaunchConfigurationName(region, class string, version int) string {
@@ -373,7 +373,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 	return nil
 }
 
-func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClassConfig, dryRun bool) error {
+func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClass, dryRun bool) error {
 	var wg sync.WaitGroup
 	var errs []error
 

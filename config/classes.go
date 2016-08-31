@@ -8,9 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/murdinc/terminal"
+	"github.com/satori/go.uuid"
 )
 
-func InsertClassConfigs(classType string, classInterface interface{}) error {
+func InsertClasses(classType string, classInterface interface{}) error {
 
 	var itemName string
 	itemsMap := make(map[string][]*simpledb.ReplaceableAttribute)
@@ -19,75 +20,79 @@ func InsertClassConfigs(classType string, classInterface interface{}) error {
 	// Build Attributes
 	switch classType {
 	case "vpcs":
-		for class, config := range classInterface.(VpcClassConfigs) {
+		for class, config := range classInterface.(VpcClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "subnets":
-		for class, config := range classInterface.(SubnetClassConfigs) {
+		for class, config := range classInterface.(SubnetClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "instances":
-		for class, config := range classInterface.(InstanceClassConfigs) {
+		for class, config := range classInterface.(InstanceClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "volumes":
-		for class, config := range classInterface.(VolumeClassConfigs) {
+		for class, config := range classInterface.(VolumeClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "snapshots":
-		for class, config := range classInterface.(SnapshotClassConfigs) {
+		for class, config := range classInterface.(SnapshotClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "images":
-		for class, config := range classInterface.(ImageClassConfigs) {
+		for class, config := range classInterface.(ImageClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
-	case "autoscalinggroups":
-		for class, config := range classInterface.(AutoscaleGroupClassConfigs) {
+	case "autoscalegroups":
+		for class, config := range classInterface.(AutoscaleGroupClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "launchconfigurations":
-		for class, config := range classInterface.(LaunchConfigurationClassConfigs) {
+		for class, config := range classInterface.(LaunchConfigurationClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "scalingpolicies":
-		for class, config := range classInterface.(ScalingPolicyClassConfigs) {
+		for class, config := range classInterface.(ScalingPolicyClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
 	case "alarms":
-		for class, config := range classInterface.(AlarmClassConfigs) {
+		for class, config := range classInterface.(AlarmClasses) {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
-	/*
-		case "securitygroups":
-			for class, config := range classInterface.(SecurityGroupClassConfigs) {
-				itemName = classType + "/" + class
-				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+	case "securitygroups":
+		for class, config := range classInterface.(SecurityGroupClasses) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
+
+			// Security Group Grants
+			for _, rule := range config.SecurityGroupGrants {
+				itemName = classType + "/" + class + "/grants/" + uuid.NewV4().String()
+				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(rule, classType+"/"+class+"/grants")...)
 			}
-	*/
+		}
 
 	default:
-		return errors.New("InsertClassConfigs does not have switch for [" + classType + "]! No configurations of this type are being installed!")
+		return errors.New("InsertClasses does not have switch for [" + classType + "]! No configurations of this type are being installed!")
 
 	}
 
@@ -144,7 +149,7 @@ func LoadAllClasses(classType string) (configs interface{}, err error) {
 	case "images":
 		return LoadAllImageClasses()
 
-	case "autoscalinggroups":
+	case "autoscalegroups":
 		return LoadAllAutoscalingGroupClasses()
 
 	case "launchconfigurations":
@@ -155,6 +160,9 @@ func LoadAllClasses(classType string) (configs interface{}, err error) {
 
 	case "alarms":
 		return LoadAllAlarmClasses()
+
+	case "securitygroups":
+		return LoadAllSecurityGroupClasses()
 
 	default:
 		err = errors.New("LoadAllClasses does not have switch for [" + classType + "]! No configurations of this type are being loaded!")
@@ -186,7 +194,7 @@ func LoadClassByName(classType, className string) (configs interface{}, err erro
 	case "images":
 		return LoadImageClass(className)
 
-	case "autoscalinggroups":
+	case "autoscalegroups":
 		return LoadAutoscalingGroupClass(className)
 
 	case "launchconfigurations":
@@ -197,6 +205,9 @@ func LoadClassByName(classType, className string) (configs interface{}, err erro
 
 	case "alarms":
 		return LoadAlarmClass(className)
+
+	case "securitygroups":
+		return LoadSecurityGroupClass(className)
 
 	default:
 		err = errors.New("LoadClassByName does not have switch for [" + classType + "]! No configuration of this type is being loaded!")

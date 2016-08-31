@@ -19,8 +19,8 @@ import (
 type SimpleDBDomains []SimpleDBDomain
 
 type SimpleDBDomain struct {
-	Name   string
-	Region string
+	Name   string `json:"name"`
+	Region string `json:"region"`
 }
 
 func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {

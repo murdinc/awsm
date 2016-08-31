@@ -6,17 +6,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type VpcClassConfigs map[string]VpcClassConfig
+type VpcClasses map[string]VpcClass
 
-type VpcClassConfig struct {
-	CIDR    string
-	Tenancy string
+type VpcClass struct {
+	CIDR    string `json:"cidr"`
+	Tenancy string `json:"tenancy"`
 }
 
-func DefaultVpcClasses() VpcClassConfigs {
-	defaultVpcs := make(VpcClassConfigs)
+func DefaultVpcClasses() VpcClasses {
+	defaultVpcs := make(VpcClasses)
 
-	defaultVpcs["awsm"] = VpcClassConfig{
+	defaultVpcs["awsm"] = VpcClass{
 		CIDR:    "/16",
 		Tenancy: "default",
 	}
@@ -24,8 +24,8 @@ func DefaultVpcClasses() VpcClassConfigs {
 	return defaultVpcs
 }
 
-func LoadVpcClass(name string) (VpcClassConfig, error) {
-	cfgs := make(VpcClassConfigs)
+func LoadVpcClass(name string) (VpcClass, error) {
+	cfgs := make(VpcClasses)
 	item, err := GetItemByName("vpcs", name)
 	if err != nil {
 		return cfgs[name], err
@@ -35,8 +35,8 @@ func LoadVpcClass(name string) (VpcClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllVpcClasses() (VpcClassConfigs, error) {
-	cfgs := make(VpcClassConfigs)
+func LoadAllVpcClasses() (VpcClasses, error) {
+	cfgs := make(VpcClasses)
 	items, err := GetItemsByType("vpcs")
 	if err != nil {
 		return cfgs, err
@@ -46,10 +46,10 @@ func LoadAllVpcClasses() (VpcClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c VpcClassConfigs) Marshal(items []*simpledb.Item) {
+func (c VpcClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "vpcs/", "", -1)
-		cfg := new(VpcClassConfig)
+		cfg := new(VpcClass)
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value

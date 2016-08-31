@@ -7,19 +7,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type ImageClassConfigs map[string]ImageClassConfig
+type ImageClasses map[string]ImageClass
 
-type ImageClassConfig struct {
-	Propagate        bool
-	PropagateRegions []string
-	Retain           int
-	InstanceId       string
+type ImageClass struct {
+	Propagate        bool     `json:"propagate"`
+	PropagateRegions []string `json:"propagateRegions"`
+	Retain           int      `json:"retain"`
+	InstanceId       string   `json:"instanceId"`
 }
 
-func DefaultImageClasses() ImageClassConfigs {
-	defaultImages := make(ImageClassConfigs)
+func DefaultImageClasses() ImageClasses {
+	defaultImages := make(ImageClasses)
 
-	defaultImages["base"] = ImageClassConfig{
+	defaultImages["base"] = ImageClass{
 		Propagate:        true,
 		Retain:           5,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
@@ -28,8 +28,8 @@ func DefaultImageClasses() ImageClassConfigs {
 	return defaultImages
 }
 
-func LoadImageClass(name string) (ImageClassConfig, error) {
-	cfgs := make(ImageClassConfigs)
+func LoadImageClass(name string) (ImageClass, error) {
+	cfgs := make(ImageClasses)
 	item, err := GetItemByName("images", name)
 	if err != nil {
 		return cfgs[name], err
@@ -38,8 +38,8 @@ func LoadImageClass(name string) (ImageClassConfig, error) {
 	return cfgs[name], nil
 }
 
-func LoadAllImageClasses() (ImageClassConfigs, error) {
-	cfgs := make(ImageClassConfigs)
+func LoadAllImageClasses() (ImageClasses, error) {
+	cfgs := make(ImageClasses)
 	items, err := GetItemsByType("images")
 	if err != nil {
 		return cfgs, err
@@ -49,13 +49,13 @@ func LoadAllImageClasses() (ImageClassConfigs, error) {
 	return cfgs, nil
 }
 
-func (c *ImageClassConfigs) Marshal(items []*simpledb.Item) {
+func (c *ImageClasses) Marshal(items []*simpledb.Item) {
 
-	cfgs := make(ImageClassConfigs)
+	cfgs := make(ImageClasses)
 
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "images/", "", -1)
-		cfg := new(ImageClassConfig)
+		cfg := new(ImageClass)
 
 		for _, attribute := range item.Attributes {
 

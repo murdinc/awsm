@@ -20,18 +20,18 @@ import (
 type Alarms []Alarm
 
 type Alarm struct {
-	Name        string
-	Arn         string
-	Description string
-	State       string
-	Trigger     string
-	Period      string
-	EvalPeriods string
-	ActionArns  []string
-	ActionNames string
-	Dimensions  string
-	Namespace   string
-	Region      string
+	Name        string   `json:"name"`
+	Arn         string   `json:"arn"`
+	Description string   `json:"description"`
+	State       string   `json:"state"`
+	Trigger     string   `json:"trigger"`
+	Period      string   `json:"period"`
+	EvalPeriods string   `json:"evalPeriods"`
+	ActionArns  []string `json:"actionArns"`
+	ActionNames string   `json:"actionNames"`
+	Dimensions  string   `json:"dimensions"`
+	Namespace   string   `json:"namespace"`
+	Region      string   `json:"region"`
 }
 
 func GetAlarms() (*Alarms, []error) {

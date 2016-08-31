@@ -20,18 +20,18 @@ import (
 type Subnets []Subnet
 
 type Subnet struct {
-	Name             string
-	Class            string
-	SubnetId         string
-	VpcName          string
-	VpcId            string
-	State            string
-	AvailabilityZone string
-	Default          string
-	CIDRBlock        string
-	AvailableIPs     string
-	MapPublicIp      bool
-	Region           string
+	Name             string `json:"name"`
+	Class            string `json:"class"`
+	SubnetId         string `json:"subnetId"`
+	VpcName          string `json:"vpcName"`
+	VpcId            string `json:"vpcId"`
+	State            string `json:"state"`
+	AvailabilityZone string `json:"availabilityZone"`
+	Default          bool   `json:"default"`
+	CIDRBlock        string `json:"cidrBlock"`
+	AvailableIPs     int    `json:"availableIps"`
+	MapPublicIp      bool   `json:"mapPublicIp"`
+	Region           string `json:"region"`
 }
 
 func (s *Subnets) GetSubnetNames(ids []string) []string {
@@ -117,9 +117,9 @@ func (s *Subnet) Marshal(subnet *ec2.Subnet, region string, vpcList *Vpcs) {
 	s.VpcName = vpcList.GetVpcName(s.VpcId)
 	s.State = aws.StringValue(subnet.State)
 	s.AvailabilityZone = aws.StringValue(subnet.AvailabilityZone)
-	s.Default = fmt.Sprintf("%t", aws.BoolValue(subnet.DefaultForAz))
+	s.Default = aws.BoolValue(subnet.DefaultForAz)
 	s.CIDRBlock = aws.StringValue(subnet.CidrBlock)
-	s.AvailableIPs = fmt.Sprint(aws.Int64Value(subnet.AvailableIpAddressCount))
+	s.AvailableIPs = int(aws.Int64Value(subnet.AvailableIpAddressCount))
 	s.MapPublicIp = aws.BoolValue(subnet.MapPublicIpOnLaunch)
 	s.Region = region
 }
@@ -368,9 +368,9 @@ func (i *Subnets) PrintTable() {
 			val.VpcId,
 			val.State,
 			val.AvailabilityZone,
-			val.Default,
+			fmt.Sprintf("%t", val.Default),
 			val.CIDRBlock,
-			val.AvailableIPs,
+			fmt.Sprint(val.AvailableIPs),
 			fmt.Sprintf("%t", val.MapPublicIp),
 		}
 	}
