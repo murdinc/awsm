@@ -27,10 +27,10 @@ type SecurityGroup struct {
 	Vpc         string
 	VpcId       string
 	Region      string
-	SecuirityGroupPermissions
+	SecurityGroupPermissions
 }
 
-type SecuirityGroupPermissions struct {
+type SecurityGroupPermissions struct {
 	Ingress []*ec2.IpPermission
 	Egress  []*ec2.IpPermission
 }

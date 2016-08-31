@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
@@ -11,6 +12,12 @@ type SecurityGroupClassConfigs map[string]SecurityGroupClassConfig
 
 type SecurityGroupClassConfig struct {
 	Description string
+	SecurityGroupClassPermissions
+}
+
+type SecurityGroupClassPermissions struct {
+	Ingress []*ec2.IpPermission
+	Egress  []*ec2.IpPermission
 }
 
 func DefaultSecurityGroupClasses() SecurityGroupClassConfigs {
