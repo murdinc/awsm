@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
@@ -67,65 +68,78 @@ func DefaultInstanceClasses() InstanceClassConfigs {
 	return defaultInstances
 }
 
-func (c *InstanceClassConfig) LoadConfig(class string) error {
-
-	data, err := GetClassConfig("instances", class)
+func LoadInstanceClass(name string) (InstanceClassConfig, error) {
+	cfgs := make(InstanceClassConfigs)
+	item, err := GetItemByName("instances", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
-
-	c.Marshal(data.Attributes)
-
-	return nil
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *InstanceClassConfig) Marshal(attributes []*simpledb.Attribute) {
+func LoadAllInstanceClasses() (InstanceClassConfigs, error) {
+	cfgs := make(InstanceClassConfigs)
+	items, err := GetItemsByType("instances")
+	if err != nil {
+		return cfgs, err
+	}
 
-	for _, attribute := range attributes {
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
 
-		val := *attribute.Value
+func (c InstanceClassConfigs) Marshal(items []*simpledb.Item) {
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "instances/", "", -1)
+		cfg := new(InstanceClassConfig)
+		for _, attribute := range item.Attributes {
 
-		switch *attribute.Name {
+			val := *attribute.Value
 
-		case "InstanceType":
-			c.InstanceType = val
+			switch *attribute.Name {
 
-		case "SecurityGroups":
-			c.SecurityGroups = append(c.SecurityGroups, val)
+			case "InstanceType":
+				cfg.InstanceType = val
 
-		case "EBSVolumes":
-			c.EBSVolumes = append(c.EBSVolumes, val)
+			case "SecurityGroups":
+				cfg.SecurityGroups = append(cfg.SecurityGroups, val)
 
-		case "Subnet":
-			c.Subnet = val
+			case "EBSVolumes":
+				cfg.EBSVolumes = append(cfg.EBSVolumes, val)
 
-		case "Vpc":
-			c.Vpc = val
+			case "Subnet":
+				cfg.Subnet = val
 
-		case "PublicIpAddress":
-			c.PublicIpAddress, _ = strconv.ParseBool(val)
+			case "Vpc":
+				cfg.Vpc = val
 
-		case "AMI":
-			c.AMI = val
+			case "PublicIpAddress":
+				cfg.PublicIpAddress, _ = strconv.ParseBool(val)
 
-		case "KeyName":
-			c.KeyName = val
+			case "AMI":
+				cfg.AMI = val
 
-		case "EbsOptimized":
-			c.EbsOptimized, _ = strconv.ParseBool(val)
+			case "KeyName":
+				cfg.KeyName = val
 
-		case "Monitoring":
-			c.Monitoring, _ = strconv.ParseBool(val)
+			case "EbsOptimized":
+				cfg.EbsOptimized, _ = strconv.ParseBool(val)
 
-		case "ShutdownBehavior":
-			c.ShutdownBehavior = val
+			case "Monitoring":
+				cfg.Monitoring, _ = strconv.ParseBool(val)
 
-		case "UserData":
-			c.UserData = val
+			case "ShutdownBehavior":
+				cfg.ShutdownBehavior = val
 
-		case "IAMUser":
-			c.IAMUser = val
+			case "UserData":
+				cfg.UserData = val
 
+			case "IAMUser":
+				cfg.IAMUser = val
+
+			}
 		}
+		c[name] = *cfg
 	}
 }

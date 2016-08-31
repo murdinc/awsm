@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
@@ -27,38 +28,58 @@ func DefaultImageClasses() ImageClassConfigs {
 	return defaultImages
 }
 
-func (c *ImageClassConfig) LoadConfig(class string) error {
-
-	data, err := GetClassConfig("images", class)
+func LoadImageClass(name string) (ImageClassConfig, error) {
+	cfgs := make(ImageClassConfigs)
+	item, err := GetItemByName("images", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
-
-	c.Marshal(data.Attributes)
-
-	return nil
-
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *ImageClassConfig) Marshal(attributes []*simpledb.Attribute) {
-	for _, attribute := range attributes {
-
-		val := *attribute.Value
-
-		switch *attribute.Name {
-
-		case "Propagate":
-			c.Propagate, _ = strconv.ParseBool(val)
-
-		case "Retain":
-			c.Retain, _ = strconv.Atoi(val)
-
-		case "PropagateRegions":
-			c.PropagateRegions = append(c.PropagateRegions, val)
-
-		case "InstanceId":
-			c.InstanceId = val
-
-		}
+func LoadAllImageClasses() (ImageClassConfigs, error) {
+	cfgs := make(ImageClassConfigs)
+	items, err := GetItemsByType("images")
+	if err != nil {
+		return cfgs, err
 	}
+
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
+
+func (c *ImageClassConfigs) Marshal(items []*simpledb.Item) {
+
+	cfgs := make(ImageClassConfigs)
+
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "images/", "", -1)
+		cfg := new(ImageClassConfig)
+
+		for _, attribute := range item.Attributes {
+
+			val := *attribute.Value
+
+			switch *attribute.Name {
+
+			case "Propagate":
+				cfg.Propagate, _ = strconv.ParseBool(val)
+
+			case "Retain":
+				cfg.Retain, _ = strconv.Atoi(val)
+
+			case "PropagateRegions":
+				cfg.PropagateRegions = append(cfg.PropagateRegions, val)
+
+			case "InstanceId":
+				cfg.InstanceId = val
+
+			}
+		}
+
+		cfgs[name] = *cfg
+	}
+
+	c = &cfgs
 }

@@ -220,8 +220,8 @@ func CreateImage(search, class, name string, dryRun bool) error {
 	}
 
 	// Class Config
-	var cfg config.ImageClassConfig
-	err := cfg.LoadConfig(class)
+	cfg, err := config.LoadImageClass(class)
+
 	if err != nil {
 		return err
 	} else {

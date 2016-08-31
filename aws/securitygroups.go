@@ -9,8 +9,10 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
@@ -25,6 +27,12 @@ type SecurityGroup struct {
 	Vpc         string
 	VpcId       string
 	Region      string
+	SecuirityGroupPermissions
+}
+
+type SecuirityGroupPermissions struct {
+	Ingress []*ec2.IpPermission
+	Egress  []*ec2.IpPermission
 }
 
 func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
@@ -115,19 +123,6 @@ func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 	return secGrpList, errs
 }
 
-func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string, vpcList *Vpcs) {
-
-	vpc := vpcList.GetVpcName(aws.StringValue(securitygroup.VpcId))
-
-	s.Name = aws.StringValue(securitygroup.GroupName)
-	s.Class = GetTagValue("Class", securitygroup.Tags)
-	s.GroupId = aws.StringValue(securitygroup.GroupId)
-	s.Description = aws.StringValue(securitygroup.Description)
-	s.Vpc = vpc
-	s.VpcId = aws.StringValue(securitygroup.VpcId)
-	s.Region = region
-}
-
 func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{})
@@ -166,6 +161,21 @@ func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups, search s
 	return nil
 }
 
+func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string, vpcList *Vpcs) {
+
+	vpc := vpcList.GetVpcName(aws.StringValue(securitygroup.VpcId))
+
+	s.Name = aws.StringValue(securitygroup.GroupName)
+	s.Class = GetTagValue("Class", securitygroup.Tags)
+	s.GroupId = aws.StringValue(securitygroup.GroupId)
+	s.Description = aws.StringValue(securitygroup.Description)
+	s.Vpc = vpc
+	s.VpcId = aws.StringValue(securitygroup.VpcId)
+	s.SecuirityGroupPermissions.Ingress = securitygroup.IpPermissions
+	s.SecuirityGroupPermissions.Egress = securitygroup.IpPermissionsEgress
+	s.Region = region
+}
+
 func (i *SecurityGroups) PrintTable() {
 	table := tablewriter.NewWriter(os.Stdout)
 
@@ -185,4 +195,197 @@ func (i *SecurityGroups) PrintTable() {
 
 	table.AppendBulk(rows)
 	table.Render()
+}
+
+func CreateSecurityGroup(class, region, vpcId string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Validate the region
+	if !ValidRegion(region) {
+		return errors.New("Region [" + region + "] is Invalid!")
+	}
+
+	// Verify the security group class input
+	cfg, err := config.LoadSecurityGroupClass(class)
+	if err != nil {
+		return err
+	} else {
+		terminal.Information("Found Security Group class configuration for [" + class + "]")
+	}
+
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	// Create the security group
+	params := &ec2.CreateSecurityGroupInput{
+		Description: aws.String(cfg.Description),
+		GroupName:   aws.String(class),
+		DryRun:      aws.Bool(dryRun),
+		VpcId:       aws.String(vpcId),
+	}
+
+	_, err = svc.CreateSecurityGroup(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func DeleteSecurityGroups(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	secGrpList := new(SecurityGroups)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionSecurityGroups(region, secGrpList, search)
+	} else {
+		secGrpList, _ = GetSecurityGroups(search)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Security Groups list")
+	}
+
+	if len(*secGrpList) > 0 {
+		// Print the table
+		secGrpList.PrintTable()
+	} else {
+		return errors.New("No Security Groups found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these Security Groups?") {
+		return errors.New("Aborting!")
+	}
+
+	// Delete 'Em
+	err = deleteSecurityGroups(secGrpList, dryRun)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	secGrpList := new(SecurityGroups)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionSecurityGroups(region, secGrpList, search)
+	} else {
+		secGrpList, _ = GetSecurityGroups(search)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Security Groups list")
+	}
+
+	if len(*secGrpList) > 0 {
+		// Print the table
+		secGrpList.PrintTable()
+	} else {
+		return errors.New("No Security Groups found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to update these Security Groups?") {
+		return errors.New("Aborting!")
+	}
+
+	// Update 'Em
+	err = updateSecurityGroups(secGrpList, dryRun)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
+
+	for _, secGrp := range *secGrpList {
+		// Verify the security group class input
+		cfg, err := config.LoadSecurityGroupClass(secGrp.Class)
+		if err != nil {
+			terminal.Information("Skipping Security Group [" + secGrp.Name + "]")
+			terminal.ErrorLine(err.Error())
+			continue
+		} else {
+			terminal.Information("Found Security Group class configuration for [" + secGrp.Class + "]")
+		}
+
+		fmt.Println(secGrp)
+		fmt.Println(cfg)
+
+	}
+
+	return nil
+}
+
+func authorizeIngress() {
+
+}
+
+func authorizeEgress() {
+
+}
+
+func revokeIngress() {
+
+}
+
+func revokeEgress() {
+
+}
+
+func deleteSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
+
+	for _, secGrp := range *secGrpList {
+		svc := ec2.New(session.New(&aws.Config{Region: aws.String(secGrp.Region)}))
+
+		params := &ec2.DeleteSecurityGroupInput{
+			DryRun:  aws.Bool(true),
+			GroupId: aws.String(secGrp.GroupId),
+		}
+
+		_, err := svc.DeleteSecurityGroup(params)
+
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Deleted Security Group [" + secGrp.Name + "] in [" + secGrp.Region + "]!")
+	}
+	return nil
+
 }

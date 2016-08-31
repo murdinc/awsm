@@ -234,8 +234,7 @@ func AttachVolume(volume, instance string, dryRun bool) error {
 	vol := (*volList)[0]
 
 	// Class Config
-	var volCfg config.VolumeClassConfig
-	err = volCfg.LoadConfig(vol.Class)
+	volCfg, err := config.LoadVolumeClass(vol.Class)
 	if err != nil {
 		return err
 	} else {
@@ -271,8 +270,7 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 	}
 
 	// Class Config
-	var volCfg config.VolumeClassConfig
-	err := volCfg.LoadConfig(class)
+	volCfg, err := config.LoadVolumeClass(class)
 	if err != nil {
 		return err
 	} else {

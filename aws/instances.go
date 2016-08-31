@@ -194,8 +194,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	}
 
 	// Instance Class Config
-	var instanceCfg config.InstanceClassConfig
-	err := instanceCfg.LoadConfig(class)
+	instanceCfg, err := config.LoadInstanceClass(class)
 	if err != nil {
 		return err
 	} else {
@@ -223,8 +222,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	// EBS
 	ebsVolumes := make([]*ec2.BlockDeviceMapping, len(instanceCfg.EBSVolumes))
 	for i, ebsClass := range instanceCfg.EBSVolumes {
-		var volCfg config.VolumeClassConfig
-		err := volCfg.LoadConfig(ebsClass)
+		volCfg, err := config.LoadVolumeClass(ebsClass)
 		if err != nil {
 			return err
 		} else {

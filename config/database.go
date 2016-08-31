@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
-	"github.com/murdinc/terminal"
 )
 
 func CheckDB() bool {
@@ -27,173 +26,54 @@ func CheckDB() bool {
 	return true
 }
 
-func InsertClassConfigs(configType string, configInterface interface{}) error {
-
-	var itemName string
-	itemsMap := make(map[string][]*simpledb.ReplaceableAttribute)
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
-
-	// Build Attributes
-	switch configType {
-	case "vpcs":
-		for class, config := range configInterface.(VpcClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "subnets":
-		for class, config := range configInterface.(SubnetClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "instances":
-		for class, config := range configInterface.(InstanceClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "volumes":
-		for class, config := range configInterface.(VolumeClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "snapshots":
-		for class, config := range configInterface.(SnapshotClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "images":
-		for class, config := range configInterface.(ImageClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "autoscalinggroups":
-		for class, config := range configInterface.(AutoScaleGroupClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "launchconfigurations":
-		for class, config := range configInterface.(LaunchConfigurationClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "scalingpolicies":
-		for class, config := range configInterface.(ScalingPolicyClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	case "alarms":
-		for class, config := range configInterface.(AlarmClassConfigs) {
-			itemName = configType + "/" + class
-			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, configType)...)
-		}
-
-	/*
-		case "securitygroups":
-			for class, config := range configInterface.(SecurityGroupClassConfigs) {
-				itemName = configType + "/" + class
-				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
-			}
-	*/
-
-	default:
-		return errors.New("InsertClassConfigs does not have switch for [" + configType + "]! No configurations of this type are being installed!")
-
-	}
-
-	items := make([]*simpledb.ReplaceableItem, len(itemsMap))
-
-	for item, attributes := range itemsMap {
-
-		terminal.Information("Building Configuration for [" + item + "]...")
-
-		i := &simpledb.ReplaceableItem{
-			Attributes: attributes,
-			Name:       aws.String(item),
-		}
-		items = append(items, i)
-
-	}
-
-	params := &simpledb.BatchPutAttributesInput{
-		DomainName: aws.String("awsm"),
-		Items:      items,
-	}
-	terminal.Information("Installing [" + configType + "] Configurations...")
-	_, err := svc.BatchPutAttributes(params)
-
-	if err != nil {
-		return err
-	}
-
-	terminal.Information("Done!")
-
-	return nil
-
-}
-
-/*
-func DeleteConfig() {
-
-}
-
-func UpdateConfig() {
-
-}
-*/
-
-func GetItemByName(configName string) (*simpledb.GetAttributesOutput, error) {
+func GetItemByName(classType, className string) (*simpledb.Item, error) {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 
 	params := &simpledb.GetAttributesInput{
 		DomainName:     aws.String("awsm"),
-		ItemName:       aws.String(configName),
+		ItemName:       aws.String(classType + "/" + className),
 		ConsistentRead: aws.Bool(true),
 	}
 	resp, err := svc.GetAttributes(params)
 
 	if err != nil {
-		return &simpledb.GetAttributesOutput{}, err
+		return &simpledb.Item{}, err
 	}
 
 	if len(resp.Attributes) < 1 {
-		return &simpledb.GetAttributesOutput{}, errors.New("Unable to find the [" + configName + "] class in the database!")
+		return &simpledb.Item{}, errors.New("Unable to find the [" + className + "] class in the database!")
 	}
 
-	return resp, nil
+	item := &simpledb.Item{
+		Name:       aws.String(classType + "/" + className),
+		Attributes: resp.Attributes,
+	}
+
+	return item, nil
 }
 
-func GetItemsByType(configType string) (*simpledb.SelectOutput, error) {
+func GetItemsByType(classType string) ([]*simpledb.Item, error) {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 
 	params := &simpledb.SelectInput{
-		SelectExpression: aws.String(fmt.Sprintf("select * from awsm where ConfigType = '%s'", configType)),
+		SelectExpression: aws.String(fmt.Sprintf("select * from awsm where classType = '%s'", classType)),
 		ConsistentRead:   aws.Bool(true),
 		//NextToken:        aws.String("String"),
 	}
 
-	//fmt.Println(params)
-
 	resp, err := svc.Select(params)
 
 	if err != nil {
-		return &simpledb.SelectOutput{}, err
+		return []*simpledb.Item{}, err
 	}
 
 	if len(resp.Items) < 1 {
-		return &simpledb.SelectOutput{}, errors.New("Unable to find the [" + configType + "] class in the database!")
+		return []*simpledb.Item{}, errors.New("Unable to find the [" + classType + "] class in the database!")
 	}
 
-	return resp, nil
+	return resp.Items, nil
 }
 
 func CreateAwsmDatabase() error {
@@ -215,17 +95,17 @@ func CreateAwsmDatabase() error {
 	InsertClassConfigs("instances", DefaultInstanceClasses())
 	InsertClassConfigs("alarms", DefaultAlarms())
 	InsertClassConfigs("images", DefaultImageClasses())
-	InsertClassConfigs("scalingpolicies", DefaultScalingPolicies())
+	InsertClassConfigs("scalingpolicies", DefaultScalingPolicyClasses())
 	InsertClassConfigs("launchconfigurations", DefaultLaunchConfigurationClasses())
 	InsertClassConfigs("volumes", DefaultVolumeClasses())
 	InsertClassConfigs("snapshots", DefaultSnapshotClasses())
-	InsertClassConfigs("autoscalinggroups", DefaultAutoScaleGroupClasses())
+	InsertClassConfigs("autoscalinggroups", DefaultAutoscaleGroupClasses())
 	//InsertClassConfigs("securitygroups", DefaultSecurityGroupClasses())
 
 	return nil
 }
 
-func BuildAttributes(config interface{}, configType string) []*simpledb.ReplaceableAttribute {
+func BuildAttributes(config interface{}, classType string) []*simpledb.ReplaceableAttribute {
 	typ := reflect.TypeOf(config)
 	val := reflect.ValueOf(config)
 
@@ -269,8 +149,8 @@ func BuildAttributes(config interface{}, configType string) []*simpledb.Replacea
 	}
 
 	attributes = append(attributes, &simpledb.ReplaceableAttribute{
-		Name:    aws.String("ConfigType"),
-		Value:   aws.String(configType),
+		Name:    aws.String("classType"),
+		Value:   aws.String(classType),
 		Replace: aws.Bool(true),
 	})
 

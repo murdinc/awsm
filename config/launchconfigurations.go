@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
@@ -28,39 +29,52 @@ func DefaultLaunchConfigurationClasses() LaunchConfigurationClassConfigs {
 	return defaultLCs
 }
 
-func (c *LaunchConfigurationClassConfig) LoadConfig(class string) error {
-
-	data, err := GetClassConfig("launchconfigurations", class)
+func LoadLaunchConfigurationClass(name string) (LaunchConfigurationClassConfig, error) {
+	cfgs := make(LaunchConfigurationClassConfigs)
+	item, err := GetItemByName("launchconfigurations", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
-
-	c.Marshal(data.Attributes)
-
-	return nil
-
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *LaunchConfigurationClassConfig) Marshal(attributes []*simpledb.Attribute) {
-	for _, attribute := range attributes {
+func LoadAllLaunchConfigurationClasses() (LaunchConfigurationClassConfigs, error) {
+	cfgs := make(LaunchConfigurationClassConfigs)
+	items, err := GetItemsByType("launchconfigurations")
+	if err != nil {
+		return cfgs, err
+	}
 
-		val := *attribute.Value
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
 
-		switch *attribute.Name {
+func (c LaunchConfigurationClassConfigs) Marshal(items []*simpledb.Item) {
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "launchconfigurations/", "", -1)
+		cfg := new(LaunchConfigurationClassConfig)
+		for _, attribute := range item.Attributes {
 
-		case "Version":
-			c.Version, _ = strconv.Atoi(val)
+			val := *attribute.Value
 
-		case "InstanceClass":
-			c.InstanceClass = val
+			switch *attribute.Name {
 
-		case "Regions":
-			c.Regions = append(c.Regions, val)
+			case "Version":
+				cfg.Version, _ = strconv.Atoi(val)
 
-		case "Retain":
-			c.Retain, _ = strconv.Atoi(val)
+			case "InstanceClass":
+				cfg.InstanceClass = val
 
+			case "Regions":
+				cfg.Regions = append(cfg.Regions, val)
+
+			case "Retain":
+				cfg.Retain, _ = strconv.Atoi(val)
+
+			}
 		}
+		c[name] = *cfg
 	}
 }
 

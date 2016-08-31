@@ -259,8 +259,7 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 	region := volume.Region
 
 	// Class Config
-	var cfg config.SnapshotClassConfig
-	err := cfg.LoadConfig(class)
+	cfg, err := config.LoadSnapshotClass(class)
 	if err != nil {
 		return err
 	} else {

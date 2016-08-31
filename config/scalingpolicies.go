@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
@@ -15,7 +16,7 @@ type ScalingPolicyClassConfig struct {
 	Alarms            []string
 }
 
-func DefaultScalingPolicies() ScalingPolicyClassConfigs {
+func DefaultScalingPolicyClasses() ScalingPolicyClassConfigs {
 	defaultScalingPolicies := make(ScalingPolicyClassConfigs)
 
 	defaultScalingPolicies["scaleUp"] = ScalingPolicyClassConfig{
@@ -35,38 +36,52 @@ func DefaultScalingPolicies() ScalingPolicyClassConfigs {
 	return defaultScalingPolicies
 }
 
-func (c *ScalingPolicyClassConfig) LoadConfig(class string) error {
-
-	data, err := GetClassConfig("scalingpolicies", class)
+func LoadScalingPolicyClass(name string) (ScalingPolicyClassConfig, error) {
+	cfgs := make(ScalingPolicyClassConfigs)
+	item, err := GetItemByName("scalingpolicies", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
 
-	c.Marshal(data.Attributes)
-
-	return nil
-
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *ScalingPolicyClassConfig) Marshal(attributes []*simpledb.Attribute) {
-	for _, attribute := range attributes {
+func LoadAllScalingPolicyClasses() (ScalingPolicyClassConfigs, error) {
+	cfgs := make(ScalingPolicyClassConfigs)
+	items, err := GetItemsByType("scalingpolicies")
+	if err != nil {
+		return cfgs, err
+	}
 
-		val := *attribute.Value
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
 
-		switch *attribute.Name {
+func (c ScalingPolicyClassConfigs) Marshal(items []*simpledb.Item) {
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "scalingpolicies/", "", -1)
+		cfg := new(ScalingPolicyClassConfig)
+		for _, attribute := range item.Attributes {
 
-		case "ScalingAdjustment":
-			c.ScalingAdjustment, _ = strconv.Atoi(val)
+			val := *attribute.Value
 
-		case "AdjustmentType":
-			c.AdjustmentType = val
+			switch *attribute.Name {
 
-		case "Cooldown":
-			c.Cooldown, _ = strconv.Atoi(val)
+			case "ScalingAdjustment":
+				cfg.ScalingAdjustment, _ = strconv.Atoi(val)
 
-		case "Alarms":
-			c.Alarms = append(c.Alarms, val)
+			case "AdjustmentType":
+				cfg.AdjustmentType = val
 
+			case "Cooldown":
+				cfg.Cooldown, _ = strconv.Atoi(val)
+
+			case "Alarms":
+				cfg.Alarms = append(cfg.Alarms, val)
+
+			}
 		}
+		c[name] = *cfg
 	}
 }

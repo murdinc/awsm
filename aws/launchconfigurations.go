@@ -183,8 +183,7 @@ func (i *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
 func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 	// Verify the launch config class input
-	var cfg config.LaunchConfigurationClassConfig
-	err = cfg.LoadConfig(class)
+	cfg, err := config.LoadLaunchConfigurationClass(class)
 	if err != nil {
 		return err
 	} else {
@@ -192,8 +191,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 	}
 
 	// Instance Class Config
-	var instanceCfg config.InstanceClassConfig
-	err = instanceCfg.LoadConfig(cfg.InstanceClass)
+	instanceCfg, err := config.LoadInstanceClass(cfg.InstanceClass)
 	if err != nil {
 		return err
 	} else {
@@ -243,8 +241,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		// EBS
 		ebsVolumes := make([]*autoscaling.BlockDeviceMapping, len(instanceCfg.EBSVolumes))
 		for i, ebsClass := range instanceCfg.EBSVolumes {
-			var volCfg config.VolumeClassConfig
-			err := volCfg.LoadConfig(ebsClass)
+			volCfg, err := config.LoadVolumeClass(ebsClass)
 			if err != nil {
 				return err
 			} else {

@@ -2,13 +2,14 @@ package config
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
-type AutoScaleGroupClassConfigs map[string]AutoScaleGroupClassConfig
+type AutoscaleGroupClassConfigs map[string]AutoscaleGroupClassConfig
 
-type AutoScaleGroupClassConfig struct {
+type AutoscaleGroupClassConfig struct {
 	LaunchConfigurationClass string
 	Propagate                bool
 	Retain                   int
@@ -26,10 +27,10 @@ type AutoScaleGroupClassConfig struct {
 	Alarms                   []string
 }
 
-func DefaultAutoScaleGroupClasses() AutoScaleGroupClassConfigs {
-	defaultASGs := make(AutoScaleGroupClassConfigs)
+func DefaultAutoscaleGroupClasses() AutoscaleGroupClassConfigs {
+	defaultASGs := make(AutoscaleGroupClassConfigs)
 
-	defaultASGs["prod"] = AutoScaleGroupClassConfig{
+	defaultASGs["prod"] = AutoscaleGroupClassConfig{
 		LaunchConfigurationClass: "prod",
 		Propagate:                true,
 		Retain:                   5,
@@ -50,70 +51,85 @@ func DefaultAutoScaleGroupClasses() AutoScaleGroupClassConfigs {
 	return defaultASGs
 }
 
-func (c *AutoScaleGroupClassConfig) LoadConfig(class string) error {
-
-	data, err := GetClassConfig("autoscalinggroups", class)
+func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClassConfig, error) {
+	cfgs := make(AutoscaleGroupClassConfigs)
+	item, err := GetItemByName("autoscalinggroups", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
 
-	c.Marshal(data.Attributes)
-
-	return nil
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *AutoScaleGroupClassConfig) Marshal(attributes []*simpledb.Attribute) {
-	for _, attribute := range attributes {
+func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClassConfigs, error) {
+	cfgs := make(AutoscaleGroupClassConfigs)
+	items, err := GetItemsByType("autoscalinggroups")
+	if err != nil {
+		return cfgs, err
+	}
 
-		val := *attribute.Value
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
 
-		switch *attribute.Name {
+func (c AutoscaleGroupClassConfigs) Marshal(items []*simpledb.Item) {
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "autoscalinggroups/", "", -1)
+		cfg := new(AutoscaleGroupClassConfig)
+		for _, attribute := range item.Attributes {
 
-		case "LaunchConfigurationClass":
-			c.LaunchConfigurationClass = val
+			val := *attribute.Value
 
-		case "Propagate":
-			c.Propagate, _ = strconv.ParseBool(val)
+			switch *attribute.Name {
 
-		case "Retain":
-			c.Retain, _ = strconv.Atoi(val)
+			case "LaunchConfigurationClass":
+				cfg.LaunchConfigurationClass = val
 
-		case "AvailabilityZones":
-			c.AvailabilityZones = append(c.AvailabilityZones, val)
+			case "Propagate":
+				cfg.Propagate, _ = strconv.ParseBool(val)
 
-		case "DesiredCapacity":
-			c.DesiredCapacity, _ = strconv.Atoi(val)
+			case "Retain":
+				cfg.Retain, _ = strconv.Atoi(val)
 
-		case "MinSize":
-			c.MinSize, _ = strconv.Atoi(val)
+			case "AvailabilityZones":
+				cfg.AvailabilityZones = append(cfg.AvailabilityZones, val)
 
-		case "MaxSize":
-			c.MaxSize, _ = strconv.Atoi(val)
+			case "DesiredCapacity":
+				cfg.DesiredCapacity, _ = strconv.Atoi(val)
 
-		case "DefaultCooldown":
-			c.DefaultCooldown, _ = strconv.Atoi(val)
+			case "MinSize":
+				cfg.MinSize, _ = strconv.Atoi(val)
 
-		case "SubnetClass":
-			c.SubnetClass = val
+			case "MaxSize":
+				cfg.MaxSize, _ = strconv.Atoi(val)
 
-		case "HealthCheckType":
-			c.HealthCheckType = val
+			case "DefaultCooldown":
+				cfg.DefaultCooldown, _ = strconv.Atoi(val)
 
-		case "HealthCheckGracePeriod":
-			c.HealthCheckGracePeriod, _ = strconv.Atoi(val)
+			case "SubnetClass":
+				cfg.SubnetClass = val
 
-		case "TerminationPolicies":
-			c.TerminationPolicies = append(c.TerminationPolicies, val)
+			case "HealthCheckType":
+				cfg.HealthCheckType = val
 
-		case "ScalingPolicies":
-			c.ScalingPolicies = append(c.ScalingPolicies, val)
+			case "HealthCheckGracePeriod":
+				cfg.HealthCheckGracePeriod, _ = strconv.Atoi(val)
 
-		case "LoadBalancerNames":
-			c.LoadBalancerNames = append(c.LoadBalancerNames, val)
+			case "TerminationPolicies":
+				cfg.TerminationPolicies = append(cfg.TerminationPolicies, val)
 
-		case "Alarms":
-			c.Alarms = append(c.Alarms, val)
+			case "ScalingPolicies":
+				cfg.ScalingPolicies = append(cfg.ScalingPolicies, val)
 
+			case "LoadBalancerNames":
+				cfg.LoadBalancerNames = append(cfg.LoadBalancerNames, val)
+
+			case "Alarms":
+				cfg.Alarms = append(cfg.Alarms, val)
+
+			}
 		}
+		c[name] = *cfg
 	}
 }

@@ -272,8 +272,7 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 	}
 
 	// Class Config
-	var cfg config.VpcClassConfig
-	err := cfg.LoadConfig(class)
+	cfg, err := config.LoadVpcClass(class)
 	if err != nil {
 		return err
 	} else {

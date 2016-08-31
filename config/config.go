@@ -4,155 +4,224 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/murdinc/terminal"
 )
 
-func LoadAllConfigs(configType string) (configs map[string]interface{}, err error) {
-	data, err := GetAllClassConfigs(configType)
-	if err != nil {
-		return nil, err
-	}
+func InsertClassConfigs(classType string, classInterface interface{}) error {
 
-	configs = make(map[string]interface{})
+	var itemName string
+	itemsMap := make(map[string][]*simpledb.ReplaceableAttribute)
+	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 
-	// Build Configs
-	switch configType {
-
+	// Build Attributes
+	switch classType {
 	case "vpcs":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(VpcClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(VpcClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "subnets":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(SubnetClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(SubnetClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "instances":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(InstanceClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(InstanceClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "volumes":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(VolumeClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(VolumeClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "snapshots":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(SnapshotClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(SnapshotClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "images":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(ImageClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(ImageClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "autoscalinggroups":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(AutoScaleGroupClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(AutoscaleGroupClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "launchconfigurations":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(LaunchConfigurationClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(LaunchConfigurationClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "scalingpolicies":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(ScalingPolicyClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(ScalingPolicyClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
 	case "alarms":
-		for _, item := range data.Items {
-			name := strings.Replace(*item.Name, configType+"/", "", -1)
-			cfg := new(AlarmClassConfig)
-			cfg.Marshal(item.Attributes)
-			configs[name] = *cfg
+		for class, config := range classInterface.(AlarmClassConfigs) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
+
+	/*
+		case "securitygroups":
+			for class, config := range classInterface.(SecurityGroupClassConfigs) {
+				itemName = classType + "/" + class
+				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config)...)
+			}
+	*/
 
 	default:
-		err = errors.New("LoadAllConfigs does not have switch for [" + configType + "]! No configurations of this type are being loaded!")
+		return errors.New("InsertClassConfigs does not have switch for [" + classType + "]! No configurations of this type are being installed!")
+
+	}
+
+	items := make([]*simpledb.ReplaceableItem, len(itemsMap))
+
+	for item, attributes := range itemsMap {
+
+		terminal.Information("Building Configuration for [" + item + "]...")
+
+		i := &simpledb.ReplaceableItem{
+			Attributes: attributes,
+			Name:       aws.String(item),
+		}
+		items = append(items, i)
+
+	}
+
+	params := &simpledb.BatchPutAttributesInput{
+		DomainName: aws.String("awsm"),
+		Items:      items,
+	}
+	terminal.Information("Installing [" + classType + "] Configurations...")
+	_, err := svc.BatchPutAttributes(params)
+
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+
+}
+
+func LoadAllClasses(classType string) (configs interface{}, err error) {
+
+	switch classType {
+
+	case "vpcs":
+		return LoadAllVpcClasses()
+
+	case "subnets":
+		return LoadAllSubnetClasses()
+
+	case "instances":
+		return LoadAllInstanceClasses()
+
+	case "volumes":
+		return LoadAllVolumeClasses()
+
+	case "snapshots":
+		return LoadAllSnapshotClasses()
+
+	case "images":
+		return LoadAllImageClasses()
+
+	case "autoscalinggroups":
+		return LoadAllAutoscalingGroupClasses()
+
+	case "launchconfigurations":
+		return LoadAllLaunchConfigurationClasses()
+
+	case "scalingpolicies":
+		return LoadAllScalingPolicyClasses()
+
+	case "alarms":
+		return LoadAllAlarmClasses()
+
+	default:
+		err = errors.New("LoadAllClasses does not have switch for [" + classType + "]! No configurations of this type are being loaded!")
 
 	}
 
 	return configs, err
 }
 
-func GetClassConfig(configType, configClass string) (*simpledb.GetAttributesOutput, error) {
-	// Check for the awsm db
-	if !CheckDB() {
-		create := terminal.BoxPromptBool("No awsm database found!", "Do you want to create one now?")
-		if !create {
-			terminal.Information("Ok then, maybe next time.. ")
-			return nil, errors.New("No awsm database!")
+func LoadClassByName(classType, className string) (configs interface{}, err error) {
 
-		}
-		err := CreateAwsmDatabase()
-		if err != nil {
-			return nil, err
-		}
+	switch classType {
+
+	case "vpcs":
+		return LoadVpcClass(className)
+
+	case "subnets":
+		return LoadSubnetClass(className)
+
+	case "instances":
+		return LoadInstanceClass(className)
+
+	case "volumes":
+		return LoadVolumeClass(className)
+
+	case "snapshots":
+		return LoadSnapshotClass(className)
+
+	case "images":
+		return LoadImageClass(className)
+
+	case "autoscalinggroups":
+		return LoadAutoscalingGroupClass(className)
+
+	case "launchconfigurations":
+		return LoadLaunchConfigurationClass(className)
+
+	case "scalingpolicies":
+		return LoadScalingPolicyClass(className)
+
+	case "alarms":
+		return LoadAlarmClass(className)
+
+	default:
+		err = errors.New("LoadClassByName does not have switch for [" + classType + "]! No configuration of this type is being loaded!")
+
 	}
 
-	// Check for the class requested
-	data, err := GetItemByName(configType + "/" + configClass)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
+	return configs, err
 }
 
-func GetAllConfigNames(configType string) ([]string, error) {
+func LoadAllClassNames(classType string) ([]string, error) {
 	// Check for the awsm db
 	if !CheckDB() {
 		return nil, nil
 	}
 
 	// Get the configs
-	data, err := GetItemsByType(configType)
+	items, err := GetItemsByType(classType)
 	if err != nil {
 		return nil, err
 	}
 
-	names := make([]string, len(data.Items))
-	for i, item := range data.Items {
-		names[i] = strings.Replace(*item.Name, configType+"/", "", -1)
+	names := make([]string, len(items))
+	for i, item := range items {
+		names[i] = strings.Replace(*item.Name, classType+"/", "", -1)
 	}
 
 	return names, nil
-}
-
-func GetAllClassConfigs(configType string) (*simpledb.SelectOutput, error) {
-	// Check for the awsm db
-	if !CheckDB() {
-		return nil, errors.New("No database found!")
-	}
-
-	// Get the configs
-	data, err := GetItemsByType(configType)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
 }

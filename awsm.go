@@ -566,6 +566,29 @@ func main() {
 			},
 		},
 		{
+			Name:  "deleteSecurityGroups",
+			Usage: "Delete AWS Security Groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for the security group to delete",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to delete the security group from",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteSecurityGroups(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "deleteSnapshots",
 			Usage: "Delete AWS EBS Snapshots",
 			Arguments: []cli.Argument{
@@ -1186,8 +1209,8 @@ func main() {
 			},
 		},
 		{
-			Name:  "updateAutoScaleGroup",
-			Usage: "Update an AWS AutoScaling Group",
+			Name:  "updateAutoScaleGroups",
+			Usage: "Update AutoScaling Groups",
 			Arguments: []cli.Argument{
 				cli.Argument{
 					Name:        "search",
@@ -1209,6 +1232,36 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				err := aws.UpdateAutoScaleGroups(c.NamedArg("search"), c.NamedArg("version"), double, dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "updateSecurityGroups",
+			Usage: "Update Security Groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term autoscaling group to update",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to update the security groups in (optional)",
+					Optional:    true,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "double",
+					Destination: &double,
+					Usage:       "double (Doubles the desired-capacity and max-capacity)",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.UpdateSecurityGroups(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}

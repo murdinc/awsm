@@ -142,8 +142,7 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 	}
 
 	// Verify the asg config class input
-	var cfg config.AutoScaleGroupClassConfig
-	err = cfg.LoadConfig(class)
+	cfg, err := config.LoadAutoscalingGroupClass(class)
 	if err != nil {
 		return err
 	} else {
@@ -151,8 +150,7 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 	}
 
 	// Verify the launchconfig class input
-	var launchConfigurationCfg config.LaunchConfigurationClassConfig
-	err = launchConfigurationCfg.LoadConfig(cfg.LaunchConfigurationClass)
+	launchConfigurationCfg, err := config.LoadLaunchConfigurationClass(cfg.LaunchConfigurationClass)
 	if err != nil {
 		return err
 	} else {
@@ -310,8 +308,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 	for _, asg := range *asgList {
 
 		// Get the ASG class config
-		var cfg config.AutoScaleGroupClassConfig
-		err = cfg.LoadConfig(asg.Class)
+		cfg, err := config.LoadAutoscalingGroupClass(asg.Class)
 		if err != nil {
 			return err
 		} else {
@@ -319,8 +316,8 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 		}
 
 		// Get the Launch Configuration class config
-		var launchConfigurationCfg config.LaunchConfigurationClassConfig
-		err = launchConfigurationCfg.LoadConfig(cfg.LaunchConfigurationClass)
+		launchConfigurationCfg, err := config.LoadLaunchConfigurationClass(cfg.LaunchConfigurationClass)
+
 		if err != nil {
 			return err
 		} else {

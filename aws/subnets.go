@@ -232,8 +232,7 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	}
 
 	// Class Config
-	var cfg config.SubnetClassConfig
-	err := cfg.LoadConfig(class)
+	cfg, err := config.LoadSubnetClass(class)
 	if err != nil {
 		return err
 	} else {

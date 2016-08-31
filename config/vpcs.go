@@ -1,6 +1,10 @@
 package config
 
-import "github.com/aws/aws-sdk-go/service/simpledb"
+import (
+	"strings"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type VpcClassConfigs map[string]VpcClassConfig
 
@@ -20,29 +24,46 @@ func DefaultVpcClasses() VpcClassConfigs {
 	return defaultVpcs
 }
 
-func (c *VpcClassConfig) LoadConfig(class string) error {
-	data, err := GetClassConfig("vpcs", class)
+func LoadVpcClass(name string) (VpcClassConfig, error) {
+	cfgs := make(VpcClassConfigs)
+	item, err := GetItemByName("vpcs", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
 
-	c.Marshal(data.Attributes)
-
-	return nil
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *VpcClassConfig) Marshal(attributes []*simpledb.Attribute) {
-	for _, attribute := range attributes {
+func LoadAllVpcClasses() (VpcClassConfigs, error) {
+	cfgs := make(VpcClassConfigs)
+	items, err := GetItemsByType("vpcs")
+	if err != nil {
+		return cfgs, err
+	}
 
-		val := *attribute.Value
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
 
-		switch *attribute.Name {
+func (c VpcClassConfigs) Marshal(items []*simpledb.Item) {
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "vpcs/", "", -1)
+		cfg := new(VpcClassConfig)
+		for _, attribute := range item.Attributes {
 
-		case "CIDR":
-			c.CIDR = val
+			val := *attribute.Value
 
-		case "Tenancy":
-			c.Tenancy = val
+			switch *attribute.Name {
+
+			case "CIDR":
+				cfg.CIDR = val
+
+			case "Tenancy":
+				cfg.Tenancy = val
+			}
 		}
+
+		c[name] = *cfg
 	}
 }

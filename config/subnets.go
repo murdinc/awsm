@@ -1,6 +1,10 @@
 package config
 
-import "github.com/aws/aws-sdk-go/service/simpledb"
+import (
+	"strings"
+
+	"github.com/aws/aws-sdk-go/service/simpledb"
+)
 
 type SubnetClassConfigs map[string]SubnetClassConfig
 
@@ -22,27 +26,43 @@ func DefaultSubnetClasses() SubnetClassConfigs {
 	return defaultSubnets
 }
 
-func (c *SubnetClassConfig) LoadConfig(class string) error {
-	data, err := GetClassConfig("subnets", class)
+func LoadSubnetClass(name string) (SubnetClassConfig, error) {
+	cfgs := make(SubnetClassConfigs)
+	item, err := GetItemByName("subnets", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
 
-	c.Marshal(data.Attributes)
-
-	return nil
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *SubnetClassConfig) Marshal(attributes []*simpledb.Attribute) {
-	for _, attribute := range attributes {
+func LoadAllSubnetClasses() (SubnetClassConfigs, error) {
+	cfgs := make(SubnetClassConfigs)
+	items, err := GetItemsByType("subnets")
+	if err != nil {
+		return cfgs, err
+	}
 
-		val := *attribute.Value
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
 
-		switch *attribute.Name {
+func (c SubnetClassConfigs) Marshal(items []*simpledb.Item) {
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "subnets/", "", -1)
+		cfg := new(SubnetClassConfig)
+		for _, attribute := range item.Attributes {
 
-		case "CIDR":
-			c.CIDR = val
+			val := *attribute.Value
 
+			switch *attribute.Name {
+
+			case "CIDR":
+				cfg.CIDR = val
+
+			}
 		}
+		c[name] = *cfg
 	}
 }

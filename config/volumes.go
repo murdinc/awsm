@@ -2,6 +2,7 @@ package config
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
@@ -13,10 +14,10 @@ type VolumeClassConfig struct {
 	VolumeSize          int
 	DeleteOnTermination bool
 	MountPoint          string
-	//Encrypted           bool
-	Snapshot   string
-	VolumeType string
-	Iops       int
+	Snapshot            string
+	VolumeType          string
+	Iops                int
+	Encrypted           bool
 }
 
 func DefaultVolumeClasses() VolumeClassConfigs {
@@ -27,9 +28,9 @@ func DefaultVolumeClasses() VolumeClassConfigs {
 		VolumeSize:          30,
 		DeleteOnTermination: true,
 		MountPoint:          "/mnt/git",
-		//Encrypted:           false,
-		Snapshot:   "git",
-		VolumeType: "standard",
+		Encrypted:           false,
+		Snapshot:            "git",
+		VolumeType:          "standard",
 	}
 
 	defaultVolumes["mysql-data-standard"] = VolumeClassConfig{
@@ -37,60 +38,73 @@ func DefaultVolumeClasses() VolumeClassConfigs {
 		VolumeSize:          100,
 		DeleteOnTermination: true,
 		MountPoint:          "/media/mysql-data",
-		//Encrypted:           false,
-		Snapshot:   "mysql-data",
-		VolumeType: "standard",
+		Encrypted:           false,
+		Snapshot:            "mysql-data",
+		VolumeType:          "standard",
 	}
 
 	return defaultVolumes
 }
 
-func (c *VolumeClassConfig) LoadConfig(class string) error {
-
-	data, err := GetClassConfig("volumes", class)
+func LoadVolumeClass(name string) (VolumeClassConfig, error) {
+	cfgs := make(VolumeClassConfigs)
+	item, err := GetItemByName("volumes", name)
 	if err != nil {
-		return err
+		return cfgs[name], err
 	}
 
-	c.Marshal(data.Attributes)
-
-	return nil
-
+	cfgs.Marshal([]*simpledb.Item{item})
+	return cfgs[name], nil
 }
 
-func (c *VolumeClassConfig) Marshal(attributes []*simpledb.Attribute) {
-	for _, attribute := range attributes {
+func LoadAllVolumeClasses() (VolumeClassConfigs, error) {
+	cfgs := make(VolumeClassConfigs)
+	items, err := GetItemsByType("volumes")
+	if err != nil {
+		return cfgs, err
+	}
 
-		val := *attribute.Value
+	cfgs.Marshal(items)
+	return cfgs, nil
+}
 
-		switch *attribute.Name {
+func (c VolumeClassConfigs) Marshal(items []*simpledb.Item) {
+	for _, item := range items {
+		name := strings.Replace(*item.Name, "volumes/", "", -1)
+		cfg := new(VolumeClassConfig)
+		for _, attribute := range item.Attributes {
 
-		case "DeviceName":
-			c.DeviceName = val
+			val := *attribute.Value
 
-		case "VolumeSize":
-			c.VolumeSize, _ = strconv.Atoi(val)
+			switch *attribute.Name {
 
-		case "DeleteOnTermination":
-			c.DeleteOnTermination, _ = strconv.ParseBool(val)
+			case "DeviceName":
+				cfg.DeviceName = val
 
-		case "MountPoint":
-			c.MountPoint = val
+			case "VolumeSize":
+				cfg.VolumeSize, _ = strconv.Atoi(val)
 
-		case "Snapshot":
-			c.Snapshot = val
+			case "DeleteOnTermination":
+				cfg.DeleteOnTermination, _ = strconv.ParseBool(val)
 
-		case "VolumeType":
-			c.VolumeType = val
+			case "MountPoint":
+				cfg.MountPoint = val
 
-		case "Iops":
-			c.Iops, _ = strconv.Atoi(val)
+			case "Snapshot":
+				cfg.Snapshot = val
 
-			/* // TODO
+			case "VolumeType":
+				cfg.VolumeType = val
+
+			case "Iops":
+				cfg.Iops, _ = strconv.Atoi(val)
+
 			case "Encrypted":
-				c.Encrypted, _ = strconv.ParseBool(val)
-			*/
+				cfg.Encrypted, _ = strconv.ParseBool(val)
 
+			}
+
+			c[name] = *cfg
 		}
 	}
 }
