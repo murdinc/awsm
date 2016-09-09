@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/mitchellh/hashstructure"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -20,23 +21,14 @@ import (
 type SecurityGroups []SecurityGroup
 
 type SecurityGroup struct {
-	Name        string `json:"name"`
-	Class       string `json:"class"`
-	GroupId     string `json:"groupId"`
-	Description string `json:"description"`
-	Vpc         string `json:"vpc"`
-	VpcId       string `json:"vpcId"`
-	Region      string `json:"region"`
-	//SecurityGroupGrants []SecurityGroupGrants
-}
-
-type SecurityGroupGrants struct {
-	Name       string
-	Type       string
-	FromPort   int
-	ToPort     int
-	IpProtocol string
-	CidrIp     []string
+	Name                string                      `json:"name"`
+	Class               string                      `json:"class"`
+	GroupId             string                      `json:"groupId"`
+	Description         string                      `json:"description"`
+	Vpc                 string                      `json:"vpc"`
+	VpcId               string                      `json:"vpcId"`
+	Region              string                      `json:"region"`
+	SecurityGroupGrants []config.SecurityGroupGrant `json:"securityGroupGrants"`
 }
 
 func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
@@ -175,15 +167,42 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 	s.Description = aws.StringValue(securitygroup.Description)
 	s.Vpc = vpc
 	s.VpcId = aws.StringValue(securitygroup.VpcId)
-	//s.SecurityGroupGrants.Ingress = securitygroup.IpPermissions
-	//s.SecurityGroupGrants..Egress = securitygroup.IpPermissionsEgress
 	s.Region = region
 
-	//fmt.Println("== Ingress ==")
-	//fmt.Println(s.SecurityGroupPermissions.Ingress)
-	//fmt.Println("== Egress ==")
-	//fmt.Println(s.SecurityGroupPermissions.Egress)
-	//fmt.Println("== == ==")
+	// Get the ingress grants
+	for _, grant := range securitygroup.IpPermissions {
+
+		var cidr []string
+		for _, ipRange := range grant.IpRanges {
+			cidr = append(cidr, aws.StringValue(ipRange.CidrIp))
+		}
+
+		s.SecurityGroupGrants = append(s.SecurityGroupGrants, config.SecurityGroupGrant{
+			Type:       "ingress",
+			FromPort:   int(aws.Int64Value(grant.FromPort)),
+			ToPort:     int(aws.Int64Value(grant.ToPort)),
+			IpProtocol: aws.StringValue(grant.IpProtocol),
+			CidrIp:     cidr,
+		})
+	}
+
+	// Get the egress grants
+	for _, grant := range securitygroup.IpPermissionsEgress {
+
+		var cidr []string
+		for _, ipRange := range grant.IpRanges {
+			cidr = append(cidr, aws.StringValue(ipRange.CidrIp))
+		}
+
+		s.SecurityGroupGrants = append(s.SecurityGroupGrants, config.SecurityGroupGrant{
+			Type:       "egress",
+			FromPort:   int(aws.Int64Value(grant.FromPort)),
+			ToPort:     int(aws.Int64Value(grant.ToPort)),
+			IpProtocol: aws.StringValue(grant.IpProtocol),
+			CidrIp:     cidr,
+		})
+	}
+
 }
 
 func (i *SecurityGroups) PrintTable() {
@@ -359,8 +378,26 @@ func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 			terminal.Information("Found Security Group class configuration for [" + secGrp.Class + "]")
 		}
 
-		fmt.Println(secGrp)
-		fmt.Println(cfg)
+		fmt.Println("\n\n")
+		fmt.Println("aws\n")
+		fmt.Println(secGrp.SecurityGroupGrants)
+		fmt.Println("awsm\n")
+		fmt.Println(cfg.SecurityGroupGrants)
+		fmt.Println("\n\n")
+
+		hash1, err := hashstructure.Hash(secGrp.SecurityGroupGrants, nil)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("\n\n%d\n\n", hash1)
+
+		hash2, err := hashstructure.Hash(cfg.SecurityGroupGrants, nil)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("\n\n%d\n\n", hash2)
 
 	}
 

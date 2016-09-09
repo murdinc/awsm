@@ -15,12 +15,13 @@ type SecurityGroupClass struct {
 }
 
 type SecurityGroupGrant struct {
-	Note       string   `json:"note"`
+	Id         string   `json:"id" hash:"ignore" awsm:"ignore"`
+	Note       string   `json:"note" hash:"ignore"`
 	Type       string   `json:"type"` // ingress / egress
 	FromPort   int      `json:"fromPort"`
 	ToPort     int      `json:"toPort"`
 	IpProtocol string   `json:"ipProtocol"`
-	CidrIp     []string `json:"cidrIp"`
+	CidrIp     []string `json:"cidrIp" hash:"set"`
 }
 
 func DefaultSecurityGroupClasses() SecurityGroupClasses {
@@ -99,6 +100,7 @@ func (c SecurityGroupClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "securitygroups/", "", -1)
 		cfg := new(SecurityGroupClass)
+
 		for _, attribute := range item.Attributes {
 
 			val := *attribute.Value
@@ -115,6 +117,8 @@ func (c SecurityGroupClasses) Marshal(items []*simpledb.Item) {
 		grants, _ := GetItemsByType("securitygroups/" + name + "/grants")
 		cfg.SecurityGroupGrants = make([]SecurityGroupGrant, len(grants))
 		for i, grant := range grants {
+
+			cfg.SecurityGroupGrants[i].Id = strings.Replace(*grant.Name, "securitygroups/"+name+"/grants/", "", -1)
 
 			for _, attribute := range grant.Attributes {
 

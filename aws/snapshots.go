@@ -508,6 +508,11 @@ func (v Snapshots) Less(i, j int) bool {
 }
 
 func (i *Snapshots) PrintTable() {
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Snapshots Found!")
+		return
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
 
 	rows := make([][]string, len(*i))

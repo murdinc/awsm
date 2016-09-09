@@ -37,12 +37,15 @@ func getClassNames(ctx *iris.Context) {
 
 func getClassByName(ctx *iris.Context) {
 
-	// Get the classType
-	//	classType := ctx.Param("classType")
+	// Get the classType & className
+	classType := ctx.Param("classType")
+	className := ctx.Param("className")
 
-	// Get the className
-	//	className := ctx.Param("className")
+	resp, err := config.LoadClassByName(classType, className)
 
-	//	resp, err := config.GetItemByName(className)
-
+	if err == nil {
+		ctx.JSON(iris.StatusOK, map[string]interface{}{"classType": classType, "class": resp, "success": true})
+	} else {
+		ctx.JSON(iris.StatusForbidden, map[string]interface{}{"classType": classType, "class": resp, "success": false, "errors": []string{err.Error()}})
+	}
 }

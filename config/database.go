@@ -11,6 +11,7 @@ import (
 )
 
 func CheckDB() bool {
+
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 
 	params := &simpledb.DomainMetadataInput{
@@ -106,6 +107,7 @@ func CreateAwsmDatabase() error {
 }
 
 func BuildAttributes(class interface{}, classType string) []*simpledb.ReplaceableAttribute {
+
 	typ := reflect.TypeOf(class)
 	val := reflect.ValueOf(class)
 
@@ -113,6 +115,11 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 
 	for i := 0; i < typ.NumField(); i++ {
 		name := typ.Field(i).Name
+
+		// Ignore if tagged ignore
+		if typ.Field(i).Tag.Get("awsm") == "ignore" {
+			continue
+		}
 
 		switch val.Field(i).Interface().(type) {
 		case int:
@@ -155,7 +162,7 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 		Replace: aws.Bool(true),
 	})
 
-	//fmt.Println(attributes)
+	fmt.Println(attributes)
 
 	return attributes
 }

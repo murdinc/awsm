@@ -630,7 +630,7 @@ func StartInstances(search, region string, dryRun bool) (err error) {
 		return errors.New("Aborting!")
 	}
 
-	// Stop 'Em
+	// Start 'Em
 	err = startInstances(instList, dryRun)
 	if err != nil {
 		return err
@@ -704,8 +704,8 @@ func RebootInstances(search, region string, dryRun bool) (err error) {
 		return errors.New("Aborting!")
 	}
 
-	// Stop 'Em
-	err = stopInstances(instList, dryRun)
+	// Reboot 'Em
+	err = rebootInstances(instList, dryRun)
 	if err != nil {
 		return err
 	}
