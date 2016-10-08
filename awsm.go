@@ -766,8 +766,15 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "force",
+					Destination: &force,
+					Usage:       "force (Force deletes all instances and lifecycle actions)",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				err := aws.StopInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				err := aws.StopInstances(c.NamedArg("search"), c.NamedArg("region"), force, dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}

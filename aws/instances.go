@@ -525,7 +525,7 @@ func terminateInstances(instList *Instances, dryRun bool) (err error) {
 }
 
 // Public function with confirmation terminal prompt
-func StopInstances(search, region string, dryRun bool) (err error) {
+func StopInstances(search, region string, force, dryRun bool) (err error) {
 
 	// --dry-run flag
 	if dryRun {
@@ -536,9 +536,9 @@ func StopInstances(search, region string, dryRun bool) (err error) {
 
 	// Check if we were given a region or not
 	if region != "" {
-		err = GetRegionInstances(region, instList, search, true)
+		err = GetRegionInstances(region, instList, search, false)
 	} else {
-		instList, _ = GetInstances(search, true)
+		instList, _ = GetInstances(search, false)
 	}
 
 	if err != nil {
@@ -558,7 +558,7 @@ func StopInstances(search, region string, dryRun bool) (err error) {
 	}
 
 	// Stop 'Em
-	err = stopInstances(instList, dryRun)
+	err = stopInstances(instList, force, dryRun)
 	if err != nil {
 		return err
 	}
@@ -569,7 +569,7 @@ func StopInstances(search, region string, dryRun bool) (err error) {
 }
 
 // Private function without the confirmation terminal prompts
-func stopInstances(instList *Instances, dryRun bool) (err error) {
+func stopInstances(instList *Instances, force, dryRun bool) (err error) {
 	azs, _ := GetAZs()
 
 	for _, instance := range *instList {
@@ -580,6 +580,7 @@ func stopInstances(instList *Instances, dryRun bool) (err error) {
 			InstanceIds: []*string{
 				aws.String(instance.InstanceId),
 			},
+			Force:  aws.Bool(force),
 			DryRun: aws.Bool(dryRun),
 		}
 

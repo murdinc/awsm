@@ -1,10 +1,16 @@
 package api
 
-import "github.com/kataras/iris"
+import (
+	"github.com/iris-contrib/middleware/cors"
+	"github.com/kataras/iris"
+)
 
 func StartApi() {
 
 	iris.Config.DisableBanner = true
+	//iris.Use(cors.Options{AllowedMethods: []string{"GET", "POST", "PUT"}})
+
+	iris.Use(cors.Default())
 
 	api := iris.Party("/api")
 
@@ -22,5 +28,5 @@ func StartApi() {
 	//classes.Delete("/:classType/name/:className", deleteConfig)
 
 	// Listen
-	iris.Listen(":8080")
+	iris.Listen(":8081")
 }
