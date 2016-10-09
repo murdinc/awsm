@@ -12,16 +12,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/simpledb"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type SimpleDBDomains []SimpleDBDomain
 
-type SimpleDBDomain struct {
-	Name   string `json:"name"`
-	Region string `json:"region"`
-}
+type SimpleDBDomain models.SimpleDBDomain
 
 func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 	var wg sync.WaitGroup

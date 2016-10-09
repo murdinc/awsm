@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -18,25 +17,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type LaunchConfigs []LaunchConfig
 
-type LaunchConfig struct {
-	Name           string    `json:"name"`
-	ImageName      string    `json:"imageName"`
-	ImageId        string    `json:"imageId"`
-	InstanceType   string    `json:"instanceType"`
-	KeyName        string    `json:"keyName"`
-	SecurityGroups string    `json:"securityGroups"`
-	CreationTime   time.Time `json:"creationTime"`
-	CreatedHuman   string    `json:"createdHuman"`
-	Region         string    `json:"region"`
-	EbsOptimized   bool      `json:"ebsOptimized"`
-	SnapshotIds    []string  `json:"snapshotId"`
-}
+type LaunchConfig models.LaunchConfig
 
 func GetLaunchConfigurationName(region, class string, version int) string {
 	name := fmt.Sprintf("%s-v%d", class, version)

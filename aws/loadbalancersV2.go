@@ -6,34 +6,20 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/dustin/go-humanize"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type LoadBalancersV2 []LoadBalancerV2
 
-type LoadBalancerV2 struct {
-	Name                  string    `json:"name"`
-	DNSName               string    `json:"dnsName"`
-	Type                  string    `json:"type"`
-	State                 string    `json:"state"`
-	Region                string    `json:"region"`
-	AvailabilityZones     string    `json:"availabilityZone"`
-	CreatedTime           time.Time `json:"createdTime"`
-	CreatedHuman          string    `json:"createdHuman"`
-	SecurityGroups        string    `json:"securityGroups"`
-	Scheme                string    `json:"scheme"`
-	CanonicalHostedZoneId string    `json:"canonicalHostedZoneId"`
-	LoadBalancerArn       string    `json:"loadBalancerArn"`
-	VpcId                 string    `json:"vpcId"`
-}
+type LoadBalancerV2 models.LoadBalancerV2
 
 func GetLoadBalancersV2() (*LoadBalancersV2, []error) {
 	var wg sync.WaitGroup

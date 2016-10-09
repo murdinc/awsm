@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/cli"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -21,30 +22,7 @@ import (
 
 type Instances []Instance
 
-type Instance struct {
-	Name             string `json:"name"`
-	Class            string `json:"class"`
-	PrivateIp        string `json:"privateIp"`
-	PublicIp         string `json:"publicIp"`
-	InstanceId       string `json:"instanceId"`
-	AMIId            string `json:"amiId"`
-	AMIName          string `json:"amiName"`
-	Root             string `json:"root"`
-	Size             string `json:"size"`
-	Virtualization   string `json:"virtualization"`
-	State            string `json:"state"`
-	KeyPair          string `json:"keyPair"`
-	AvailabilityZone string `json:"availabilityZone"`
-	VPC              string `json:"vpc"`
-	VPCId            string `json:"vpcId"`
-	Subnet           string `json:"subnet"`
-	SubnetId         string `json:"subnetId"`
-	IAMUser          string `json:"iamUser"`
-	ShutdownBehavior string `json:"shutdownBehavior"`
-	EbsOptimized     bool   `json:"ebsOptimized"` // TODO
-	Monitoring       bool   `json:"monitoring"`   // TODO
-	Region           string `json:"region"`
-}
+type Instance models.Instance
 
 func GetInstances(search string, running bool) (*Instances, []error) {
 	var wg sync.WaitGroup

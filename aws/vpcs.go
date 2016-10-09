@@ -13,23 +13,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type Vpcs []Vpc
 
-type Vpc struct {
-	Name      string `json:"name"`
-	Class     string `json:"class"`
-	VpcId     string `json:"vpcId"`
-	State     string `json:"state"`
-	Default   bool   `json:"default"`
-	CIDRBlock string `json:"cidrBlock"`
-	DHCPOptId string `json:"dhcpOptId"`
-	Tenancy   string `json:"tenancy"`
-	Region    string `json:"region"`
-}
+type Vpc models.Vpc
 
 func GetVpcByTag(region, key, value string) (Vpc, error) {
 

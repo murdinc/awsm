@@ -2,27 +2,19 @@ package aws
 
 import (
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/dustin/go-humanize"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type IAMUsers []IAMUser
 
-type IAMUser struct {
-	UserName              string    `json:"userName"`
-	UserId                string    `json:"userId"`
-	CreateDate            time.Time `json:"createDate"`
-	CreatedHuman          string    `json:"createdHumand"`
-	Arn                   string    `json:"arn"`
-	PasswordLastUsed      time.Time `json:"passwordLastUsed"`
-	PasswordLastUsedHuman string    `json:"passwordLastUsedHuman"`
-}
+type IAMUser models.IAMUser
 
 func GetIAMUser(username string) (IAMUser, error) {
 	svc := iam.New(session.New())

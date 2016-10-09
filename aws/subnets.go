@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/cli"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -19,20 +20,7 @@ import (
 
 type Subnets []Subnet
 
-type Subnet struct {
-	Name             string `json:"name"`
-	Class            string `json:"class"`
-	SubnetId         string `json:"subnetId"`
-	VpcName          string `json:"vpcName"`
-	VpcId            string `json:"vpcId"`
-	State            string `json:"state"`
-	AvailabilityZone string `json:"availabilityZone"`
-	Default          bool   `json:"default"`
-	CIDRBlock        string `json:"cidrBlock"`
-	AvailableIPs     int    `json:"availableIps"`
-	MapPublicIp      bool   `json:"mapPublicIp"`
-	Region           string `json:"region"`
-}
+type Subnet models.Subnet
 
 func (s *Subnets) GetSubnetNames(ids []string) []string {
 	names := make([]string, len(ids))

@@ -3,6 +3,8 @@ package aws
 import (
 	"errors"
 	"strings"
+
+	"github.com/murdinc/awsm/models"
 )
 
 /*
@@ -11,19 +13,7 @@ import (
 	to make these human friendly before Marshalling would cause an infinite-loop. :-(
 */
 
-type ARN struct {
-	Arn                  string `json:"arn"`
-	Partition            string `json:"partition"`
-	Service              string `json:"service"`
-	Region               string `json:"region"`
-	AccountId            string `json:"accountId"`
-	PolicyId             string `json:"policyId"`
-	GroupId              string `json:"groupId"`
-	AutoScalingGroupName string `json:"autoScalingGroupName"`
-	PolicyName           string `json:"policyName"`
-	ResourceType         string `json:"resourceType"`
-	Resource             string `json:"resource"`
-}
+type ARN models.ARN
 
 func ParseArn(arnStr string) (*ARN, error) {
 	split := strings.SplitN(arnStr, ":", -1)

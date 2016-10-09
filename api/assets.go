@@ -18,6 +18,9 @@ func getAssets(ctx *iris.Context) {
 
 	switch assetType {
 
+	case "addresses":
+		resp, errs = aws.GetAddresses("", false)
+
 	case "alarms":
 		resp, errs = aws.GetAlarms()
 

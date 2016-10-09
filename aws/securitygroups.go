@@ -14,22 +14,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/mitchellh/hashstructure"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type SecurityGroups []SecurityGroup
 
-type SecurityGroup struct {
-	Name                string                      `json:"name"`
-	Class               string                      `json:"class"`
-	GroupId             string                      `json:"groupId"`
-	Description         string                      `json:"description"`
-	Vpc                 string                      `json:"vpc"`
-	VpcId               string                      `json:"vpcId"`
-	Region              string                      `json:"region"`
-	SecurityGroupGrants []config.SecurityGroupGrant `json:"securityGroupGrants"`
-}
+type SecurityGroup models.SecurityGroup
 
 func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
 	names := make([]string, len(ids))

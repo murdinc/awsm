@@ -13,26 +13,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type Alarms []Alarm
 
-type Alarm struct {
-	Name        string   `json:"name"`
-	Arn         string   `json:"arn"`
-	Description string   `json:"description"`
-	State       string   `json:"state"`
-	Trigger     string   `json:"trigger"`
-	Period      string   `json:"period"`
-	EvalPeriods string   `json:"evalPeriods"`
-	ActionArns  []string `json:"actionArns"`
-	ActionNames string   `json:"actionNames"`
-	Dimensions  string   `json:"dimensions"`
-	Namespace   string   `json:"namespace"`
-	Region      string   `json:"region"`
-}
+type Alarm models.Alarm
 
 func GetAlarms() (*Alarms, []error) {
 	var wg sync.WaitGroup

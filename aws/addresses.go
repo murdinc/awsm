@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 
 	"github.com/olekukonko/tablewriter"
@@ -19,18 +20,7 @@ import (
 
 type Addresses []Address
 
-type Address struct {
-	AllocationId            string `json:"allocationId"`
-	PublicIp                string `json:"publicIp"`
-	PrivateIp               string `json:"privateIp"`
-	Domain                  string `json:"domain"`
-	InstanceId              string `json:"instanceId"`
-	Status                  string `json:"status"`
-	Attachment              string `json:"attachment"`
-	NetworkInterfaceId      string `json:"networkInterfaceId"`
-	NetworkInterfaceOwnerId string `json:"networkOwnerId"`
-	Region                  string `json:"region"`
-}
+type Address models.Address
 
 func GetAddresses(search string, available bool) (*Addresses, []error) {
 	var wg sync.WaitGroup

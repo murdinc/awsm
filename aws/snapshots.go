@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -16,25 +15,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type Snapshots []Snapshot
 
-type Snapshot struct {
-	Name         string    `json:"name"`
-	Class        string    `json:"class"`
-	Description  string    `json:"description"`
-	SnapshotId   string    `json:"snapshotId"`
-	VolumeId     string    `json:"volumeId"`
-	State        string    `json:"state"`
-	StartTime    time.Time `json:"startTime"`
-	CreatedHuman string    `json:"createdHuman"`
-	Progress     string    `json:"progress"`
-	VolumeSize   string    `json:"volumeSize"`
-	Region       string    `json:"region"`
-}
+type Snapshot models.Snapshot
 
 func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))

@@ -16,24 +16,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
 )
 
 type Images []Image
 
-type Image struct {
-	Name         string    `json:"name"`
-	Class        string    `json:"class"`
-	CreationDate time.Time `json:"creationDate"`
-	CreatedHuman string    `json:"createdHuman"`
-	ImageId      string    `json:"imageId"`
-	State        string    `json:"state"`
-	Root         string    `json:"root"`
-	SnapshotId   string    `json:"snapshotId"`
-	VolumeSize   string    `json:"volumeSize"`
-	Region       string    `json:"region"`
-}
+type Image models.Image
 
 func (i *Images) GetImageName(id string) string {
 	for _, img := range *i {

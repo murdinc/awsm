@@ -7,16 +7,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 )
 
 type AZs []AZ
 
-type AZ struct {
-	Name   string `json:"name"`
-	Region string `json:"region"`
-	State  string `json:"state"`
-}
+type AZ models.AZ
 
 func AZList() []string {
 	azs, _ := GetAZs()

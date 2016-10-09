@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -16,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/config"
+	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/cli"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -23,23 +23,7 @@ import (
 
 type Volumes []Volume
 
-type Volume struct {
-	Class            string    `json:"class"`
-	Name             string    `json:"name"`
-	VolumeId         string    `json:"volumeId"`
-	Size             int       `json:"size"`
-	State            string    `json:"state"`
-	Iops             string    `json:"iops"`
-	InstanceId       string    `json:"instanceId"`
-	Attachment       string    `json:"attachment"`
-	CreationTime     time.Time `json:"creationTime"`
-	CreatedHuman     string    `json:"createdHuman"`
-	VolumeType       string    `json:"volumeType"`
-	SnapshoId        string    `json:"snapshotId"`
-	DeleteOnTerm     bool      `json:"deleteOnTerm"`
-	AvailabilityZone string    `json:"availabilityZone"`
-	Region           string    `json:"region"`
-}
+type Volume models.Volume
 
 func GetVolumeByTag(region, key, value string) (Volume, error) {
 
@@ -408,6 +392,7 @@ func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances)
 	v.Class = GetTagValue("Class", volume.Tags)
 	v.VolumeId = aws.StringValue(volume.VolumeId)
 	v.Size = int(aws.Int64Value(volume.Size))
+	v.SizeHuman = fmt.Sprintf("%s GB", v.Size)
 	v.State = aws.StringValue(volume.State)
 	v.Iops = fmt.Sprint(aws.Int64Value(volume.Iops))
 	v.CreationTime = *volume.CreateTime                              // robots
@@ -453,7 +438,7 @@ func (i *Volumes) PrintTable() {
 			val.Name,
 			val.Class,
 			val.VolumeId,
-			fmt.Sprintf("%s GB", val.Size),
+			val.SizeHuman,
 			val.State,
 			val.Attachment,
 			val.InstanceId,
