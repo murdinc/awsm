@@ -135,31 +135,15 @@ func (i *Instances) PrintTable() {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-
+	var header []string
 	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			val.PrivateIp,
-			val.PublicIp,
-			val.InstanceId,
-			val.AMIName,
-			val.AMIId,
-			val.Root,
-			val.Size,
-			val.Virtualization,
-			val.State,
-			val.KeyPair,
-			val.AvailabilityZone,
-			val.VPC,
-			val.Subnet,
-		}
+
+	for index, instance := range *i {
+		models.ExtractAwsmTable(index, instance, &header, &rows)
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Private IP", "Public IP", "Instance Id", "AMI Name", "AMI Id", "Root", "Size", "Virtualization", "State", "Key Pair", "AZ", "VPC", "Subnet"})
-
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

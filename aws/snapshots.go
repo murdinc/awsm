@@ -501,26 +501,15 @@ func (i *Snapshots) PrintTable() {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-
+	var header []string
 	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			//val.Description,
-			val.SnapshotId,
-			val.VolumeId,
-			val.State,
-			val.CreatedHuman,
-			val.Progress,
-			val.VolumeSize,
-			val.Region,
-		}
+
+	for index, snapshot := range *i {
+		models.ExtractAwsmTable(index, snapshot, &header, &rows)
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Snapshot Id", "Volume Id", "State", "Created", "Progress", "Volume Size", "Region"})
-
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

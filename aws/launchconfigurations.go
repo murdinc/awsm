@@ -498,25 +498,15 @@ func (i *LaunchConfigs) PrintTable() {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-
+	var header []string
 	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.ImageName,
-			val.ImageId,
-			val.InstanceType,
-			val.KeyName,
-			val.SecurityGroups,
-			val.CreatedHuman,
-			fmt.Sprintf("%t", val.EbsOptimized),
-			val.Region,
-		}
+
+	for index, lc := range *i {
+		models.ExtractAwsmTable(index, lc, &header, &rows)
 	}
 
-	table.SetHeader([]string{"Name", "Image Name", "Image Id", "Instance Type", "Key Name", "Security Groups", "Created", "EBS Optimized", "Region"})
-
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

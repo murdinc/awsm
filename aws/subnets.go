@@ -344,27 +344,20 @@ func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 }
 
 func (i *Subnets) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			val.SubnetId,
-			val.VpcName,
-			val.VpcId,
-			val.State,
-			val.AvailabilityZone,
-			fmt.Sprintf("%t", val.Default),
-			val.CIDRBlock,
-			fmt.Sprint(val.AvailableIPs),
-			fmt.Sprintf("%t", val.MapPublicIp),
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Subnets Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Subnet Id", "VPC", "VPC Id", "State", "Availability Zone", "Default for AZ", "CIDR Block", "Available IPs", "Map Public IP"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, subnet := range *i {
+		models.ExtractAwsmTable(index, subnet, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

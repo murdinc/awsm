@@ -613,29 +613,20 @@ func resumeProcesses(asgList *AutoScaleGroups) error {
 }
 
 func (i *AutoScaleGroups) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			fmt.Sprintf("%s (%ds grace)", val.HealthCheckType, val.HealthCheckGracePeriod),
-			val.LaunchConfig,
-			val.LoadBalancers,
-			fmt.Sprint(val.InstanceCount),
-			fmt.Sprint(val.DesiredCapacity),
-			fmt.Sprint(val.MinSize),
-			fmt.Sprint(val.MaxSize),
-			fmt.Sprint(val.DefaultCooldown),
-			val.AvailabilityZones,
-			val.VpcName,
-			val.SubnetName,
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Autoscale Groups Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Health Check", "Launch Config", "Load Balancers", "Instance Count", "Desired Capacity", "Min Size", "Max Size", "Cooldown", "Availability Zones", "VPC", "Subnet"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, asg := range *i {
+		models.ExtractAwsmTable(index, asg, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

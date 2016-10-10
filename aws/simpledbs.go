@@ -87,22 +87,19 @@ func GetRegionSimpleDBDomains(region *string, domainList *SimpleDBDomains, searc
 
 func (i *SimpleDBDomains) PrintTable() {
 	if len(*i) == 0 {
-		terminal.ShowErrorMessage("Warning", "No Domains Found!")
+		terminal.ShowErrorMessage("Warning", "No SimpleDB Domains Found!")
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-
+	var header []string
 	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Region,
-		}
+
+	for index, domain := range *i {
+		models.ExtractAwsmTable(index, domain, &header, &rows)
 	}
 
-	table.SetHeader([]string{"Name", "Region"})
-
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

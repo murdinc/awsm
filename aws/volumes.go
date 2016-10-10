@@ -430,28 +430,15 @@ func (i *Volumes) PrintTable() {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-
+	var header []string
 	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			val.VolumeId,
-			val.SizeHuman,
-			val.State,
-			val.Attachment,
-			val.InstanceId,
-			val.CreatedHuman,
-			val.VolumeType,
-			val.SnapshoId,
-			fmt.Sprintf("%t", val.DeleteOnTerm),
-			val.AvailabilityZone,
-		}
+
+	for index, vol := range *i {
+		models.ExtractAwsmTable(index, vol, &header, &rows)
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Volume Id", "Size", "State", "Attachment", "Instance Id", "Created", "Volume Type", "Snapshot Id", "Delete on Termination", "Availability Zone"})
-
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

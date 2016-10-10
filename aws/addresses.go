@@ -212,23 +212,20 @@ func deleteAddresses(addrList *Addresses, dryRun bool) (err error) {
 }
 
 func (i *Addresses) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.PublicIp,
-			val.PrivateIp,
-			val.Domain,
-			val.Status,
-			val.Attachment,
-			val.InstanceId,
-			val.Region,
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Addresses Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Public IP", "Private IP", "Domain", "Status", "Attachment", "Instance Id", "Region"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, address := range *i {
+		models.ExtractAwsmTable(index, address, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

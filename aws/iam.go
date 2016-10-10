@@ -62,22 +62,20 @@ func (i *IAMUser) Marshal(user *iam.User) {
 }
 
 func (i *IAMUsers) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.UserName,
-			val.UserId,
-			val.CreatedHuman,
-			val.PasswordLastUsedHuman,
-			val.Arn,
-			//val.PasswordLastUsed,
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No IAM Users Found!")
+		return
 	}
 
-	table.SetHeader([]string{"User Name", "Id", "Created", "Last Used", "Arn"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, user := range *i {
+		models.ExtractAwsmTable(index, user, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

@@ -187,27 +187,21 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 	return nil
 }
 
-func (a *Alarms) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*a))
-	for index, val := range *a {
-		rows[index] = []string{
-			val.Name,
-			val.Description,
-			val.State,
-			val.Trigger,
-			val.Period,
-			val.EvalPeriods,
-			val.ActionNames,
-			val.Dimensions,
-			val.Namespace,
-			val.Region,
-		}
+func (i *Alarms) PrintTable() {
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Alarms Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Name", "Description", "State", "Trigger", "Period", "EvalPeriods", "Actions", "Dimensions", "Namespace", "Region"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, alarm := range *i {
+		models.ExtractAwsmTable(index, alarm, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

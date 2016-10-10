@@ -203,22 +203,15 @@ func (i *SecurityGroups) PrintTable() {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-
+	var header []string
 	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			val.GroupId,
-			val.Description,
-			val.Vpc,
-			val.Region,
-		}
+
+	for index, sg := range *i {
+		models.ExtractAwsmTable(index, sg, &header, &rows)
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Group Id", "Description", "Vpc", "Region"})
-
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

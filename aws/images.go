@@ -522,25 +522,20 @@ func (s Images) Less(i, j int) bool {
 }
 
 func (i *Images) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			val.ImageId,
-			val.CreatedHuman,
-			val.State,
-			val.Root,
-			val.SnapshotId,
-			val.VolumeSize,
-			val.Region,
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Images Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Name", "Class", "Image Id", "Created", "State", "Root", "Snapshot Id", "Volume Size", "Region"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, image := range *i {
+		models.ExtractAwsmTable(index, image, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

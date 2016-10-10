@@ -106,23 +106,20 @@ func (p *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string
 }
 
 func (i *ScalingPolicies) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.AdjustmentType,
-			val.AdjustmentStr,
-			val.Cooldown + " sec.",
-			val.AutoScaleGroupName,
-			val.AlarmNames,
-			val.Region,
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Scaling Policies Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Name", "Adjustment Type", "Adjustment", "Cooldown", "AutoScaling Group Name", "Alarms", "Region"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, sp := range *i {
+		models.ExtractAwsmTable(index, sp, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

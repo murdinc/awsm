@@ -127,19 +127,20 @@ func GetRegionKeyPairs(region string, keyList *KeyPairs, search string) error {
 }
 
 func (i *KeyPairs) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.KeyName,
-			val.KeyFingerprint,
-			val.Region,
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No KeyPairs Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Key Name", "Key Fingerprint", "Region"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, key := range *i {
+		models.ExtractAwsmTable(index, key, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

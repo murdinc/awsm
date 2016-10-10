@@ -99,32 +99,20 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 }
 
 func (i *LoadBalancers) PrintTable() {
-
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Load Balancers Found!")
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-
+	var header []string
 	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.CreatedHuman,
-			val.Vpc,
-			val.Subnets,
-			val.HealthCheckTarget,
-			val.HealthCheckInterval,
-			val.Scheme,
-			val.SecurityGroups,
-			val.AvailabilityZones,
-			val.Region,
-		}
+
+	for index, lb := range *i {
+		models.ExtractAwsmTable(index, lb, &header, &rows)
 	}
 
-	table.SetHeader([]string{"Name", "Created", "VPC", "Subnets", "Health Check Target", "Interval", "Scheme", "Security Groups", "Availability Zones", "Region"})
-
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }

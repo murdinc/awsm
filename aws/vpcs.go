@@ -232,25 +232,20 @@ func (i *Vpcs) GetVpcName(id string) string {
 }
 
 func (i *Vpcs) PrintTable() {
-	table := tablewriter.NewWriter(os.Stdout)
-
-	rows := make([][]string, len(*i))
-	for index, val := range *i {
-		rows[index] = []string{
-			val.Name,
-			val.Class,
-			val.VpcId,
-			val.State,
-			fmt.Sprintf("%t", val.Default),
-			val.CIDRBlock,
-			val.DHCPOptId,
-			val.Tenancy,
-			val.Region,
-		}
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No VPCs Found!")
+		return
 	}
 
-	table.SetHeader([]string{"Name", "Class", "VPC Id", "State", "Default", "CIDR Block", "DHCP Options ID", "Tenancy", "Region"})
+	var header []string
+	rows := make([][]string, len(*i))
 
+	for index, vpc := range *i {
+		models.ExtractAwsmTable(index, vpc, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
 	table.AppendBulk(rows)
 	table.Render()
 }
