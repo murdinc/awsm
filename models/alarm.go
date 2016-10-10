@@ -2,7 +2,7 @@ package models
 
 type Alarm struct {
 	Name        string   `json:"name" awsmTable:"Name"`
-	Arn         string   `json:"arn" awsmTable:"ARN"`
+	Arn         string   `json:"arn"`
 	Description string   `json:"description" awsmTable:"Description"`
 	State       string   `json:"state" awsmTable:"State"`
 	Trigger     string   `json:"trigger" awsmTable:"Trigger"`

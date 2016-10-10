@@ -4,7 +4,7 @@ import "time"
 
 type LoadBalancer struct {
 	Name                string    `json:"name" awsmTable:"Name"`
-	DNSName             string    `json:"dnsName" awsmTable:"DNS Name"`
+	DNSName             string    `json:"dnsName"`
 	Region              string    `json:"region" awsmTable:"Region"`
 	AvailabilityZones   string    `json:"availabilityZone" awsmTable:"Availability Zones"`
 	CreatedTime         time.Time `json:"createdTime"`

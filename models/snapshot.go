@@ -5,7 +5,7 @@ import "time"
 type Snapshot struct {
 	Name         string    `json:"name" awsmTable:"Name"`
 	Class        string    `json:"class" awsmTable:"Class"`
-	Description  string    `json:"description" awsmTable:"Description"`
+	Description  string    `json:"description"`
 	SnapshotId   string    `json:"snapshotId" awsmTable:"Snapshot ID"`
 	VolumeId     string    `json:"volumeId" awsmTable:"Volume ID"`
 	State        string    `json:"state" awsmTable:"State"`

@@ -392,7 +392,7 @@ func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances)
 	v.Class = GetTagValue("Class", volume.Tags)
 	v.VolumeId = aws.StringValue(volume.VolumeId)
 	v.Size = int(aws.Int64Value(volume.Size))
-	v.SizeHuman = fmt.Sprintf("%s GB", v.Size)
+	v.SizeHuman = fmt.Sprintf("%d GB", v.Size)
 	v.State = aws.StringValue(volume.State)
 	v.Iops = fmt.Sprint(aws.Int64Value(volume.Iops))
 	v.CreationTime = *volume.CreateTime                              // robots

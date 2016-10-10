@@ -15,7 +15,7 @@ type Volume struct {
 	CreationTime     time.Time `json:"creationTime"`
 	CreatedHuman     string    `json:"createdHuman" awsmTable:"Created"`
 	VolumeType       string    `json:"volumeType" awsmTable:"Volume Type"`
-	SnapshoId        string    `json:"snapshotId" awsmTable:"Snapshot ID"`
+	SnapshoId        string    `json:"snapshotId"`
 	DeleteOnTerm     bool      `json:"deleteOnTerm" awsmTable:"Delete On Term."`
 	AvailabilityZone string    `json:"availabilityZone" awsmTable:"Availability Zone"`
 	Region           string    `json:"region" awsmTable:"Region"`

@@ -9,6 +9,6 @@ type Address struct {
 	Status                  string `json:"status" awsmTable:"Status"`
 	Attachment              string `json:"attachment" awsmTable:"Attachment"`
 	NetworkInterfaceId      string `json:"networkInterfaceId" awsmTable:"Network Interface ID"`
-	NetworkInterfaceOwnerId string `json:"networkOwnerId" awsmTable:"Network Interface Owner ID"`
+	NetworkInterfaceOwnerId string `json:"networkOwnerId"`
 	Region                  string `json:"region" awsmTable:"Region"`
 }
