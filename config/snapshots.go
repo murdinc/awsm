@@ -10,10 +10,10 @@ import (
 type SnapshotClasses map[string]SnapshotClass
 
 type SnapshotClass struct {
-	Retain           int      `json:"retain"`
-	Propagate        bool     `json:"propagate"`
-	PropagateRegions []string `json:"propagateRegions"`
-	VolumeId         string   `json:"volumeId"`
+	Retain           int      `json:"retain" awsmList:"Retain"`
+	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
+	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
+	VolumeId         string   `json:"volumeId" awsmList:"Volume ID"`
 }
 
 func DefaultSnapshotClasses() SnapshotClasses {

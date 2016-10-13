@@ -10,10 +10,10 @@ import (
 type ScalingPolicyClasses map[string]ScalingPolicyClass
 
 type ScalingPolicyClass struct {
-	ScalingAdjustment int      `json:"scalingAdjustment"`
-	AdjustmentType    string   `json:"adjustmentType"`
-	Cooldown          int      `json:"cooldown"`
-	Alarms            []string `json:"alarms"`
+	ScalingAdjustment int      `json:"scalingAdjustment" awsmList:"Scaling Adjustment"`
+	AdjustmentType    string   `json:"adjustmentType" awsmList:"Adjustment Type"`
+	Cooldown          int      `json:"cooldown" awsmList:"Cooldown"`
+	Alarms            []string `json:"alarms" awsmList:"Alarms"`
 }
 
 func DefaultScalingPolicyClasses() ScalingPolicyClasses {

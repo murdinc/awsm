@@ -9,8 +9,8 @@ import (
 type VpcClasses map[string]VpcClass
 
 type VpcClass struct {
-	CIDR    string `json:"cidr"`
-	Tenancy string `json:"tenancy"`
+	CIDR    string `json:"cidr" awsmList:"CIDR"`
+	Tenancy string `json:"tenancy" awsmList:"Tenancy"`
 }
 
 func DefaultVpcClasses() VpcClasses {

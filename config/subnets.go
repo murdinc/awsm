@@ -9,7 +9,7 @@ import (
 type SubnetClasses map[string]SubnetClass
 
 type SubnetClass struct {
-	CIDR string `json:"cidr"`
+	CIDR string `json:"cidr" awsmList:"CIDR"`
 }
 
 func DefaultSubnetClasses() SubnetClasses {

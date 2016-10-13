@@ -10,19 +10,19 @@ import (
 type AlarmClasses map[string]AlarmClass
 
 type AlarmClass struct {
-	AlarmDescription        string   `json:"alarmDescription"`
-	AlarmActions            []string `json:"alarmActions"`
-	OKActions               []string `json:"okActions"`
-	InsufficientDataActions []string `json:"insufficientDataActions"`
-	MetricName              string   `json:"metricName"`
-	Namespace               string   `json:"namespace`
-	Statistic               string   `json:"statistic"`
-	Period                  int      `json:"period"`
-	EvaluationPeriods       int      `json:"evaluationPeriods"`
-	Threshold               float64  `json:"threshold"`
-	ComparisonOperator      string   `json:"comparisonOperator"`
-	ActionsEnabled          bool     `json:"actionsEnabled"`
-	Unit                    string   `json:"unit"`
+	AlarmDescription        string   `json:"alarmDescription" awsmList:"Alarm Description"`
+	AlarmActions            []string `json:"alarmActions" awsmList:"Alarm Actions"`
+	OKActions               []string `json:"okActions" awsmList:"OK Actions"`
+	InsufficientDataActions []string `json:"insufficientDataActions" awsmList:"Insufficient Data Actions"`
+	MetricName              string   `json:"metricName" awsmList:"Metric Name"`
+	Namespace               string   `json:"namespace awsmList:"Namespace"`
+	Statistic               string   `json:"statistic" awsmList:"Statistic"`
+	Period                  int      `json:"period" awsmList:"Period"`
+	EvaluationPeriods       int      `json:"evaluationPeriods" awsmList:"Evaluation Periods"`
+	Threshold               float64  `json:"threshold" awsmList:"Threshold"`
+	ComparisonOperator      string   `json:"comparisonOperator" awsmList:"Comparison Operator"`
+	ActionsEnabled          bool     `json:"actionsEnabled" awsmList:"Actions Enabled"`
+	Unit                    string   `json:"unit" awsmList:"Unit"`
 }
 
 func DefaultAlarms() AlarmClasses {

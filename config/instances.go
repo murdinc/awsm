@@ -10,18 +10,18 @@ import (
 type InstanceClasses map[string]InstanceClass
 
 type InstanceClass struct {
-	InstanceType     string   `json:"instanceType"`
-	SecurityGroups   []string `json:"securityGroups"`
-	EBSVolumes       []string `json:"ebsVolumes"`
-	Vpc              string   `json:"vpc"`
-	Subnet           string   `json:"subnet"`
-	PublicIpAddress  bool     `json:"publicIpAddress"`
-	AMI              string   `json:"ami"`
-	KeyName          string   `json:"keyName"`
-	EbsOptimized     bool     `json:"ebsOptimized"`
-	Monitoring       bool     `json:"monitoring"`
-	ShutdownBehavior string   `json:"shutdownBehavior"`
-	IAMUser          string   `json:"iamUser"`
+	InstanceType     string   `json:"instanceType" awsmList:"Instance Type"`
+	SecurityGroups   []string `json:"securityGroups" awsmList:"Security Groups"`
+	EBSVolumes       []string `json:"ebsVolumes" awsmList:"EBS Volumes"`
+	Vpc              string   `json:"vpc" awsmList:"VPC"`
+	Subnet           string   `json:"subnet" awsmList:"Subnet"`
+	PublicIpAddress  bool     `json:"publicIpAddress" awsmList:"Public IP Address"`
+	AMI              string   `json:"ami" awsmList:"AMI"`
+	KeyName          string   `json:"keyName" awsmList:"Key Name"`
+	EbsOptimized     bool     `json:"ebsOptimized" awsmList:"EBS Optimized"`
+	Monitoring       bool     `json:"monitoring" awsmList:"Monitoring"`
+	ShutdownBehavior string   `json:"shutdownBehavior" awsmList:"Shutdown Behaviour"`
+	IAMUser          string   `json:"iamUser" awsmList:"IAM User"`
 	UserData         string   `json:"userData"`
 }
 

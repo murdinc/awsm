@@ -10,7 +10,7 @@ import (
 type SecurityGroupClasses map[string]SecurityGroupClass
 
 type SecurityGroupClass struct {
-	Description         string               `json:"description"`
+	Description         string               `json:"description" awsmList:"Description"`
 	SecurityGroupGrants []SecurityGroupGrant `json:"securityGroupGrants"`
 }
 

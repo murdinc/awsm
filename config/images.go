@@ -10,10 +10,10 @@ import (
 type ImageClasses map[string]ImageClass
 
 type ImageClass struct {
-	Propagate        bool     `json:"propagate"`
-	PropagateRegions []string `json:"propagateRegions"`
-	Retain           int      `json:"retain"`
-	InstanceId       string   `json:"instanceId"`
+	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
+	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
+	Retain           int      `json:"retain" awsmList:"Retain"`
+	InstanceId       string   `json:"instanceId" awsmList:"Instance ID"`
 }
 
 func DefaultImageClasses() ImageClasses {

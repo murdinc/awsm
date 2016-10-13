@@ -10,14 +10,14 @@ import (
 type VolumeClasses map[string]VolumeClass
 
 type VolumeClass struct {
-	DeviceName          string `json:"deviceName"`
-	VolumeSize          int    `json:"volumeSize"`
-	DeleteOnTermination bool   `json:"deleteOnTermination"`
-	MountPoint          string `json:"mountPoint"`
-	Snapshot            string `json:"snapshot"`
-	VolumeType          string `json:"volumeType"`
-	Iops                int    `json:"iops"`
-	Encrypted           bool   `json:"encrypted"`
+	DeviceName          string `json:"deviceName" awsmList:"Device Name"`
+	VolumeSize          int    `json:"volumeSize" awsmList:"Volume Size"`
+	DeleteOnTermination bool   `json:"deleteOnTermination" awsmList:"Delete On Termination"`
+	MountPoint          string `json:"mountPoint" awsmList:"Mount Point"`
+	Snapshot            string `json:"snapshot" awsmList:"Snapshot"`
+	VolumeType          string `json:"volumeType" awsmList:"Volume Type"`
+	Iops                int    `json:"iops" awsmList:"IOPS"`
+	Encrypted           bool   `json:"encrypted" awsmList:"Encrypted"`
 }
 
 func DefaultVolumeClasses() VolumeClasses {

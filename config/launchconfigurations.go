@@ -10,10 +10,10 @@ import (
 type LaunchConfigurationClasses map[string]LaunchConfigurationClass
 
 type LaunchConfigurationClass struct {
-	Version       int      `json:"version"`
-	InstanceClass string   `json:"instanceClass"`
-	Retain        int      `json:"retain"`
-	Regions       []string `json:"regions"`
+	Version       int      `json:"version" awsmList:"Version"`
+	InstanceClass string   `json:"instanceClass" awsmList:"Instance Class"`
+	Retain        int      `json:"retain" awsmList:"Retain"`
+	Regions       []string `json:"regions" awsmList:"Regions"`
 }
 
 func DefaultLaunchConfigurationClasses() LaunchConfigurationClasses {

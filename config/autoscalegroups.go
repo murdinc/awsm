@@ -10,21 +10,21 @@ import (
 type AutoscaleGroupClasses map[string]AutoscaleGroupClass
 
 type AutoscaleGroupClass struct {
-	LaunchConfigurationClass string   `json:"launchConfigurationClass"`
-	Propagate                bool     `json:"propagate"`
-	Retain                   int      `json:"retain"`
-	AvailabilityZones        []string `json:"availabilityZones"`
-	DesiredCapacity          int      `json:"desiredCapacity"`
-	MinSize                  int      `json:"minSize"`
-	MaxSize                  int      `json:"maxSize"`
-	DefaultCooldown          int      `json:"defaultCooldown"`
-	SubnetClass              string   `json:"subnetClass"`
-	HealthCheckType          string   `json:"healthCheckType"`
-	HealthCheckGracePeriod   int      `json:"healthCheckGracePeriod"`
-	TerminationPolicies      []string `json:"terminationPolicies"`
-	ScalingPolicies          []string `json:"scalingPolicies"`
-	LoadBalancerNames        []string `json:"loadBalancerNames"`
-	Alarms                   []string `json:"alarms"`
+	LaunchConfigurationClass string   `json:"launchConfigurationClass" awsmList:"Launch Configuration Class"`
+	Propagate                bool     `json:"propagate" awsmList:"Propagate"`
+	Retain                   int      `json:"retain" awsmList:"Retain"`
+	AvailabilityZones        []string `json:"availabilityZones" awsmList:"Availability Zone"`
+	DesiredCapacity          int      `json:"desiredCapacity" awsmList:"Desired Capacity"`
+	MinSize                  int      `json:"minSize" awsmList:"Min Size"`
+	MaxSize                  int      `json:"maxSize" awsmList:"Max Size"`
+	DefaultCooldown          int      `json:"defaultCooldown" awsmList:"Default Cooldown"`
+	SubnetClass              string   `json:"subnetClass" awsmList:"Subnet Class"`
+	HealthCheckType          string   `json:"healthCheckType" awsmList:"Health Check Type"`
+	HealthCheckGracePeriod   int      `json:"healthCheckGracePeriod" awsmList:"Health Check Grace Period"`
+	TerminationPolicies      []string `json:"terminationPolicies" awsmList:"Termination Policies"`
+	ScalingPolicies          []string `json:"scalingPolicies" awsmList:"Scaling Policies"`
+	LoadBalancerNames        []string `json:"loadBalancerNames" awsmList:"Load Balancer Names"`
+	Alarms                   []string `json:"alarms" awsmList:"Alarms"`
 }
 
 func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
