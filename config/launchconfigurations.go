@@ -13,6 +13,7 @@ type LaunchConfigurationClass struct {
 	Version       int      `json:"version" awsmList:"Version"`
 	InstanceClass string   `json:"instanceClass" awsmList:"Instance Class"`
 	Retain        int      `json:"retain" awsmList:"Retain"`
+	Rotate        bool     `json:"rotate"`
 	Regions       []string `json:"regions" awsmList:"Regions"`
 }
 
@@ -23,6 +24,7 @@ func DefaultLaunchConfigurationClasses() LaunchConfigurationClasses {
 		Version:       0,
 		InstanceClass: "prod",
 		Retain:        5,
+		Rotate:        true,
 		Regions:       []string{"us-west-2", "us-east-1", "eu-west-1"},
 	}
 
@@ -71,6 +73,9 @@ func (c LaunchConfigurationClasses) Marshal(items []*simpledb.Item) {
 
 			case "Retain":
 				cfg.Retain, _ = strconv.Atoi(val)
+
+			case "Rotate":
+				cfg.Rotate, _ = strconv.ParseBool(val)
 
 			}
 		}

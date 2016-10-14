@@ -11,6 +11,7 @@ type SnapshotClasses map[string]SnapshotClass
 
 type SnapshotClass struct {
 	Retain           int      `json:"retain" awsmList:"Retain"`
+	Rotate           bool     `json:"rotate" awsmList:"Rotate"`
 	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
 	VolumeId         string   `json:"volumeId" awsmList:"Volume ID"`
@@ -22,12 +23,14 @@ func DefaultSnapshotClasses() SnapshotClasses {
 	defaultSnapshots["git"] = SnapshotClass{
 		Propagate:        true,
 		Retain:           5,
+		Rotate:           true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
 	}
 
 	defaultSnapshots["mysql-data"] = SnapshotClass{
 		Propagate:        true,
 		Retain:           5,
+		Rotate:           true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
 	}
 
@@ -77,6 +80,9 @@ func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 
 			case "VolumeId":
 				cfg.VolumeId = val
+
+			case "Rotate":
+				cfg.Rotate, _ = strconv.ParseBool(val)
 			}
 		}
 		c[name] = *cfg

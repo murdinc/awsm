@@ -67,6 +67,18 @@ func InsertClasses(classType string, classInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
+	case "loadbalancers":
+		for class, config := range classInterface.(LoadBalancerClasses) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
+
+			// Load Balancer Listeners
+			for _, rule := range config.Listeners {
+				itemName = classType + "/" + class + "/listeners/" + uuid.NewV4().String()
+				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(rule, classType+"/"+class+"/listeners")...)
+			}
+		}
+
 	case "scalingpolicies":
 		for class, config := range classInterface.(ScalingPolicyClasses) {
 			itemName = classType + "/" + class
@@ -155,6 +167,9 @@ func LoadAllClasses(classType string) (configs interface{}, err error) {
 	case "launchconfigurations":
 		return LoadAllLaunchConfigurationClasses()
 
+	case "loadbalancers":
+		return LoadAllLoadBalancerClasses()
+
 	case "scalingpolicies":
 		return LoadAllScalingPolicyClasses()
 
@@ -199,6 +214,9 @@ func LoadClassByName(classType, className string) (configs interface{}, err erro
 
 	case "launchconfigurations":
 		return LoadLaunchConfigurationClass(className)
+
+	case "loadbalancers":
+		return LoadLoadBalancerClass(className)
 
 	case "scalingpolicies":
 		return LoadScalingPolicyClass(className)

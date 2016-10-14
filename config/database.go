@@ -99,6 +99,7 @@ func CreateAwsmDatabase() error {
 	InsertClasses("images", DefaultImageClasses())
 	InsertClasses("scalingpolicies", DefaultScalingPolicyClasses())
 	InsertClasses("launchconfigurations", DefaultLaunchConfigurationClasses())
+	InsertClasses("loadbalancers", DefaultLoadBalancerClasses())
 	InsertClasses("volumes", DefaultVolumeClasses())
 	InsertClasses("snapshots", DefaultSnapshotClasses())
 	InsertClasses("autoscalinggroups", DefaultAutoscaleGroupClasses())
@@ -161,8 +162,6 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 		Value:   aws.String(classType),
 		Replace: aws.Bool(true),
 	})
-
-	fmt.Println(attributes)
 
 	return attributes
 }
