@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 func ExtractAwsmTable(index int, in interface{}, header *[]string, rows *[][]string) {
@@ -29,8 +30,10 @@ func ExtractAwsmTable(index int, in interface{}, header *[]string, rows *[][]str
 			sVal = tV.Field(k).String()
 		case bool:
 			sVal = fmt.Sprint(tV.Field(k).Bool())
+		case []string:
+			sVal = strings.Join(tV.Field(k).Interface().([]string), ", ")
 
-			// TODO slices and other types
+			// TODO other types?
 		}
 
 		if sTag != "" {

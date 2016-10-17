@@ -44,7 +44,7 @@ func getClassByName(ctx *iris.Context) {
 	resp, err := config.LoadClassByName(classType, className)
 
 	if err == nil {
-		ctx.JSON(iris.StatusOK, map[string]interface{}{"classType": classType, "class": resp, "success": true})
+		ctx.JSON(iris.StatusOK, map[string]interface{}{"classType": classType, "className": className, "class": resp, "success": true})
 	} else {
 		ctx.JSON(iris.StatusForbidden, map[string]interface{}{"classType": classType, "class": resp, "success": false, "errors": []string{err.Error()}})
 	}
