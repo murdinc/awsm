@@ -18,12 +18,12 @@ type LoadBalancerClass struct {
 }
 
 type LoadBalancerListener struct {
-	Id               string `json:"id" hash:"ignore" awsm:"ignore"` // Needed?
+	ID               string `json:"id" hash:"ignore" awsm:"ignore"` // Needed?
 	InstancePort     int    `json:"instancePort"`
 	LoadBalancerPort int    `json:"loadBalancerPort"`
 	Protocol         string `json:"protocol"`
 	InstanceProtocol string `json:"instanceProtocol"`
-	SSLCertificateId string `json:"sslCertificateId"`
+	SSLCertificateID string `json:"sslCertificateID"`
 }
 
 func DefaultLoadBalancerClasses() LoadBalancerClasses {
@@ -39,7 +39,7 @@ func DefaultLoadBalancerClasses() LoadBalancerClasses {
 				LoadBalancerPort: 80,
 				Protocol:         "tcp",
 				InstanceProtocol: "tcp",
-				SSLCertificateId: "",
+				SSLCertificateID: "",
 			},
 		},
 		AvailabilityZones: []string{"us-west-1a"},
@@ -99,7 +99,7 @@ func (c LoadBalancerClasses) Marshal(items []*simpledb.Item) {
 		cfg.Listeners = make([]LoadBalancerListener, len(listeners))
 		for i, listener := range listeners {
 
-			cfg.Listeners[i].Id = strings.Replace(*listener.Name, "loadbalancers/"+name+"/listeners/", "", -1) // Needed?
+			cfg.Listeners[i].ID = strings.Replace(*listener.Name, "loadbalancers/"+name+"/listeners/", "", -1) // Needed?
 
 			for _, attribute := range listener.Attributes {
 
@@ -119,8 +119,8 @@ func (c LoadBalancerClasses) Marshal(items []*simpledb.Item) {
 				case "InstanceProtocol":
 					cfg.Listeners[i].InstanceProtocol = val
 
-				case "SSLCertificateId":
-					cfg.Listeners[i].SSLCertificateId = val
+				case "SSLCertificateID":
+					cfg.Listeners[i].SSLCertificateID = val
 
 				}
 			}

@@ -137,8 +137,8 @@ func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region s
 	secGroupNamesSorted.Sort()
 
 	l.Name = aws.StringValue(config.LaunchConfigurationName)
-	l.ImageId = aws.StringValue(config.ImageId)
-	l.ImageName = imgList.GetImageName(l.ImageId)
+	l.ImageID = aws.StringValue(config.ImageId)
+	l.ImageName = imgList.GetImageName(l.ImageID)
 	l.InstanceType = aws.StringValue(config.InstanceType)
 	l.KeyName = aws.StringValue(config.KeyName)
 	l.CreationTime = aws.TimeValue(config.CreatedTime) // robots
@@ -148,22 +148,22 @@ func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region s
 	l.Region = region
 
 	for _, snapshot := range config.BlockDeviceMappings {
-		l.SnapshotIds = append(l.SnapshotIds, *snapshot.Ebs.SnapshotId)
+		l.SnapshotIDs = append(l.SnapshotIDs, *snapshot.Ebs.SnapshotId)
 	}
 }
 
-func (i *LaunchConfigs) LockedSnapshotIds() (ids map[string]bool) {
-	for _, config := range *i {
-		for _, snap := range config.SnapshotIds {
+func (l *LaunchConfigs) LockedSnapshotIds() (ids map[string]bool) {
+	for _, config := range *l {
+		for _, snap := range config.SnapshotIDs {
 			ids[snap] = true
 		}
 	}
 	return ids
 }
 
-func (i *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
-	for _, config := range *i {
-		ids[config.ImageId] = true
+func (l *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
+	for _, config := range *l {
+		ids[config.ImageID] = true
 	}
 	return ids
 }
@@ -174,17 +174,17 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 	cfg, err := config.LoadLaunchConfigurationClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Launch Configuration class configuration for [" + class + "]")
 	}
+
+	terminal.Information("Found Launch Configuration class configuration for [" + class + "]")
 
 	// Instance Class Config
 	instanceCfg, err := config.LoadInstanceClass(cfg.InstanceClass)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Instance class configuration for [" + cfg.InstanceClass + "]")
 	}
+
+	terminal.Information("Found Instance class configuration for [" + cfg.InstanceClass + "]")
 
 	// Increment the version
 	terminal.Information(fmt.Sprintf("Previous version of launch configuration is [%d]", cfg.Version))
@@ -193,7 +193,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 	params := &autoscaling.CreateLaunchConfigurationInput{
 		LaunchConfigurationName:  aws.String(fmt.Sprintf("%s-v%d", class, cfg.Version)),
-		AssociatePublicIpAddress: aws.Bool(instanceCfg.PublicIpAddress),
+		AssociatePublicIpAddress: aws.Bool(instanceCfg.PublicIPAddress),
 		InstanceMonitoring: &autoscaling.InstanceMonitoring{
 			Enabled: aws.Bool(instanceCfg.Monitoring),
 		},
@@ -214,10 +214,11 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		iam, err := GetIAMUser(instanceCfg.IAMUser)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found IAM User [" + iam.UserName + "]")
-			params.IamInstanceProfile = aws.String(iam.Arn)
 		}
+
+		terminal.Information("Found IAM User [" + iam.UserName + "]")
+		params.IamInstanceProfile = aws.String(iam.Arn)
+
 	}
 
 	for _, region := range cfg.Regions {
@@ -232,22 +233,22 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			volCfg, err := config.LoadVolumeClass(ebsClass)
 			if err != nil {
 				return err
-			} else {
-				terminal.Information("Found Volume Class Configuration for [" + ebsClass + "]")
 			}
+
+			terminal.Information("Found Volume Class Configuration for [" + ebsClass + "]")
 
 			latestSnapshot, err := GetLatestSnapshotByTag(region, "Class", volCfg.Snapshot)
 			if err != nil {
 				return err
-			} else {
-				terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotId + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]")
 			}
+
+			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]")
 
 			ebsVolumes[i] = &autoscaling.BlockDeviceMapping{
 				DeviceName: aws.String(volCfg.DeviceName),
 				Ebs: &autoscaling.Ebs{
 					DeleteOnTermination: aws.Bool(volCfg.DeleteOnTermination),
-					SnapshotId:          aws.String(latestSnapshot.SnapshotId),
+					SnapshotId:          aws.String(latestSnapshot.SnapshotID),
 					VolumeSize:          aws.Int64(int64(volCfg.VolumeSize)),
 					VolumeType:          aws.String(volCfg.VolumeType),
 					//Encrypted:           aws.Bool(volCfg.Encrypted),
@@ -274,19 +275,19 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		ami, err := GetLatestImageByTag(region, "Class", instanceCfg.AMI)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found AMI [" + ami.ImageId + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]")
-			params.ImageId = aws.String(ami.ImageId)
 		}
+
+		terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]")
+		params.ImageId = aws.String(ami.ImageID)
 
 		// KeyPair
 		keyPair, err := GetKeyPairByName(region, instanceCfg.KeyName)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found KeyPair [" + keyPair.KeyName + "] in [" + keyPair.Region + "]")
-			params.KeyName = aws.String(keyPair.KeyName)
 		}
+
+		terminal.Information("Found KeyPair [" + keyPair.KeyName + "] in [" + keyPair.Region + "]")
+		params.KeyName = aws.String(keyPair.KeyName)
 
 		// VPC / Subnet
 		var vpc Vpc
@@ -297,28 +298,29 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			vpc, err = GetVpcByTag(region, "Class", instanceCfg.Vpc)
 			if err != nil {
 				return err
-			} else {
-				terminal.Information("Found VPC [" + vpc.VpcId + "] in Region [" + region + "]")
 			}
+
+			terminal.Information("Found VPC [" + vpc.VpcID + "] in Region [" + region + "]")
 
 			// Subnet
 			subnet, err = vpc.GetVpcSubnetByTag("Class", instanceCfg.Subnet)
 			if err != nil {
 				return err
-			} else {
-				terminal.Information("Found Subnet [" + subnet.SubnetId + "] in VPC [" + subnet.VpcId + "]")
 			}
+
+			terminal.Information("Found Subnet [" + subnet.SubnetID + "] in VPC [" + subnet.VpcID + "]")
 
 			// VPC Security Groups
 			secGroups, err := vpc.GetVpcSecurityGroupByTagMulti("Class", instanceCfg.SecurityGroups)
 			if err != nil {
 				return err
-			} else {
-				for i, secGroup := range secGroups {
-					terminal.Information("Found VPC Security Group [" + secGroup.GroupId + "] with name [" + secGroup.Name + "]")
-					secGroupIds[i] = aws.String(secGroup.GroupId)
-				}
 			}
+
+			for i, secGroup := range secGroups {
+				terminal.Information("Found VPC Security Group [" + secGroup.GroupID + "] with name [" + secGroup.Name + "]")
+				secGroupIds[i] = aws.String(secGroup.GroupID)
+			}
+
 		} else {
 			terminal.Information("No VPC and/or Subnet specified for instance Class [" + class + "]")
 
@@ -326,12 +328,13 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			secGroups, err := GetSecurityGroupByTagMulti(region, "Class", instanceCfg.SecurityGroups)
 			if err != nil {
 				return err
-			} else {
-				for i, secGroup := range secGroups {
-					terminal.Information("Found Security Group [" + secGroup.GroupId + "] with name [" + secGroup.Name + "]")
-					secGroupIds[i] = aws.String(secGroup.GroupId)
-				}
 			}
+
+			for i, secGroup := range secGroups {
+				terminal.Information("Found Security Group [" + secGroup.GroupID + "] with name [" + secGroup.Name + "]")
+				secGroupIds[i] = aws.String(secGroup.GroupID)
+			}
+
 		}
 
 		params.SecurityGroups = secGroupIds
@@ -412,16 +415,16 @@ func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClas
 	return nil
 }
 
-func (v LaunchConfigs) Len() int {
-	return len(v)
+func (l LaunchConfigs) Len() int {
+	return len(l)
 }
 
-func (v LaunchConfigs) Swap(i, j int) {
-	v[i], v[j] = v[j], v[i]
+func (l LaunchConfigs) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
 }
 
-func (v LaunchConfigs) Less(i, j int) bool {
-	return v[i].CreationTime.After(v[j].CreationTime)
+func (l LaunchConfigs) Less(i, j int) bool {
+	return l[i].CreationTime.After(l[j].CreationTime)
 }
 
 func DeleteLaunchConfigurations(search, region string, dryRun bool) (err error) {
@@ -492,16 +495,16 @@ func deleteLaunchConfigurations(lcList *LaunchConfigs, dryRun bool) (err error) 
 	return nil
 }
 
-func (i *LaunchConfigs) PrintTable() {
-	if len(*i) == 0 {
+func (l *LaunchConfigs) PrintTable() {
+	if len(*l) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Launch Configurations Found!")
 		return
 	}
 
 	var header []string
-	rows := make([][]string, len(*i))
+	rows := make([][]string, len(*l))
 
-	for index, lc := range *i {
+	for index, lc := range *l {
 		models.ExtractAwsmTable(index, lc, &header, &rows)
 	}
 

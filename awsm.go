@@ -59,7 +59,7 @@ func main() {
 			Name:  "api",
 			Usage: "Start the awsm api server",
 			Action: func(c *cli.Context) error {
-				api.StartApi()
+				api.StartAPI()
 				return nil
 			},
 		},
@@ -892,9 +892,8 @@ func main() {
 				addresses, errs := aws.GetAddresses(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Addresses!", 1)
-				} else {
-					addresses.PrintTable()
 				}
+				addresses.PrintTable()
 				return nil
 			},
 		},
@@ -905,9 +904,9 @@ func main() {
 				alarms, errs := aws.GetAlarms()
 				if errs != nil {
 					return cli.NewExitError("Error Listing Alarms!", 1)
-				} else {
-					alarms.PrintTable()
 				}
+				alarms.PrintTable()
+
 				return nil
 			},
 		},
@@ -925,9 +924,9 @@ func main() {
 				groups, errs := aws.GetAutoScaleGroups(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Auto Scale Groups!", 1)
-				} else {
-					groups.PrintTable()
 				}
+				groups.PrintTable()
+
 				return nil
 			},
 		},
@@ -945,9 +944,9 @@ func main() {
 				iam, errs := aws.GetIAMUsers(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing IAM Users!", 1)
-				} else {
-					iam.PrintTable()
 				}
+				iam.PrintTable()
+
 				return nil
 			},
 		},
@@ -965,9 +964,9 @@ func main() {
 				images, errs := aws.GetImages(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Images!", 1)
-				} else {
-					images.PrintTable()
 				}
+				images.PrintTable()
+
 				return nil
 			},
 		},
@@ -985,9 +984,9 @@ func main() {
 				instances, errs := aws.GetInstances(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Instances!", 1)
-				} else {
-					instances.PrintTable()
 				}
+				instances.PrintTable()
+
 				return nil
 			},
 		},
@@ -1005,9 +1004,9 @@ func main() {
 				keyPairs, errs := aws.GetKeyPairs(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Key Pairs!", 1)
-				} else {
-					keyPairs.PrintTable()
 				}
+				keyPairs.PrintTable()
+
 				return nil
 			},
 		},
@@ -1025,9 +1024,9 @@ func main() {
 				launchConfigs, errs := aws.GetLaunchConfigurations(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Launch Configurations!", 1)
-				} else {
-					launchConfigs.PrintTable()
 				}
+				launchConfigs.PrintTable()
+
 				return nil
 			},
 		},
@@ -1038,9 +1037,9 @@ func main() {
 				loadBalancers, errs := aws.GetLoadBalancers()
 				if errs != nil {
 					return cli.NewExitError("Error Listing Load Balancers!", 1)
-				} else {
-					loadBalancers.PrintTable()
 				}
+				loadBalancers.PrintTable()
+
 				return nil
 			},
 		},
@@ -1051,9 +1050,9 @@ func main() {
 				policies, errs := aws.GetScalingPolicies()
 				if errs != nil {
 					return cli.NewExitError("Error Listing Auto Scaling Policies!", 1)
-				} else {
-					policies.PrintTable()
 				}
+				policies.PrintTable()
+
 				return nil
 			},
 		},
@@ -1071,9 +1070,9 @@ func main() {
 				groups, errs := aws.GetSecurityGroups(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Security Groups!", 1)
-				} else {
-					groups.PrintTable()
 				}
+				groups.PrintTable()
+
 				return nil
 			},
 		},
@@ -1091,9 +1090,9 @@ func main() {
 				snapshots, errs := aws.GetSnapshots(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Snapshots!", 1)
-				} else {
-					snapshots.PrintTable()
 				}
+				snapshots.PrintTable()
+
 				return nil
 			},
 		},
@@ -1111,9 +1110,9 @@ func main() {
 				subnets, errs := aws.GetSubnets(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Subnets!", 1)
-				} else {
-					subnets.PrintTable()
 				}
+				subnets.PrintTable()
+
 				return nil
 			},
 		},
@@ -1131,9 +1130,9 @@ func main() {
 				domains, errs := aws.GetSimpleDBDomains(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Simple DB Domains!", 1)
-				} else {
-					domains.PrintTable()
 				}
+				domains.PrintTable()
+
 				return nil
 			},
 		},
@@ -1151,9 +1150,9 @@ func main() {
 				volumes, errs := aws.GetVolumes(c.NamedArg("search"), false)
 				if errs != nil {
 					return cli.NewExitError("Error Listing Volumes!", 1)
-				} else {
-					volumes.PrintTable()
 				}
+				volumes.PrintTable()
+
 				return nil
 			},
 		},
@@ -1171,9 +1170,9 @@ func main() {
 				vpcs, errs := aws.GetVpcs(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing VPCs!", 1)
-				} else {
-					vpcs.PrintTable()
 				}
+				vpcs.PrintTable()
+
 				return nil
 			},
 		},

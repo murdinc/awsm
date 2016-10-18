@@ -27,9 +27,9 @@ type Image models.Image
 
 func (i *Images) GetImageName(id string) string {
 	for _, img := range *i {
-		if img.ImageId == id && img.Name != "" {
+		if img.ImageID == id && img.Name != "" {
 			return img.Name
-		} else if img.ImageId == id {
+		} else if img.ImageID == id {
 			return id
 		}
 	}
@@ -183,7 +183,7 @@ func copyImage(image Image, region string, dryRun bool) (*ec2.CopyImageOutput, e
 	// Copy image to the destination region
 	params := &ec2.CopyImageInput{
 		Name:          aws.String(image.Name),
-		SourceImageId: aws.String(image.ImageId),
+		SourceImageId: aws.String(image.ImageID),
 		SourceRegion:  aws.String(image.Region),
 		DryRun:        aws.Bool(dryRun),
 		//ClientToken: aws.String("String"),
@@ -211,12 +211,11 @@ func CreateImage(search, class, name string, dryRun bool) error {
 
 	// Class Config
 	cfg, err := config.LoadImageClass(class)
-
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Image Class Configuration for [" + class + "]!")
 	}
+
+	terminal.Information("Found Image Class Configuration for [" + class + "]!")
 
 	// Locate the Instance
 	instances, _ := GetInstances(search, true)
@@ -232,7 +231,7 @@ func CreateImage(search, class, name string, dryRun bool) error {
 	instance := (*instances)[0]
 	region := instance.Region
 
-	createImageResp, err := createImage(instance.InstanceId, name, region, dryRun)
+	createImageResp, err := createImage(instance.InstanceID, name, region, dryRun)
 	if err != nil {
 		return err
 	}
@@ -246,7 +245,7 @@ func CreateImage(search, class, name string, dryRun bool) error {
 		return err
 	}
 
-	sourceImage := Image{Name: name, Class: class, ImageId: *createImageResp.ImageId, Region: region}
+	sourceImage := Image{Name: name, Class: class, ImageID: *createImageResp.ImageId, Region: region}
 
 	// Check for Propagate flag
 	if cfg.Propagate && cfg.PropagateRegions != nil {
@@ -273,14 +272,14 @@ func CreateImage(search, class, name string, dryRun bool) error {
 				copyImageResp, err := copyImage(sourceImage, propRegion, dryRun)
 
 				if err != nil {
-					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating image [%s] to region [%s]", sourceImage.ImageId, propRegion), err.Error())
+					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating image [%s] to region [%s]", sourceImage.ImageID, propRegion), err.Error())
 					errs = append(errs, err)
 				}
 
 				// Add Tags
 				err = SetEc2NameAndClassTags(copyImageResp.ImageId, name, class, propRegion)
 
-				terminal.Information(fmt.Sprintf("Copied image [%s] to region [%s].", sourceImage.ImageId, propRegion))
+				terminal.Information(fmt.Sprintf("Copied image [%s] to region [%s].", sourceImage.ImageID, propRegion))
 
 			}(propRegion)
 		}
@@ -331,8 +330,8 @@ func RotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 
 			// Exclude the images being used in Launch Configurations
 			for i, image := range images {
-				if excludedImages[image.ImageId] {
-					terminal.Information("Image [" + image.Name + " (" + image.ImageId + ") ] is being used in a launch configuration, skipping!")
+				if excludedImages[image.ImageID] {
+					terminal.Information("Image [" + image.Name + " (" + image.ImageID + ") ] is being used in a launch configuration, skipping!")
 					images = append(images[:i], images[i+1:]...)
 				}
 			}
@@ -355,12 +354,12 @@ func RotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 	return nil
 }
 
-func waitForImage(imageId, region string, dryRun bool) error {
+func waitForImage(imageID, region string, dryRun bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Wait for the snapshot to complete.
 	waitParams := &ec2.DescribeImagesInput{
-		ImageIds: []*string{aws.String(imageId)},
+		ImageIds: []*string{aws.String(imageID)},
 		Owners:   []*string{aws.String("self")},
 		DryRun:   aws.Bool(dryRun),
 	}
@@ -374,13 +373,13 @@ func waitForImage(imageId, region string, dryRun bool) error {
 	return err
 }
 
-func createImage(instanceId, name, region string, dryRun bool) (*ec2.CreateImageOutput, error) {
+func createImage(instanceID, name, region string, dryRun bool) (*ec2.CreateImageOutput, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Create the Image
 	params := &ec2.CreateImageInput{
-		InstanceId: aws.String(instanceId),
+		InstanceId: aws.String(instanceID),
 		Name:       aws.String(name),
 		/*
 			BlockDeviceMappings: []*ec2.BlockDeviceMapping{
@@ -415,14 +414,14 @@ func createImage(instanceId, name, region string, dryRun bool) (*ec2.CreateImage
 }
 
 func (i *Image) Marshal(image *ec2.Image, region string) {
-	var snapshotId, volSize string
+	var snapshotID, volSize string
 	root := aws.StringValue(image.RootDeviceType)
 
 	if root == "ebs" {
 		for _, mapping := range image.BlockDeviceMappings {
 
 			if *mapping.DeviceName == *image.RootDeviceName {
-				snapshotId = aws.StringValue(mapping.Ebs.SnapshotId)
+				snapshotID = aws.StringValue(mapping.Ebs.SnapshotId)
 				volSize = fmt.Sprintf("%d GB", *mapping.Ebs.VolumeSize)
 			}
 		}
@@ -432,15 +431,15 @@ func (i *Image) Marshal(image *ec2.Image, region string) {
 	i.Class = GetTagValue("Class", image.Tags)
 	i.CreationDate, _ = time.Parse("2006-01-02T15:04:05.000Z", aws.StringValue(image.CreationDate)) // robots
 	i.CreatedHuman = humanize.Time(i.CreationDate)                                                  // humans
-	i.ImageId = aws.StringValue(image.ImageId)
+	i.ImageID = aws.StringValue(image.ImageId)
 	i.State = aws.StringValue(image.State)
 	i.Root = root
-	i.SnapshotId = snapshotId
+	i.SnapshotID = snapshotID
 	i.VolumeSize = volSize
 	i.Region = region
 }
 
-// Public function with confirmation terminal prompt
+// DeleteImages deletes one or more AMI images based on the search and optional region input
 func DeleteImages(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -493,7 +492,7 @@ func deleteImages(imgList *Images, dryRun bool) (err error) {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(image.Region)}))
 
 		params := &ec2.DeregisterImageInput{
-			ImageId: aws.String(image.ImageId),
+			ImageId: aws.String(image.ImageID),
 			DryRun:  aws.Bool(dryRun),
 		}
 
@@ -509,16 +508,16 @@ func deleteImages(imgList *Images, dryRun bool) (err error) {
 }
 
 // Functions for sorting
-func (s Images) Len() int {
-	return len(s)
+func (i Images) Len() int {
+	return len(i)
 }
 
-func (s Images) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
+func (i Images) Swap(k, j int) {
+	i[k], i[j] = i[j], i[k]
 }
 
-func (s Images) Less(i, j int) bool {
-	return s[i].CreationDate.After(s[j].CreationDate)
+func (i Images) Less(k, j int) bool {
+	return i[k].CreationDate.After(i[j].CreationDate)
 }
 
 func (i *Images) PrintTable() {

@@ -4,7 +4,7 @@ import "time"
 
 type IAMUser struct {
 	UserName              string    `json:"userName"`
-	UserId                string    `json:"userId"`
+	UserID                string    `json:"userID"`
 	CreateDate            time.Time `json:"createDate"`
 	CreatedHuman          string    `json:"createdHumand"`
 	Arn                   string    `json:"arn"`

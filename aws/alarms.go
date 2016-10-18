@@ -129,9 +129,8 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 	cfg, err := config.LoadAlarmClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found CloudWatch Alarm class configuration for [" + class + "]")
 	}
+	terminal.Information("Found CloudWatch Alarm class configuration for [" + class + "]")
 
 	svc := cloudwatch.New(session.New(&aws.Config{Region: aws.String(region)}))
 

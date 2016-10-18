@@ -11,10 +11,10 @@ type LoadBalancer struct {
 	CreatedHuman        string    `json:"createdHuman" awsmTable:"Created"`
 	SecurityGroups      string    `json:"securityGroups" awsmTable:"Security Groups"`
 	Scheme              string    `json:"scheme" awsmTable:"Scheme"`
-	VpcId               string    `json:"vpcId" awsmTable:"VPC ID"`
+	VpcID               string    `json:"vpcID" awsmTable:"VPC ID"`
 	Vpc                 string    `json:"vpc" awsmTable:"VPC"`
 	HealthCheckTarget   string    `json:"healthCheckTarget" awsmTable:"Health Check Target"`
 	HealthCheckInterval string    `json:"healthCheckInterval" awsmTable:"Health Check Interval"`
 	Subnets             string    `json:"subnets" awsmTable:"Subnets"`
-	SubnetIds           []string  `json:"subnetIds" awsmTable:"Subnet IDs"`
+	SubnetIDs           []string  `json:"subnetIDs" awsmTable:"Subnet IDs"`
 }

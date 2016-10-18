@@ -100,10 +100,10 @@ func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region strin
 	a.MaxSize = int(aws.Int64Value(autoscalegroup.MaxSize))
 	a.DefaultCooldown = int(aws.Int64Value(autoscalegroup.DefaultCooldown))
 	a.AvailabilityZones = strings.Join(aws.StringValueSlice(autoscalegroup.AvailabilityZones), ", ")
-	a.SubnetId = aws.StringValue(autoscalegroup.VPCZoneIdentifier)
-	a.SubnetName = subList.GetSubnetName(a.SubnetId)
-	a.VpcId = subList.GetVpcIdBySubnetId(a.SubnetId)
-	a.VpcName = subList.GetVpcNameBySubnetId(a.SubnetId)
+	a.SubnetID = aws.StringValue(autoscalegroup.VPCZoneIdentifier)
+	a.SubnetName = subList.GetSubnetName(a.SubnetID)
+	a.VpcID = subList.GetVpcIDBySubnetID(a.SubnetID)
+	a.VpcName = subList.GetVpcNameBySubnetID(a.SubnetID)
 	a.Region = region
 }
 
@@ -127,17 +127,15 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 	cfg, err := config.LoadAutoscalingGroupClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Autoscaling group class configuration for [" + class + "]")
 	}
+	terminal.Information("Found Autoscaling group class configuration for [" + class + "]")
 
 	// Verify the launchconfig class input
 	launchConfigurationCfg, err := config.LoadLaunchConfigurationClass(cfg.LaunchConfigurationClass)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
 	}
+	terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
 
 	// Get the AZs
 	azs, errs := GetAZs()
@@ -151,9 +149,8 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 		lcName := GetLaunchConfigurationName(region, cfg.LaunchConfigurationClass, launchConfigurationCfg.Version)
 		if lcName == "" {
 			return fmt.Errorf("Launch Configuration [%s] version [%d] is not available in [%s]!", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region)
-		} else {
-			terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region))
 		}
+		terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region))
 
 		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -203,15 +200,14 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 		for _, az := range regionAZs {
 			if !azs.ValidAZ(az) {
 				return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
-			} else {
-				terminal.Information("Found Availability Zone [" + az + "]!")
 			}
+			terminal.Information("Found Availability Zone [" + az + "]!")
 
 			params.AvailabilityZones = append(params.AvailabilityZones, aws.String(az))
 
 			for _, sub := range *subList {
 				if sub.Class == cfg.SubnetClass && sub.AvailabilityZone == az {
-					vpcZones = append(vpcZones, sub.SubnetId)
+					vpcZones = append(vpcZones, sub.SubnetID)
 				}
 			}
 
@@ -253,7 +249,7 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 
 }
 
-// Public function with confirmation terminal prompt
+// UpdateAutoScaleGroups - Public function with confirmation terminal prompt
 func UpdateAutoScaleGroups(name, version string, double, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -293,18 +289,17 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 		cfg, err := config.LoadAutoscalingGroupClass(asg.Class)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found Autoscaling group class configuration for [" + asg.Class + "]")
 		}
+
+		terminal.Information("Found Autoscaling group class configuration for [" + asg.Class + "]")
 
 		// Get the Launch Configuration class config
 		launchConfigurationCfg, err := config.LoadLaunchConfigurationClass(cfg.LaunchConfigurationClass)
-
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
 		}
+
+		terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
 
 		// Get the AZs
 		azs, errs := GetAZs()
@@ -320,9 +315,8 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			lcName := GetLaunchConfigurationName(region, cfg.LaunchConfigurationClass, launchConfigurationCfg.Version)
 			if lcName == "" {
 				return fmt.Errorf("Launch Configuration [%s] version [%d] is not available in [%s]!", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region)
-			} else {
-				terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, asg.Region))
 			}
+			terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, asg.Region))
 
 			svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -357,15 +351,14 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			for _, az := range regionAZs {
 				if !azs.ValidAZ(az) {
 					return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
-				} else {
-					terminal.Information("Found Availability Zone [" + az + "]!")
 				}
+				terminal.Information("Found Availability Zone [" + az + "]!")
 
 				params.AvailabilityZones = append(params.AvailabilityZones, aws.String(az))
 
 				for _, sub := range *subList {
 					if sub.Class == cfg.SubnetClass && sub.AvailabilityZone == az {
-						vpcZones = append(vpcZones, sub.SubnetId)
+						vpcZones = append(vpcZones, sub.SubnetID)
 					}
 				}
 
@@ -402,7 +395,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 	return nil
 }
 
-// Public function with confirmation terminal prompt
+// DeleteAutoScaleGroups - Public function with confirmation terminal prompt
 func DeleteAutoScaleGroups(name, region string, force, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -612,16 +605,16 @@ func resumeProcesses(asgList *AutoScaleGroups) error {
 	return nil
 }
 
-func (i *AutoScaleGroups) PrintTable() {
-	if len(*i) == 0 {
+func (a *AutoScaleGroups) PrintTable() {
+	if len(*a) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Autoscale Groups Found!")
 		return
 	}
 
 	var header []string
-	rows := make([][]string, len(*i))
+	rows := make([][]string, len(*a))
 
-	for index, asg := range *i {
+	for index, asg := range *a {
 		models.ExtractAwsmTable(index, asg, &header, &rows)
 	}
 

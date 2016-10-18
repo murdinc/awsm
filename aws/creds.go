@@ -13,10 +13,10 @@ type awsmCreds struct {
 	Profiles []Profile
 }
 
-// Represents a single profile
+// Profile represents a single AWS profile (an access key id and secret access key)
 type Profile struct {
 	Name            string `ini:"-"` // considered Sections in config file
-	AccessKeyId     string `ini:"aws_access_key_id"`
+	AccessKeyID     string `ini:"aws_access_key_id"`
 	SecretAccessKey string `ini:"aws_secret_access_key"`
 }
 
@@ -25,7 +25,7 @@ func CheckCreds() bool {
 	creds, err := testCreds()
 	if err != nil || len(creds.ProviderName) == 0 {
 		// Try to read the config file
-		cfg, err := ReadCreds()
+		cfg, err := readCreds()
 		if err != nil || len(cfg.Profiles) == 0 {
 
 			// No Config Found, ask if we want to create one
@@ -49,7 +49,7 @@ func (a *awsmCreds) addCredsDialog() {
 	secretKey := terminal.PromptString("What is your AWS Secret Access Key?")
 
 	// Add Credentials to the ~/.aws/credentials file
-	profile := Profile{Name: "default", AccessKeyId: accessKey, SecretAccessKey: secretKey}
+	profile := Profile{Name: "default", AccessKeyID: accessKey, SecretAccessKey: secretKey}
 	a.Profiles = append(a.Profiles, profile)
 
 	err := a.SaveCreds()
@@ -72,7 +72,7 @@ func testCreds() (credentials.Value, error) {
 }
 
 // Reads in the config and returns a awsmCreds struct
-func ReadCreds() (*awsmCreds, error) {
+func readCreds() (*awsmCreds, error) {
 	// Reads in our config file
 	config := new(awsmCreds)
 

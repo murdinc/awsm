@@ -26,10 +26,10 @@ func (s *Subnets) GetSubnetNames(ids []string) []string {
 	names := make([]string, len(ids))
 	for i, id := range ids {
 		for _, sub := range *s {
-			if sub.SubnetId == id && sub.Name != "" {
+			if sub.SubnetID == id && sub.Name != "" {
 				names[i] = sub.Name
-			} else if sub.SubnetId == id {
-				names[i] = sub.SubnetId
+			} else if sub.SubnetID == id {
+				names[i] = sub.SubnetID
 			}
 		}
 	}
@@ -100,15 +100,15 @@ func GetSubnets(search string) (*Subnets, []error) {
 func (s *Subnet) Marshal(subnet *ec2.Subnet, region string, vpcList *Vpcs) {
 	s.Name = GetTagValue("Name", subnet.Tags)
 	s.Class = GetTagValue("Class", subnet.Tags)
-	s.SubnetId = aws.StringValue(subnet.SubnetId)
-	s.VpcId = aws.StringValue(subnet.VpcId)
-	s.VpcName = vpcList.GetVpcName(s.VpcId)
+	s.SubnetID = aws.StringValue(subnet.SubnetId)
+	s.VpcID = aws.StringValue(subnet.VpcId)
+	s.VpcName = vpcList.GetVpcName(s.VpcID)
 	s.State = aws.StringValue(subnet.State)
 	s.AvailabilityZone = aws.StringValue(subnet.AvailabilityZone)
 	s.Default = aws.BoolValue(subnet.DefaultForAz)
 	s.CIDRBlock = aws.StringValue(subnet.CidrBlock)
 	s.AvailableIPs = int(aws.Int64Value(subnet.AvailableIpAddressCount))
-	s.MapPublicIp = aws.BoolValue(subnet.MapPublicIpOnLaunch)
+	s.MapPublicIP = aws.BoolValue(subnet.MapPublicIpOnLaunch)
 	s.Region = region
 }
 
@@ -150,7 +150,7 @@ func GetRegionSubnets(region string, subList *Subnets, search string) error {
 	return nil
 }
 
-func GetSubnetsByVpcId(vpcId string, region string) (Subnets, error) {
+func GetSubnetsByVpcID(vpcID string, region string) (Subnets, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeSubnetsInput{
@@ -158,7 +158,7 @@ func GetSubnetsByVpcId(vpcId string, region string) (Subnets, error) {
 			{
 				Name: aws.String("vpc-id"),
 				Values: []*string{
-					aws.String(vpcId),
+					aws.String(vpcID),
 				},
 			},
 		},
@@ -181,32 +181,32 @@ func GetSubnetsByVpcId(vpcId string, region string) (Subnets, error) {
 	return Subnets{}, nil
 }
 
-func (i *Subnets) GetSubnetName(id string) string {
-	for _, subnet := range *i {
-		if subnet.SubnetId == id && subnet.Name != "" {
+func (s *Subnets) GetSubnetName(id string) string {
+	for _, subnet := range *s {
+		if subnet.SubnetID == id && subnet.Name != "" {
 			return subnet.Name
 		}
 	}
 	return id
 }
 
-func (i *Subnets) GetVpcIdBySubnetId(id string) string {
-	for _, subnet := range *i {
-		if subnet.SubnetId == id && subnet.VpcName != "" {
+func (s *Subnets) GetVpcIDBySubnetID(id string) string {
+	for _, subnet := range *s {
+		if subnet.SubnetID == id && subnet.VpcName != "" {
 			return subnet.VpcName
-		} else if subnet.SubnetId == id {
-			return subnet.VpcId
+		} else if subnet.SubnetID == id {
+			return subnet.VpcID
 		}
 	}
 	return ""
 }
 
-func (i *Subnets) GetVpcNameBySubnetId(id string) string {
-	for _, subnet := range *i {
-		if subnet.SubnetId == id && subnet.VpcName != "" {
+func (s *Subnets) GetVpcNameBySubnetID(id string) string {
+	for _, subnet := range *s {
+		if subnet.SubnetID == id && subnet.VpcName != "" {
 			return subnet.VpcName
-		} else if subnet.SubnetId == id {
-			return subnet.VpcId
+		} else if subnet.SubnetID == id {
+			return subnet.VpcID
 		}
 	}
 	return ""
@@ -223,9 +223,9 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	cfg, err := config.LoadSubnetClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Subnet Class Configuration for [" + class + "]!")
 	}
+
+	terminal.Information("Found Subnet Class Configuration for [" + class + "]!")
 
 	// Verify the az input
 	azs, errs := GetAZs()
@@ -234,9 +234,9 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	}
 	if !azs.ValidAZ(az) {
 		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
-	} else {
-		terminal.Information("Found Availability Zone [" + az + "]!")
 	}
+
+	terminal.Information("Found Availability Zone [" + az + "]!")
 
 	region := azs.GetRegion(az)
 
@@ -245,7 +245,7 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	if err != nil {
 		return err
 	}
-	terminal.Information("Found [" + targetVpc.Name + "] VPC [" + targetVpc.VpcId + "]!")
+	terminal.Information("Found [" + targetVpc.Name + "] VPC [" + targetVpc.VpcID + "]!")
 
 	// Create the Subnet
 
@@ -253,7 +253,7 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 
 	params := &ec2.CreateSubnetInput{
 		CidrBlock:        aws.String(ip + cfg.CIDR),
-		VpcId:            aws.String(targetVpc.VpcId),
+		VpcId:            aws.String(targetVpc.VpcID),
 		DryRun:           aws.Bool(dryRun),
 		AvailabilityZone: aws.String(az),
 	}
@@ -278,7 +278,7 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	return nil
 }
 
-// Public function with confirmation terminal prompt
+// DeleteSubnets deletes one or more VPC Subnets based on the given name and optional region input.
 func DeleteSubnets(name, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -328,7 +328,7 @@ func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(subnet.Region)}))
 
 		params := &ec2.DeleteSubnetInput{
-			SubnetId: aws.String(subnet.SubnetId),
+			SubnetId: aws.String(subnet.SubnetID),
 			DryRun:   aws.Bool(dryRun),
 		}
 
@@ -343,16 +343,16 @@ func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 	return nil
 }
 
-func (i *Subnets) PrintTable() {
-	if len(*i) == 0 {
+func (s *Subnets) PrintTable() {
+	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Subnets Found!")
 		return
 	}
 
 	var header []string
-	rows := make([][]string, len(*i))
+	rows := make([][]string, len(*s))
 
-	for index, subnet := range *i {
+	for index, subnet := range *s {
 		models.ExtractAwsmTable(index, subnet, &header, &rows)
 	}
 

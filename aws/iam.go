@@ -53,7 +53,7 @@ func GetIAMUsers(search string) (*IAMUsers, error) {
 
 func (i *IAMUser) Marshal(user *iam.User) {
 	i.UserName = aws.StringValue(user.UserName)
-	i.UserId = aws.StringValue(user.UserId)
+	i.UserID = aws.StringValue(user.UserId)
 	i.CreateDate = aws.TimeValue(user.CreateDate) // robots
 	i.CreatedHuman = humanize.Time(i.CreateDate)  // humans
 	i.Arn = aws.StringValue(user.Arn)

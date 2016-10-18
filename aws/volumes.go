@@ -168,8 +168,8 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DetachVolumeInput{
-		VolumeId:   aws.String(vol.VolumeId),
-		InstanceId: aws.String(inst.InstanceId),
+		VolumeId:   aws.String(vol.VolumeID),
+		InstanceId: aws.String(inst.InstanceID),
 		DryRun:     aws.Bool(dryRun),
 		Force:      aws.Bool(force),
 		//Device:   aws.String("String"),
@@ -221,17 +221,17 @@ func AttachVolume(volume, instance string, dryRun bool) error {
 	volCfg, err := config.LoadVolumeClass(vol.Class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Volume Class Configuration for [" + vol.Class + "]!")
 	}
+
+	terminal.Information("Found Volume Class Configuration for [" + vol.Class + "]!")
 
 	// Attach it
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.AttachVolumeInput{
 		Device:     aws.String(volCfg.DeviceName),
-		InstanceId: aws.String(inst.InstanceId),
-		VolumeId:   aws.String(vol.VolumeId),
+		InstanceId: aws.String(inst.InstanceID),
+		VolumeId:   aws.String(vol.VolumeID),
 		DryRun:     aws.Bool(dryRun),
 	}
 
@@ -257,9 +257,9 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 	volCfg, err := config.LoadVolumeClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Volume Class Configuration for [" + class + "]!")
 	}
+
+	terminal.Information("Found Volume Class Configuration for [" + class + "]!")
 
 	// Verify the az input
 	azs, errs := GetAZs()
@@ -268,9 +268,9 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 	}
 	if !azs.ValidAZ(az) {
 		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
-	} else {
-		terminal.Information("Found Availability Zone [" + az + "]!")
 	}
+
+	terminal.Information("Found Availability Zone [" + az + "]!")
 
 	region := azs.GetRegion(az)
 
@@ -278,9 +278,9 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 	latestSnapshot, err := GetLatestSnapshotByTag(region, "Class", volCfg.Snapshot)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotId + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
 	}
+
+	terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -288,7 +288,7 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 		AvailabilityZone: aws.String(az),
 		DryRun:           aws.Bool(dryRun),
 		Size:             aws.Int64(int64(volCfg.VolumeSize)),
-		SnapshotId:       aws.String(latestSnapshot.SnapshotId),
+		SnapshotId:       aws.String(latestSnapshot.SnapshotID),
 		VolumeType:       aws.String(volCfg.VolumeType),
 		//Encrypted:      aws.Bool(true),
 		//Iops:           aws.Int64(1),
@@ -319,7 +319,7 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 
 }
 
-// Public function with confirmation terminal prompt
+// DeleteVolumes deletes one or more EBS Volumes given the search term and optional region input.
 func DeleteVolumes(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -372,7 +372,7 @@ func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(volume.Region)}))
 
 		params := &ec2.DeleteVolumeInput{
-			VolumeId: aws.String(volume.VolumeId),
+			VolumeId: aws.String(volume.VolumeID),
 			DryRun:   aws.Bool(dryRun),
 		}
 
@@ -390,7 +390,7 @@ func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
 func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances) {
 	v.Name = GetTagValue("Name", volume.Tags)
 	v.Class = GetTagValue("Class", volume.Tags)
-	v.VolumeId = aws.StringValue(volume.VolumeId)
+	v.VolumeID = aws.StringValue(volume.VolumeId)
 	v.Size = int(aws.Int64Value(volume.Size))
 	v.SizeHuman = fmt.Sprintf("%d GB", v.Size)
 	v.State = aws.StringValue(volume.State)
@@ -398,13 +398,13 @@ func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances)
 	v.CreationTime = *volume.CreateTime                              // robots
 	v.CreatedHuman = humanize.Time(aws.TimeValue(volume.CreateTime)) // humans
 	v.VolumeType = aws.StringValue(volume.VolumeType)
-	v.SnapshoId = aws.StringValue(volume.SnapshotId)
+	v.SnapshoID = aws.StringValue(volume.SnapshotId)
 	v.AvailabilityZone = aws.StringValue(volume.AvailabilityZone)
 	v.Region = region
 
 	if v.State == "in-use" {
-		v.InstanceId = aws.StringValue(volume.Attachments[0].InstanceId)
-		instance := instList.GetInstanceName(v.InstanceId)
+		v.InstanceID = aws.StringValue(volume.Attachments[0].InstanceId)
+		instance := instList.GetInstanceName(v.InstanceID)
 		v.Attachment = instance
 		v.DeleteOnTerm = aws.BoolValue(volume.Attachments[0].DeleteOnTermination)
 
@@ -424,16 +424,16 @@ func (v Volumes) Less(i, j int) bool {
 	return v[i].CreationTime.After(v[j].CreationTime)
 }
 
-func (i *Volumes) PrintTable() {
-	if len(*i) == 0 {
+func (v *Volumes) PrintTable() {
+	if len(*v) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Volumes Found!")
 		return
 	}
 
 	var header []string
-	rows := make([][]string, len(*i))
+	rows := make([][]string, len(*v))
 
-	for index, vol := range *i {
+	for index, vol := range *v {
 		models.ExtractAwsmTable(index, vol, &header, &rows)
 	}
 

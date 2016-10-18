@@ -65,7 +65,7 @@ func (v *Vpc) GetVpcSecurityGroupByTag(key, value string) (SecurityGroup, error)
 			{
 				Name: aws.String("vpc-id"),
 				Values: []*string{
-					aws.String(v.VpcId),
+					aws.String(v.VpcID),
 				},
 			},
 			{
@@ -125,7 +125,7 @@ func (v *Vpc) GetVpcSubnetByTag(key, value string) (Subnet, error) {
 			{
 				Name: aws.String("vpc-id"),
 				Values: []*string{
-					aws.String(v.VpcId),
+					aws.String(v.VpcID),
 				},
 			},
 		},
@@ -178,11 +178,11 @@ func GetVpcs(search string) (*Vpcs, []error) {
 func (v *Vpc) Marshal(vpc *ec2.Vpc, region string) {
 	v.Name = GetTagValue("Name", vpc.Tags)
 	v.Class = GetTagValue("Class", vpc.Tags)
-	v.VpcId = aws.StringValue(vpc.VpcId)
+	v.VpcID = aws.StringValue(vpc.VpcId)
 	v.State = aws.StringValue(vpc.State)
 	v.Default = aws.BoolValue(vpc.IsDefault)
 	v.CIDRBlock = aws.StringValue(vpc.CidrBlock)
-	v.DHCPOptId = aws.StringValue(vpc.DhcpOptionsId)
+	v.DHCPOptID = aws.StringValue(vpc.DhcpOptionsId)
 	v.Tenancy = aws.StringValue(vpc.InstanceTenancy)
 	v.Region = region
 }
@@ -224,7 +224,7 @@ func GetRegionVpcs(region string, vpcList *Vpcs, search string) error {
 
 func (i *Vpcs) GetVpcName(id string) string {
 	for _, vpc := range *i {
-		if vpc.VpcId == id && vpc.Name != "" {
+		if vpc.VpcID == id && vpc.Name != "" {
 			return vpc.Name
 		}
 	}
@@ -261,9 +261,9 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 	cfg, err := config.LoadVpcClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found VPC Class Configuration for [" + class + "]!")
 	}
+
+	terminal.Information("Found VPC Class Configuration for [" + class + "]!")
 
 	// Validate the region
 	if !ValidRegion(region) {
@@ -299,7 +299,7 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 
 }
 
-// Public function with confirmation terminal prompt
+// DeleteVpcs deletes one or more VPCs given the search term and optional region input
 func DeleteVpcs(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -352,7 +352,7 @@ func deleteVpcs(vpcList *Vpcs, dryRun bool) (err error) {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(vpc.Region)}))
 
 		params := &ec2.DeleteVpcInput{
-			VpcId:  aws.String(vpc.VpcId),
+			VpcId:  aws.String(vpc.VpcID),
 			DryRun: aws.Bool(dryRun),
 		}
 

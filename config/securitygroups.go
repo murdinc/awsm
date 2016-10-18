@@ -15,13 +15,13 @@ type SecurityGroupClass struct {
 }
 
 type SecurityGroupGrant struct {
-	Id         string   `json:"id" hash:"ignore" awsm:"ignore"`
+	ID         string   `json:"id" hash:"ignore" awsm:"ignore"`
 	Note       string   `json:"note" hash:"ignore"`
 	Type       string   `json:"type"` // ingress / egress
 	FromPort   int      `json:"fromPort"`
 	ToPort     int      `json:"toPort"`
-	IpProtocol string   `json:"ipProtocol"`
-	CidrIp     []string `json:"cidrIp" hash:"set"`
+	IPProtocol string   `json:"ipProtocol"`
+	CidrIP     []string `json:"cidrIP" hash:"set"`
 }
 
 func DefaultSecurityGroupClasses() SecurityGroupClasses {
@@ -35,16 +35,16 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				Type:       "ingress",
 				FromPort:   80,
 				ToPort:     80,
-				IpProtocol: "tcp",
-				CidrIp:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				IPProtocol: "tcp",
+				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 			SecurityGroupGrant{
 				Note:       "http port 443",
 				Type:       "ingress",
 				FromPort:   443,
 				ToPort:     443,
-				IpProtocol: "tcp",
-				CidrIp:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				IPProtocol: "tcp",
+				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 		},
 	}
@@ -57,16 +57,16 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				Type:       "ingress",
 				FromPort:   80,
 				ToPort:     80,
-				IpProtocol: "tcp",
-				CidrIp:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				IPProtocol: "tcp",
+				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 			SecurityGroupGrant{
 				Note:       "http port 443",
 				Type:       "ingress",
 				FromPort:   443,
 				ToPort:     443,
-				IpProtocol: "tcp",
-				CidrIp:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				IPProtocol: "tcp",
+				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 		},
 	}
@@ -118,7 +118,7 @@ func (c SecurityGroupClasses) Marshal(items []*simpledb.Item) {
 		cfg.SecurityGroupGrants = make([]SecurityGroupGrant, len(grants))
 		for i, grant := range grants {
 
-			cfg.SecurityGroupGrants[i].Id = strings.Replace(*grant.Name, "securitygroups/"+name+"/grants/", "", -1)
+			cfg.SecurityGroupGrants[i].ID = strings.Replace(*grant.Name, "securitygroups/"+name+"/grants/", "", -1)
 
 			for _, attribute := range grant.Attributes {
 
@@ -138,11 +138,11 @@ func (c SecurityGroupClasses) Marshal(items []*simpledb.Item) {
 				case "ToPort":
 					cfg.SecurityGroupGrants[i].ToPort, _ = strconv.Atoi(val)
 
-				case "IpProtocol":
-					cfg.SecurityGroupGrants[i].IpProtocol = val
+				case "IPProtocol":
+					cfg.SecurityGroupGrants[i].IPProtocol = val
 
-				case "CidrIp":
-					cfg.SecurityGroupGrants[i].CidrIp = append(cfg.SecurityGroupGrants[i].CidrIp, val)
+				case "CidrIP":
+					cfg.SecurityGroupGrants[i].CidrIP = append(cfg.SecurityGroupGrants[i].CidrIP, val)
 
 				}
 			}

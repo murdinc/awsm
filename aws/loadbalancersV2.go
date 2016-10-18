@@ -77,11 +77,11 @@ func (l *LoadBalancerV2) Marshal(balancer *elbv2.LoadBalancer, region string, se
 	l.DNSName = aws.StringValue(balancer.DNSName)
 	l.CreatedTime = aws.TimeValue(balancer.CreatedTime) // robots
 	l.CreatedHuman = humanize.Time(l.CreatedTime)       // humans
-	l.VpcId = aws.StringValue(balancer.VpcId)
+	l.VpcID = aws.StringValue(balancer.VpcId)
 	l.Type = aws.StringValue(balancer.Type)
 	l.State = balancer.State.String()
 	l.Scheme = aws.StringValue(balancer.Scheme)
-	l.CanonicalHostedZoneId = aws.StringValue(balancer.CanonicalHostedZoneId)
+	l.CanonicalHostedZoneID = aws.StringValue(balancer.CanonicalHostedZoneId)
 	l.LoadBalancerArn = aws.StringValue(balancer.LoadBalancerArn)
 	l.SecurityGroups = strings.Join(secGroupNamesSorted, ", ")
 	//	l.AvailabilityZones = strings.Join(aws.StringValueSlice(balancer.AvailabilityZones), ", ") // TODO

@@ -14,7 +14,7 @@ type SnapshotClass struct {
 	Rotate           bool     `json:"rotate" awsmList:"Rotate"`
 	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
-	VolumeId         string   `json:"volumeId" awsmList:"Volume ID"`
+	VolumeID         string   `json:"volumeID" awsmList:"Volume ID"`
 }
 
 func DefaultSnapshotClasses() SnapshotClasses {
@@ -78,8 +78,8 @@ func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 			case "PropagateRegions":
 				cfg.PropagateRegions = append(cfg.PropagateRegions, val)
 
-			case "VolumeId":
-				cfg.VolumeId = val
+			case "VolumeID":
+				cfg.VolumeID = val
 
 			case "Rotate":
 				cfg.Rotate, _ = strconv.ParseBool(val)

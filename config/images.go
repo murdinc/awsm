@@ -13,7 +13,7 @@ type ImageClass struct {
 	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
 	Retain           int      `json:"retain" awsmList:"Retain"`
-	InstanceId       string   `json:"instanceId" awsmList:"Instance ID"`
+	InstanceID       string   `json:"instanceId" awsmList:"Instance ID"`
 }
 
 func DefaultImageClasses() ImageClasses {
@@ -72,8 +72,8 @@ func (c *ImageClasses) Marshal(items []*simpledb.Item) {
 			case "PropagateRegions":
 				cfg.PropagateRegions = append(cfg.PropagateRegions, val)
 
-			case "InstanceId":
-				cfg.InstanceId = val
+			case "InstanceID":
+				cfg.InstanceID = val
 
 			}
 		}

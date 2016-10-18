@@ -9,7 +9,6 @@ import (
 )
 
 func getClasses(w http.ResponseWriter, r *http.Request) {
-
 	// Get the classType
 	classType := chi.URLParam(r, "classType")
 
@@ -23,7 +22,6 @@ func getClasses(w http.ResponseWriter, r *http.Request) {
 }
 
 func getClassNames(w http.ResponseWriter, r *http.Request) {
-
 	// Get the classType
 	classType := chi.URLParam(r, "classType")
 
@@ -38,7 +36,6 @@ func getClassNames(w http.ResponseWriter, r *http.Request) {
 }
 
 func getClassByName(w http.ResponseWriter, r *http.Request) {
-
 	// Get the classType & className
 	classType := chi.URLParam(r, "classType")
 	className := chi.URLParam(r, "className")

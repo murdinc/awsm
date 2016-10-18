@@ -10,7 +10,6 @@ import (
 )
 
 func getAssets(w http.ResponseWriter, r *http.Request) {
-
 	// Get the listType
 	assetType := chi.URLParam(r, "assetType")
 
@@ -97,5 +96,4 @@ func getAssets(w http.ResponseWriter, r *http.Request) {
 
 		render.JSON(w, r, map[string]interface{}{"assetType": assetType, "assets": resp, "success": false, "errors": errStrs})
 	}
-
 }

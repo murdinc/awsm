@@ -59,8 +59,8 @@ func GetRegionScalingPolicies(region string, spList *ScalingPolicies) error {
 	return nil
 }
 
-func (p *ScalingPolicies) GetPolicyNameByArn(arn string) string {
-	for _, policy := range *p {
+func (s *ScalingPolicies) GetPolicyNameByArn(arn string) string {
+	for _, policy := range *s {
 		if policy.Arn == arn && policy.Name != "" {
 			return policy.Name
 		} else if policy.Arn == arn {
@@ -70,7 +70,7 @@ func (p *ScalingPolicies) GetPolicyNameByArn(arn string) string {
 	return arn
 }
 
-func (p *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string) {
+func (s *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string) {
 	adjustment := int(aws.Int64Value(policy.ScalingAdjustment))
 	adjustmentStr := fmt.Sprint(adjustment)
 	if adjustment >= 1 {
@@ -92,29 +92,29 @@ func (p *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string
 		}
 	}
 
-	p.Name = aws.StringValue(policy.PolicyName)
-	p.Arn = aws.StringValue(policy.PolicyARN)
-	p.AdjustmentType = aws.StringValue(policy.AdjustmentType)
-	p.Adjustment = adjustment
-	p.AdjustmentStr = adjustmentStr
-	p.Cooldown = fmt.Sprint(aws.Int64Value(policy.Cooldown))
-	p.AutoScaleGroupName = aws.StringValue(policy.AutoScalingGroupName)
-	p.AlarmArns = alarmArns
-	p.AlarmNames = strings.Join(alarmNames, ", ")
+	s.Name = aws.StringValue(policy.PolicyName)
+	s.Arn = aws.StringValue(policy.PolicyARN)
+	s.AdjustmentType = aws.StringValue(policy.AdjustmentType)
+	s.Adjustment = adjustment
+	s.AdjustmentStr = adjustmentStr
+	s.Cooldown = fmt.Sprint(aws.Int64Value(policy.Cooldown))
+	s.AutoScaleGroupName = aws.StringValue(policy.AutoScalingGroupName)
+	s.AlarmArns = alarmArns
+	s.AlarmNames = strings.Join(alarmNames, ", ")
 
-	p.Region = region
+	s.Region = region
 }
 
-func (i *ScalingPolicies) PrintTable() {
-	if len(*i) == 0 {
+func (s *ScalingPolicies) PrintTable() {
+	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Scaling Policies Found!")
 		return
 	}
 
 	var header []string
-	rows := make([][]string, len(*i))
+	rows := make([][]string, len(*s))
 
-	for index, sp := range *i {
+	for index, sp := range *s {
 		models.ExtractAwsmTable(index, sp, &header, &rows)
 	}
 

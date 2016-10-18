@@ -51,7 +51,7 @@ func GetInstances(search string, running bool) (*Instances, []error) {
 
 func (i *Instances) GetInstanceName(id string) string {
 	for _, instance := range *i {
-		if instance.InstanceId == id && instance.Name != "" {
+		if instance.InstanceID == id && instance.Name != "" {
 			return instance.Name
 		}
 	}
@@ -65,20 +65,20 @@ func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subne
 
 	i.Name = GetTagValue("Name", instance.Tags)
 	i.Class = GetTagValue("Class", instance.Tags)
-	i.InstanceId = aws.StringValue(instance.InstanceId)
+	i.InstanceID = aws.StringValue(instance.InstanceId)
 	i.AvailabilityZone = aws.StringValue(instance.Placement.AvailabilityZone)
-	i.PrivateIp = aws.StringValue(instance.PrivateIpAddress)
-	i.PublicIp = aws.StringValue(instance.PublicIpAddress)
-	i.AMIId = aws.StringValue(instance.ImageId)
-	i.AMIName = imgList.GetImageName(i.AMIId)
+	i.PrivateIP = aws.StringValue(instance.PrivateIpAddress)
+	i.PublicIP = aws.StringValue(instance.PublicIpAddress)
+	i.AMIID = aws.StringValue(instance.ImageId)
+	i.AMIName = imgList.GetImageName(i.AMIID)
 	i.Root = aws.StringValue(instance.RootDeviceType)
 	i.Size = aws.StringValue(instance.InstanceType)
 	i.Virtualization = aws.StringValue(instance.VirtualizationType)
 	i.State = aws.StringValue(instance.State.Name)
 	i.KeyPair = aws.StringValue(instance.KeyName)
-	i.VPCId = aws.StringValue(instance.VpcId)
+	i.VPCID = aws.StringValue(instance.VpcId)
 	i.VPC = vpc
-	i.SubnetId = aws.StringValue(instance.SubnetId)
+	i.SubnetID = aws.StringValue(instance.SubnetId)
 	i.Subnet = subnet
 	i.Region = region
 
@@ -159,17 +159,17 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	instanceCfg, err := config.LoadInstanceClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Instance class configuration for [" + class + "]!")
 	}
+
+	terminal.Information("Found Instance class configuration for [" + class + "]!")
 
 	// AZ
 	azs, _ := GetAZs()
 	if !azs.ValidAZ(az) {
 		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
-	} else {
-		terminal.Information("Found Availability Zone [" + az + "]!")
 	}
+
+	terminal.Information("Found Availability Zone [" + az + "]!")
 
 	region := azs.GetRegion(az)
 
@@ -177,9 +177,9 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	ami, err := GetLatestImageByTag(region, "Class", instanceCfg.AMI)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found AMI [" + ami.ImageId + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]!")
 	}
+
+	terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]!")
 
 	// EBS
 	ebsVolumes := make([]*ec2.BlockDeviceMapping, len(instanceCfg.EBSVolumes))
@@ -187,23 +187,23 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		volCfg, err := config.LoadVolumeClass(ebsClass)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found Volume Class Configuration for [" + ebsClass + "]!")
 		}
+
+		terminal.Information("Found Volume Class Configuration for [" + ebsClass + "]!")
 
 		latestSnapshot, err := GetLatestSnapshotByTag(region, "Class", volCfg.Snapshot)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotId + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
 		}
+
+		terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
 
 		ebsVolumes[i] = &ec2.BlockDeviceMapping{
 			DeviceName: aws.String(volCfg.DeviceName),
 			Ebs: &ec2.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(volCfg.DeleteOnTermination),
 				//Encrypted:           aws.Bool(volCfg.Encrypted),
-				SnapshotId: aws.String(latestSnapshot.SnapshotId),
+				SnapshotId: aws.String(latestSnapshot.SnapshotID),
 				VolumeSize: aws.Int64(int64(volCfg.VolumeSize)),
 				VolumeType: aws.String(volCfg.VolumeType),
 			},
@@ -228,18 +228,19 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		iam, err := GetIAMUser(instanceCfg.IAMUser)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found IAM User [" + iam.UserName + "]!")
 		}
+
+		terminal.Information("Found IAM User [" + iam.UserName + "]!")
+
 	}
 
 	// KeyPair
 	keyPair, err := GetKeyPairByName(region, instanceCfg.KeyName)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found KeyPair [" + keyPair.KeyName + "] in [" + keyPair.Region + "]!")
 	}
+
+	terminal.Information("Found KeyPair [" + keyPair.KeyName + "] in [" + keyPair.Region + "]!")
 
 	// Network Interfaces
 
@@ -248,35 +249,35 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	// VPC / Subnet
 	var vpc Vpc
 	var subnet Subnet
-	var subnetId string
+	var subnetID string
 	secGroupIds := make([]*string, len(instanceCfg.SecurityGroups))
 	if instanceCfg.Vpc != "" && instanceCfg.Subnet != "" {
 		// VPC
 		vpc, err = GetVpcByTag(region, "Class", instanceCfg.Vpc)
 		if err != nil {
 			return err
-		} else {
-			terminal.Information("Found VPC [" + vpc.VpcId + "] in Region [" + region + "]!")
 		}
+
+		terminal.Information("Found VPC [" + vpc.VpcID + "] in Region [" + region + "]!")
 
 		// Subnet
 		subnet, err = vpc.GetVpcSubnetByTag("Class", instanceCfg.Subnet)
 		if err != nil {
 			return err
-		} else {
-			subnetId = subnet.SubnetId
-			terminal.Information("Found Subnet [" + subnet.SubnetId + "] in VPC [" + subnet.VpcId + "]!")
 		}
+
+		subnetID = subnet.SubnetID
+		terminal.Information("Found Subnet [" + subnet.SubnetID + "] in VPC [" + subnet.VpcID + "]!")
 
 		// VPC Security Groups
 		secGroups, err := vpc.GetVpcSecurityGroupByTagMulti("Class", instanceCfg.SecurityGroups)
 		if err != nil {
 			return err
-		} else {
-			for i, secGroup := range secGroups {
-				terminal.Information("Found VPC Security Group [" + secGroup.GroupId + "] with name [" + secGroup.Name + "]!")
-				secGroupIds[i] = aws.String(secGroup.GroupId)
-			}
+		}
+
+		for i, secGroup := range secGroups {
+			terminal.Information("Found VPC Security Group [" + secGroup.GroupID + "] with name [" + secGroup.Name + "]!")
+			secGroupIds[i] = aws.String(secGroup.GroupID)
 		}
 
 	} else {
@@ -286,12 +287,13 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		secGroups, err := GetSecurityGroupByTagMulti(region, "Class", instanceCfg.SecurityGroups)
 		if err != nil {
 			return err
-		} else {
-			for i, secGroup := range secGroups {
-				terminal.Information("Found Security Group [" + secGroup.GroupId + "] with name [" + secGroup.Name + "]!")
-				secGroupIds[i] = aws.String(secGroup.GroupId)
-			}
 		}
+
+		for i, secGroup := range secGroups {
+			terminal.Information("Found Security Group [" + secGroup.GroupID + "] with name [" + secGroup.Name + "]!")
+			secGroupIds[i] = aws.String(secGroup.GroupID)
+		}
+
 	}
 
 	// User Data
@@ -303,7 +305,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.RunInstancesInput{
-		ImageId:             aws.String(ami.ImageId),
+		ImageId:             aws.String(ami.ImageID),
 		MaxCount:            aws.Int64(1),
 		MinCount:            aws.Int64(1),
 		BlockDeviceMappings: ebsVolumes,
@@ -354,7 +356,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		*/
 		// PrivateIpAddress: aws.String("String"),
 		SecurityGroupIds: secGroupIds,
-		SubnetId:         aws.String(subnetId),
+		SubnetId:         aws.String(subnetID),
 		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte(instanceCfg.UserData))),
 
 		//KernelId:         aws.String("String"),
@@ -414,7 +416,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	return nil
 }
 
-// Public function with confirmation terminal prompt
+// TerminateInstances terminates EC2 instances based on the given search term and optional region input
 func TerminateInstances(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -467,7 +469,7 @@ func terminateInstances(instList *Instances, dryRun bool) (err error) {
 
 		params := &ec2.TerminateInstancesInput{
 			InstanceIds: []*string{
-				aws.String(instance.InstanceId),
+				aws.String(instance.InstanceID),
 			},
 			DryRun: aws.Bool(dryRun),
 		}
@@ -480,13 +482,13 @@ func terminateInstances(instList *Instances, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Terminated Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Information("Terminated Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil
 }
 
-// Public function with confirmation terminal prompt
+// StopInstances stops an EC2 instances based on the given search term and optional region input. A third option "force" will force stop the instance(s)
 func StopInstances(search, region string, force, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -540,7 +542,7 @@ func stopInstances(instList *Instances, force, dryRun bool) (err error) {
 
 		params := &ec2.StopInstancesInput{
 			InstanceIds: []*string{
-				aws.String(instance.InstanceId),
+				aws.String(instance.InstanceID),
 			},
 			Force:  aws.Bool(force),
 			DryRun: aws.Bool(dryRun),
@@ -554,13 +556,13 @@ func stopInstances(instList *Instances, force, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Stopped Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Information("Stopped Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil
 }
 
-// Public function with confirmation terminal prompt
+// StartInstances starts one or more instances based on the given search term and optional region
 func StartInstances(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -615,7 +617,7 @@ func startInstances(instList *Instances, dryRun bool) (err error) {
 
 		params := &ec2.StartInstancesInput{
 			InstanceIds: []*string{
-				aws.String(instance.InstanceId),
+				aws.String(instance.InstanceID),
 			},
 			DryRun: aws.Bool(dryRun),
 		}
@@ -628,13 +630,13 @@ func startInstances(instList *Instances, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Started Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Information("Started Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil
 }
 
-// Public function with confirmation terminal prompt
+// RebootInstances reboots one or more instances based on the given search term an optional region input
 func RebootInstances(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -687,7 +689,7 @@ func rebootInstances(instList *Instances, dryRun bool) (err error) {
 
 		params := &ec2.RebootInstancesInput{
 			InstanceIds: []*string{
-				aws.String(instance.InstanceId),
+				aws.String(instance.InstanceID),
 			},
 			DryRun: aws.Bool(dryRun),
 		}
@@ -700,7 +702,7 @@ func rebootInstances(instList *Instances, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Rebooted Instance [" + instance.InstanceId + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Information("Rebooted Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil

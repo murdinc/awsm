@@ -27,10 +27,10 @@ func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
 	names := make([]string, len(ids))
 	for i, id := range ids {
 		for _, secGrp := range *s {
-			if secGrp.GroupId == id && secGrp.Name != "" {
+			if secGrp.GroupID == id && secGrp.Name != "" {
 				names[i] = secGrp.Name
-			} else if secGrp.GroupId == id {
-				names[i] = secGrp.GroupId
+			} else if secGrp.GroupID == id {
+				names[i] = secGrp.GroupID
 			}
 		}
 	}
@@ -155,10 +155,10 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 
 	s.Name = aws.StringValue(securitygroup.GroupName)
 	s.Class = GetTagValue("Class", securitygroup.Tags)
-	s.GroupId = aws.StringValue(securitygroup.GroupId)
+	s.GroupID = aws.StringValue(securitygroup.GroupId)
 	s.Description = aws.StringValue(securitygroup.Description)
 	s.Vpc = vpc
-	s.VpcId = aws.StringValue(securitygroup.VpcId)
+	s.VpcID = aws.StringValue(securitygroup.VpcId)
 	s.Region = region
 
 	// Get the ingress grants
@@ -173,8 +173,8 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 			Type:       "ingress",
 			FromPort:   int(aws.Int64Value(grant.FromPort)),
 			ToPort:     int(aws.Int64Value(grant.ToPort)),
-			IpProtocol: aws.StringValue(grant.IpProtocol),
-			CidrIp:     cidr,
+			IPProtocol: aws.StringValue(grant.IpProtocol),
+			CidrIP:     cidr,
 		})
 	}
 
@@ -190,23 +190,23 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 			Type:       "egress",
 			FromPort:   int(aws.Int64Value(grant.FromPort)),
 			ToPort:     int(aws.Int64Value(grant.ToPort)),
-			IpProtocol: aws.StringValue(grant.IpProtocol),
-			CidrIp:     cidr,
+			IPProtocol: aws.StringValue(grant.IpProtocol),
+			CidrIP:     cidr,
 		})
 	}
 
 }
 
-func (i *SecurityGroups) PrintTable() {
-	if len(*i) == 0 {
+func (s *SecurityGroups) PrintTable() {
+	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Security Groups Found!")
 		return
 	}
 
 	var header []string
-	rows := make([][]string, len(*i))
+	rows := make([][]string, len(*s))
 
-	for index, sg := range *i {
+	for index, sg := range *s {
 		models.ExtractAwsmTable(index, sg, &header, &rows)
 	}
 
@@ -216,7 +216,7 @@ func (i *SecurityGroups) PrintTable() {
 	table.Render()
 }
 
-func CreateSecurityGroup(class, region, vpcId string, dryRun bool) error {
+func CreateSecurityGroup(class, region, vpcID string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -232,9 +232,9 @@ func CreateSecurityGroup(class, region, vpcId string, dryRun bool) error {
 	cfg, err := config.LoadSecurityGroupClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Security Group class configuration for [" + class + "]")
 	}
+
+	terminal.Information("Found Security Group class configuration for [" + class + "]")
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -243,7 +243,7 @@ func CreateSecurityGroup(class, region, vpcId string, dryRun bool) error {
 		Description: aws.String(cfg.Description),
 		GroupName:   aws.String(class),
 		DryRun:      aws.Bool(dryRun),
-		VpcId:       aws.String(vpcId),
+		VpcId:       aws.String(vpcID),
 	}
 
 	_, err = svc.CreateSecurityGroup(params)
@@ -363,6 +363,7 @@ func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 			terminal.Information("Found Security Group class configuration for [" + secGrp.Class + "]")
 		}
 
+		// TODO
 		fmt.Println("\n\n")
 		fmt.Println("aws\n")
 		fmt.Println(secGrp.SecurityGroupGrants)
@@ -389,18 +390,22 @@ func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 	return nil
 }
 
+// TODO
 func authorizeIngress() {
 
 }
 
+// TODO
 func authorizeEgress() {
 
 }
 
+// TODO
 func revokeIngress() {
 
 }
 
+// TODO
 func revokeEgress() {
 
 }
@@ -412,7 +417,7 @@ func deleteSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 
 		params := &ec2.DeleteSecurityGroupInput{
 			DryRun:  aws.Bool(true),
-			GroupId: aws.String(secGrp.GroupId),
+			GroupId: aws.String(secGrp.GroupID),
 		}
 
 		_, err := svc.DeleteSecurityGroup(params)

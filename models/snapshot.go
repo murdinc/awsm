@@ -6,8 +6,8 @@ type Snapshot struct {
 	Name         string    `json:"name" awsmTable:"Name"`
 	Class        string    `json:"class" awsmTable:"Class"`
 	Description  string    `json:"description"`
-	SnapshotId   string    `json:"snapshotId" awsmTable:"Snapshot ID"`
-	VolumeId     string    `json:"volumeId" awsmTable:"Volume ID"`
+	SnapshotID   string    `json:"snapshotID" awsmTable:"Snapshot ID"`
+	VolumeID     string    `json:"volumeID" awsmTable:"Volume ID"`
 	State        string    `json:"state" awsmTable:"State"`
 	StartTime    time.Time `json:"startTime"`
 	CreatedHuman string    `json:"createdHuman" awsmTable:"Created"`

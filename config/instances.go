@@ -15,7 +15,7 @@ type InstanceClass struct {
 	EBSVolumes       []string `json:"ebsVolumes" awsmList:"EBS Volumes"`
 	Vpc              string   `json:"vpc" awsmList:"VPC"`
 	Subnet           string   `json:"subnet" awsmList:"Subnet"`
-	PublicIpAddress  bool     `json:"publicIpAddress" awsmList:"Public IP Address"`
+	PublicIPAddress  bool     `json:"publicIpAddress" awsmList:"Public IP Address"`
 	AMI              string   `json:"ami" awsmList:"AMI"`
 	KeyName          string   `json:"keyName" awsmList:"Key Name"`
 	EbsOptimized     bool     `json:"ebsOptimized" awsmList:"EBS Optimized"`
@@ -34,7 +34,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		EBSVolumes:       []string{},
 		Vpc:              "awsm",
 		Subnet:           "private",
-		PublicIpAddress:  false,
+		PublicIPAddress:  false,
 		AMI:              "base",
 		KeyName:          "awsm",
 		ShutdownBehavior: "terminate",
@@ -46,7 +46,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		EBSVolumes:       []string{"git-standard", "mysql-data-standard"}, // TODO
 		Vpc:              "awsm",
 		Subnet:           "private",
-		PublicIpAddress:  false,
+		PublicIPAddress:  false,
 		AMI:              "hvm-base",
 		KeyName:          "awsm",
 		ShutdownBehavior: "terminate",
@@ -59,7 +59,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		EBSVolumes:       []string{},
 		Vpc:              "awsm",
 		Subnet:           "private",
-		PublicIpAddress:  false,
+		PublicIPAddress:  false,
 		AMI:              "hvm-base",
 		KeyName:          "awsm",
 		ShutdownBehavior: "terminate",
@@ -114,8 +114,8 @@ func (c InstanceClasses) Marshal(items []*simpledb.Item) {
 			case "Vpc":
 				cfg.Vpc = val
 
-			case "PublicIpAddress":
-				cfg.PublicIpAddress, _ = strconv.ParseBool(val)
+			case "PublicIPAddress":
+				cfg.PublicIPAddress, _ = strconv.ParseBool(val)
 
 			case "AMI":
 				cfg.AMI = val

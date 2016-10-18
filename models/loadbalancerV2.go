@@ -13,7 +13,7 @@ type LoadBalancerV2 struct {
 	CreatedHuman          string    `json:"createdHuman"`
 	SecurityGroups        string    `json:"securityGroups"`
 	Scheme                string    `json:"scheme"`
-	CanonicalHostedZoneId string    `json:"canonicalHostedZoneId"`
+	CanonicalHostedZoneID string    `json:"canonicalHostedZoneID"`
 	LoadBalancerArn       string    `json:"loadBalancerArn"`
-	VpcId                 string    `json:"vpcId"`
+	VpcID                 string    `json:"vpcID"`
 }

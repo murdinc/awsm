@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-// GetValue returns the value of a
+// GetTagValue returns the tag with the given key if available.
 func GetTagValue(key string, tags interface{}) string {
 	switch v := tags.(type) {
 	case []*ec2.Tag:

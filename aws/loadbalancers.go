@@ -86,9 +86,9 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 	l.DNSName = aws.StringValue(balancer.DNSName)
 	l.CreatedTime = aws.TimeValue(balancer.CreatedTime) // robots
 	l.CreatedHuman = humanize.Time(l.CreatedTime)       // humans
-	l.VpcId = aws.StringValue(balancer.VPCId)
-	l.Vpc = vpcList.GetVpcName(l.VpcId)
-	l.SubnetIds = aws.StringValueSlice(balancer.Subnets)
+	l.VpcID = aws.StringValue(balancer.VPCId)
+	l.Vpc = vpcList.GetVpcName(l.VpcID)
+	l.SubnetIDs = aws.StringValueSlice(balancer.Subnets)
 	l.Subnets = strings.Join(subnetNamesSorted, ", ")
 	l.HealthCheckTarget = aws.StringValue(balancer.HealthCheck.Target)
 	l.HealthCheckInterval = fmt.Sprintf("%d seconds", *balancer.HealthCheck.Interval)

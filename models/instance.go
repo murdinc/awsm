@@ -3,10 +3,10 @@ package models
 type Instance struct {
 	Name             string `json:"name" awsmTable:"Name"`
 	Class            string `json:"class" awsmTable:"Class""`
-	PrivateIp        string `json:"privateIp" awsmTable:"Private IP`
-	PublicIp         string `json:"publicIp" awsmTable:"PublicIP""`
-	InstanceId       string `json:"instanceId" awsmTable:"Instance ID`
-	AMIId            string `json:"amiId" awsmTable:"AMI ID`
+	PrivateIP        string `json:"privateIP" awsmTable:"Private IP`
+	PublicIP         string `json:"publicIP" awsmTable:"PublicIP""`
+	InstanceID       string `json:"instanceID" awsmTable:"Instance ID`
+	AMIID            string `json:"amiID" awsmTable:"AMI ID`
 	AMIName          string `json:"amiName" awsmTable:"AMI Name`
 	Root             string `json:"root" awsmTable:"Root"`
 	Size             string `json:"size" awsmTable:"Size"`
@@ -15,9 +15,9 @@ type Instance struct {
 	KeyPair          string `json:"keyPair" awsmTable:"KeyPair"`
 	AvailabilityZone string `json:"availabilityZone" awsmTable:"Availability Zone"`
 	VPC              string `json:"vpc" awsmTable:"VPC"`
-	VPCId            string `json:"vpcId"`
+	VPCID            string `json:"vpcID"`
 	Subnet           string `json:"subnet" awsmTable:"Subnet"`
-	SubnetId         string `json:"subnetId"`
+	SubnetID         string `json:"subnetID"`
 	IAMUser          string `json:"iamUser"`
 	ShutdownBehavior string `json:"shutdownBehavior"`
 	EbsOptimized     bool   `json:"ebsOptimized"` // TODO

@@ -48,21 +48,21 @@ func GetAddresses(search string, available bool) (*Addresses, []error) {
 
 func (a *Address) Marshal(address *ec2.Address, region string, instList *Instances) {
 
-	a.AllocationId = aws.StringValue(address.AllocationId)
-	a.PublicIp = aws.StringValue(address.PublicIp)
-	a.PrivateIp = aws.StringValue(address.PrivateIpAddress)
-	a.InstanceId = aws.StringValue(address.InstanceId)
+	a.AllocationID = aws.StringValue(address.AllocationId)
+	a.PublicIP = aws.StringValue(address.PublicIp)
+	a.PrivateIP = aws.StringValue(address.PrivateIpAddress)
+	a.InstanceID = aws.StringValue(address.InstanceId)
 	a.Domain = aws.StringValue(address.Domain)
-	a.NetworkInterfaceId = aws.StringValue(address.NetworkInterfaceId)
-	a.NetworkInterfaceOwnerId = aws.StringValue(address.NetworkInterfaceOwnerId)
+	a.NetworkInterfaceID = aws.StringValue(address.NetworkInterfaceId)
+	a.NetworkInterfaceOwnerID = aws.StringValue(address.NetworkInterfaceOwnerId)
 	a.Region = region
 
-	switch a.InstanceId {
+	switch a.InstanceID {
 	case "":
 		a.Status = "available"
 
 	default:
-		instance := instList.GetInstanceName(a.InstanceId)
+		instance := instList.GetInstanceName(a.InstanceID)
 		a.Status = "in-use"
 		a.Attachment = instance
 	}
@@ -142,7 +142,7 @@ func CreateAddress(region, domain string, dryRun bool) error {
 	return nil
 }
 
-// Public function with confirmation terminal prompt
+// DeleteAddresses - Public function with confirmation terminal prompt
 func DeleteAddresses(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -195,7 +195,7 @@ func deleteAddresses(addrList *Addresses, dryRun bool) (err error) {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(addr.Region)}))
 
 		params := &ec2.ReleaseAddressInput{
-			AllocationId: aws.String(addr.AllocationId),
+			AllocationId: aws.String(addr.AllocationID),
 			DryRun:       aws.Bool(dryRun),
 			//PublicIp: aws.String(addr.PublicIp), // TODO required for ec2 classic
 		}
@@ -205,7 +205,7 @@ func deleteAddresses(addrList *Addresses, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted Address [" + addr.AllocationId + "] in [" + addr.Region + "]!")
+		terminal.Information("Deleted Address [" + addr.AllocationID + "] in [" + addr.Region + "]!")
 	}
 
 	return nil

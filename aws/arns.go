@@ -27,7 +27,7 @@ func ParseArn(arnStr string) (*ARN, error) {
 	arn.Partition = split[1]
 	arn.Service = split[2]
 	arn.Region = split[3]
-	arn.AccountId = split[4]
+	arn.AccountID = split[4]
 
 	// TODO finish detection of other types of ARNs
 	switch arn.Service {
@@ -35,11 +35,11 @@ func ParseArn(arnStr string) (*ARN, error) {
 		arn.ResourceType = split[5]
 		switch arn.ResourceType {
 		case "scalingPolicy":
-			arn.PolicyId = split[6]
+			arn.PolicyID = split[6]
 			arn.AutoScalingGroupName = strings.TrimLeft(split[7], "autoScalingGroupName/")
 			arn.PolicyName = strings.TrimLeft(split[8], "policyName/")
 		case "autoScalingGroup":
-			arn.GroupId = split[6]
+			arn.GroupID = split[6]
 			arn.AutoScalingGroupName = split[7]
 		}
 

@@ -253,7 +253,7 @@ func DeleteKeyPairs(name string, dryRun bool) (errs []error) {
 	return
 }
 
-// MakeSSHKeyPair make a pair of public and private keys for SSH access.
+// MakeKeyPair creates an ssh keypair
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
 // http://stackoverflow.com/a/34347463

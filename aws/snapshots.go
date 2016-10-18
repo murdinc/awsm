@@ -102,8 +102,8 @@ func (s *Snapshot) Marshal(snapshot *ec2.Snapshot, region string) {
 	s.Name = GetTagValue("Name", snapshot.Tags)
 	s.Class = GetTagValue("Class", snapshot.Tags)
 	s.Description = aws.StringValue(snapshot.Description)
-	s.SnapshotId = aws.StringValue(snapshot.SnapshotId)
-	s.VolumeId = aws.StringValue(snapshot.VolumeId)
+	s.SnapshotID = aws.StringValue(snapshot.SnapshotId)
+	s.VolumeID = aws.StringValue(snapshot.VolumeId)
 	s.State = aws.StringValue(snapshot.State)
 	s.StartTime = *snapshot.StartTime                                 // robots
 	s.CreatedHuman = humanize.Time(aws.TimeValue(snapshot.StartTime)) // humans
@@ -207,7 +207,7 @@ func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnaps
 	// Copy snapshot to the destination region
 	params := &ec2.CopySnapshotInput{
 		SourceRegion:      aws.String(snapshot.Region),
-		SourceSnapshotId:  aws.String(snapshot.SnapshotId),
+		SourceSnapshotId:  aws.String(snapshot.SnapshotID),
 		Description:       aws.String(snapshot.Description),
 		DestinationRegion: aws.String(region),
 		DryRun:            aws.Bool(dryRun),
@@ -250,12 +250,12 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 	cfg, err := config.LoadSnapshotClass(class)
 	if err != nil {
 		return err
-	} else {
-		terminal.Information("Found Snapshot Class Configuration for [" + class + "]!")
 	}
 
+	terminal.Information("Found Snapshot Class Configuration for [" + class + "]!")
+
 	// Create the snapshot
-	createSnapshotResp, err := createSnapshot(volume.VolumeId, region, dryRun)
+	createSnapshotResp, err := createSnapshot(volume.VolumeID, region, dryRun)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 		return err
 	}
 
-	sourceSnapshot := Snapshot{Name: name, Class: class, SnapshotId: *createSnapshotResp.SnapshotId}
+	sourceSnapshot := Snapshot{Name: name, Class: class, SnapshotID: *createSnapshotResp.SnapshotId}
 
 	// Check for Propagate flag
 	if cfg.Propagate && cfg.PropagateRegions != nil {
@@ -296,13 +296,13 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 				copySnapResp, err := copySnapshot(sourceSnapshot, propRegion, dryRun)
 
 				if err != nil {
-					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating snapshot [%s] to region [%s]", sourceSnapshot.SnapshotId, propRegion), err.Error())
+					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating snapshot [%s] to region [%s]", sourceSnapshot.SnapshotID, propRegion), err.Error())
 					errs = append(errs, err)
 				}
 
 				// Add Tags
 				err = SetEc2NameAndClassTags(copySnapResp.SnapshotId, name, class, propRegion)
-				terminal.Information(fmt.Sprintf("Copied snapshot [%s] to region [%s].", sourceSnapshot.SnapshotId, propRegion))
+				terminal.Information(fmt.Sprintf("Copied snapshot [%s] to region [%s].", sourceSnapshot.SnapshotID, propRegion))
 
 			}(propRegion)
 		}
@@ -353,8 +353,8 @@ func RotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 
 			// Exclude the snapshots being used in Launch Configurations
 			for i, snap := range snapshots {
-				if excludedSnaps[snap.SnapshotId] {
-					terminal.Information("Snapshot [" + snap.Name + " (" + snap.SnapshotId + ") ] is being used in a launch configuration, skipping!")
+				if excludedSnaps[snap.SnapshotID] {
+					terminal.Information("Snapshot [" + snap.Name + " (" + snap.SnapshotID + ") ] is being used in a launch configuration, skipping!")
 					snapshots = append(snapshots[:i], snapshots[i+1:]...)
 				}
 			}
@@ -377,12 +377,12 @@ func RotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 	return nil
 }
 
-func waitForSnapshot(snapshotId, region string, dryRun bool) error {
+func waitForSnapshot(snapshotID, region string, dryRun bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Wait for the snapshot to complete.
 	waitParams := &ec2.DescribeSnapshotsInput{
-		SnapshotIds: []*string{aws.String(snapshotId)},
+		SnapshotIds: []*string{aws.String(snapshotID)},
 		DryRun:      aws.Bool(dryRun),
 	}
 
@@ -395,12 +395,12 @@ func waitForSnapshot(snapshotId, region string, dryRun bool) error {
 	return err
 }
 
-func createSnapshot(volumeId, region string, dryRun bool) (*ec2.Snapshot, error) {
+func createSnapshot(volumeID, region string, dryRun bool) (*ec2.Snapshot, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Create the Snapshot
 	snapshotParams := &ec2.CreateSnapshotInput{
-		VolumeId: aws.String(volumeId),
+		VolumeId: aws.String(volumeID),
 		DryRun:   aws.Bool(dryRun),
 	}
 
@@ -415,7 +415,7 @@ func createSnapshot(volumeId, region string, dryRun bool) (*ec2.Snapshot, error)
 	return createSnapshotResp, err
 }
 
-// Public function with confirmation terminal prompt
+// DeleteSnapshots deletes one oe more EBS Snapshots based on the given search term an optional region input.
 func DeleteSnapshots(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -468,7 +468,7 @@ func deleteSnapshots(snapList *Snapshots, dryRun bool) (err error) {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(snapshot.Region)}))
 
 		params := &ec2.DeleteSnapshotInput{
-			SnapshotId: aws.String(snapshot.SnapshotId),
+			SnapshotId: aws.String(snapshot.SnapshotID),
 			DryRun:     aws.Bool(dryRun),
 		}
 
@@ -483,28 +483,28 @@ func deleteSnapshots(snapList *Snapshots, dryRun bool) (err error) {
 	return nil
 }
 
-func (v Snapshots) Len() int {
-	return len(v)
+func (s Snapshots) Len() int {
+	return len(s)
 }
 
-func (v Snapshots) Swap(i, j int) {
-	v[i], v[j] = v[j], v[i]
+func (s Snapshots) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
 
-func (v Snapshots) Less(i, j int) bool {
-	return v[i].StartTime.After(v[j].StartTime)
+func (s Snapshots) Less(i, j int) bool {
+	return s[i].StartTime.After(s[j].StartTime)
 }
 
-func (i *Snapshots) PrintTable() {
-	if len(*i) == 0 {
+func (s *Snapshots) PrintTable() {
+	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Snapshots Found!")
 		return
 	}
 
 	var header []string
-	rows := make([][]string, len(*i))
+	rows := make([][]string, len(*s))
 
-	for index, snapshot := range *i {
+	for index, snapshot := range *s {
 		models.ExtractAwsmTable(index, snapshot, &header, &rows)
 	}
 

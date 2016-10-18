@@ -93,11 +93,11 @@ func (c *LaunchConfigurationClass) SetVersion(name string, version int) error {
 }
 
 func (c *LaunchConfigurationClass) Increment(name string) error {
-	c.Version += 1
+	c.Version++
 	return c.SetVersion(name, c.Version)
 }
 
 func (c *LaunchConfigurationClass) Decrement(name string) error {
-	c.Version -= 1
+	c.Version--
 	return c.SetVersion(name, c.Version)
 }

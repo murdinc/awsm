@@ -8,8 +8,7 @@ import (
 	"github.com/pressly/chi/middleware"
 )
 
-func StartApi() {
-
+func StartAPI() {
 	r := chi.NewRouter()
 
 	cors := cors.New(cors.Options{
@@ -40,5 +39,4 @@ func StartApi() {
 	})
 
 	http.ListenAndServe(":8081", r)
-
 }

@@ -14,9 +14,9 @@ type AutoScaleGroup struct {
 	DefaultCooldown        int    `json:"defaultCooldown"`
 	AvailabilityZones      string `json:"availabilityZones"`
 	VpcName                string `json:"vpcName"`
-	VpcId                  string `json:"vpcId"`
+	VpcID                  string `json:"vpcID"`
 	SubnetName             string `json:"subnetName"`
-	SubnetId               string `json:"subnetId"`
+	SubnetID               string `json:"subnetID"`
 	Region                 string `json:"region"`
 	//Instances         string
 }
