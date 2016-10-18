@@ -2,15 +2,17 @@ package api
 
 import (
 	"errors"
+	"net/http"
 
-	"github.com/kataras/iris"
 	"github.com/murdinc/awsm/aws"
+	"github.com/pressly/chi"
+	"github.com/pressly/chi/render"
 )
 
-func getAssets(ctx *iris.Context) {
+func getAssets(w http.ResponseWriter, r *http.Request) {
 
 	// Get the listType
-	assetType := ctx.Param("assetType")
+	assetType := chi.URLParam(r, "assetType")
 
 	var resp interface{}
 	var errs []error // multi-region
@@ -84,7 +86,7 @@ func getAssets(ctx *iris.Context) {
 	}
 
 	if len(errs) == 0 {
-		ctx.JSON(iris.StatusOK, map[string]interface{}{"assetType": assetType, "assets": resp, "success": true})
+		render.JSON(w, r, map[string]interface{}{"assetType": assetType, "assets": resp, "success": true})
 	} else {
 
 		errStrs := make([]string, len(errs))
@@ -93,7 +95,7 @@ func getAssets(ctx *iris.Context) {
 			errStrs[i] = e.Error()
 		}
 
-		ctx.JSON(iris.StatusForbidden, map[string]interface{}{"assetType": assetType, "assets": resp, "success": false, "errors": errStrs})
+		render.JSON(w, r, map[string]interface{}{"assetType": assetType, "assets": resp, "success": false, "errors": errStrs})
 	}
 
 }

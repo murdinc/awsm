@@ -1,32 +1,44 @@
 package api
 
 import (
-	"github.com/iris-contrib/middleware/cors"
-	"github.com/kataras/iris"
+	"net/http"
+
+	"github.com/goware/cors"
+	"github.com/pressly/chi"
+	"github.com/pressly/chi/middleware"
 )
 
 func StartApi() {
 
-	iris.Config.DisableBanner = true
-	//iris.Use(cors.Options{AllowedMethods: []string{"GET", "POST", "PUT"}})
+	r := chi.NewRouter()
 
-	iris.Use(cors.Default())
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowCredentials: true,
+	})
 
-	api := iris.Party("/api")
+	r.Use(cors.Handler)
+	//r.Use(middleware.RequestID)
+	//r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
-	// Assets
-	assets := api.Party("/assets")
-	assets.Get("/:assetType", getAssets)
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/assets", func(r chi.Router) {
+			r.Route("/:assetType", func(r chi.Router) {
+				r.Get("/", getAssets)
+			})
+		})
+		r.Route("/classes", func(r chi.Router) {
+			r.Route("/:classType", func(r chi.Router) {
+				r.Get("/", getClasses)
+				r.Get("/names", getClassNames)
+				r.Get("/name/:className", getClassByName)
 
-	// Configs
-	classes := api.Party("/classes")
-	classes.Get("/:classType", getClasses)
-	classes.Get("/:classType/names", getClassNames)
-	classes.Get("/:classType/name/:className", getClassByName)
-	//classes.Post("/:classType/name/:className", postConfig)
-	//classes.Patch("/:classType/name/:className", patchConfig)
-	//classes.Delete("/:classType/name/:className", deleteConfig)
+			})
+		})
+	})
 
-	// Listen
-	iris.Listen(":8081")
+	http.ListenAndServe(":8081", r)
+
 }
