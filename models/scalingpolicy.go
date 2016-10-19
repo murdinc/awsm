@@ -1,5 +1,6 @@
 package models
 
+// ScalingPolicy represents an AutoScaling Group Scaling Policy
 type ScalingPolicy struct {
 	Name               string   `json:"name" awsmTable:"Name"`
 	Arn                string   `json:"arn"`

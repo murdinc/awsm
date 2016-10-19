@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// ImageClasses is a map of Image classes
 type ImageClasses map[string]ImageClass
 
+// ImageClass is a single Image class
 type ImageClass struct {
 	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
@@ -16,6 +18,7 @@ type ImageClass struct {
 	InstanceID       string   `json:"instanceId" awsmList:"Instance ID"`
 }
 
+// DefaultImageClasses returns the default Image classes
 func DefaultImageClasses() ImageClasses {
 	defaultImages := make(ImageClasses)
 
@@ -28,6 +31,7 @@ func DefaultImageClasses() ImageClasses {
 	return defaultImages
 }
 
+// LoadImageClass returns a single Image class by its name
 func LoadImageClass(name string) (ImageClass, error) {
 	cfgs := make(ImageClasses)
 	item, err := GetItemByName("images", name)
@@ -38,6 +42,7 @@ func LoadImageClass(name string) (ImageClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllImageClasses returns all Image classes
 func LoadAllImageClasses() (ImageClasses, error) {
 	cfgs := make(ImageClasses)
 	items, err := GetItemsByType("images")
@@ -49,6 +54,7 @@ func LoadAllImageClasses() (ImageClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into Image Classes
 func (c *ImageClasses) Marshal(items []*simpledb.Item) {
 
 	cfgs := make(ImageClasses)

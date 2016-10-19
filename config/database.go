@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// CheckDB checks for an awsm database
 func CheckDB() bool {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
@@ -27,6 +28,7 @@ func CheckDB() bool {
 	return true
 }
 
+// GetItemByName gets a SimpleDB item by its type and name
 func GetItemByName(classType, className string) (*simpledb.Item, error) {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
@@ -54,6 +56,7 @@ func GetItemByName(classType, className string) (*simpledb.Item, error) {
 	return item, nil
 }
 
+// GetItemsByType returns all SimpleDB items by class type
 func GetItemsByType(classType string) ([]*simpledb.Item, error) {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
@@ -77,6 +80,7 @@ func GetItemsByType(classType string) ([]*simpledb.Item, error) {
 	return resp.Items, nil
 }
 
+// CreateAwsmDatabase creates an awsm SimpleDB Domain
 func CreateAwsmDatabase() error {
 
 	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
@@ -107,6 +111,7 @@ func CreateAwsmDatabase() error {
 	return nil
 }
 
+// BuildAttributes builds SimpleDB item attributes from class structs
 func BuildAttributes(class interface{}, classType string) []*simpledb.ReplaceableAttribute {
 
 	typ := reflect.TypeOf(class)

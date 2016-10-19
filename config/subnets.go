@@ -6,12 +6,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// SubnetClasses is a map of Subnet Classes
 type SubnetClasses map[string]SubnetClass
 
+// SubnetClass is a single Subnet Class
 type SubnetClass struct {
 	CIDR string `json:"cidr" awsmList:"CIDR"`
 }
 
+// DefaultSubnetClasses returns the defauly Subnet Classes
 func DefaultSubnetClasses() SubnetClasses {
 	defaultSubnets := make(SubnetClasses)
 
@@ -26,6 +29,7 @@ func DefaultSubnetClasses() SubnetClasses {
 	return defaultSubnets
 }
 
+// LoadSubnetClass loads a Subnet Class by its name
 func LoadSubnetClass(name string) (SubnetClass, error) {
 	cfgs := make(SubnetClasses)
 	item, err := GetItemByName("subnets", name)
@@ -37,6 +41,7 @@ func LoadSubnetClass(name string) (SubnetClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllSubnetClasses loads all Subnet Classes
 func LoadAllSubnetClasses() (SubnetClasses, error) {
 	cfgs := make(SubnetClasses)
 	items, err := GetItemsByType("subnets")
@@ -48,6 +53,7 @@ func LoadAllSubnetClasses() (SubnetClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into a Subnet Class
 func (c SubnetClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "subnets/", "", -1)

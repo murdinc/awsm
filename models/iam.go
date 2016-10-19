@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// IAMUser represents an Identity and Access Management (IAM) User
 type IAMUser struct {
 	UserName              string    `json:"userName"`
 	UserID                string    `json:"userID"`

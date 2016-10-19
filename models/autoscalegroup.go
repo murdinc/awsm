@@ -1,5 +1,6 @@
 package models
 
+// AutoScaleGroup represents and AutoScale Group
 type AutoScaleGroup struct {
 	Name                   string   `json:"name" awsmTable:"Name"`
 	Class                  string   `json:"class" awsmTable:"Class"`

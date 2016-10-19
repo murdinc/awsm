@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// LoadBalancer represents an EC2 Load Balancer
 type LoadBalancer struct {
 	Name                string    `json:"name" awsmTable:"Name"`
 	DNSName             string    `json:"dnsName"`

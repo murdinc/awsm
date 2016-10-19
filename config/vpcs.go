@@ -6,13 +6,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// VpcClasses is a map of Vpc Classes
 type VpcClasses map[string]VpcClass
 
+// VpcClass is a single Vpc Class
 type VpcClass struct {
 	CIDR    string `json:"cidr" awsmList:"CIDR"`
 	Tenancy string `json:"tenancy" awsmList:"Tenancy"`
 }
 
+// DefaultVpcClasses returns the default Vpc Classes
 func DefaultVpcClasses() VpcClasses {
 	defaultVpcs := make(VpcClasses)
 
@@ -24,6 +27,7 @@ func DefaultVpcClasses() VpcClasses {
 	return defaultVpcs
 }
 
+// LoadVpcClass loads a Vpc Class by its name
 func LoadVpcClass(name string) (VpcClass, error) {
 	cfgs := make(VpcClasses)
 	item, err := GetItemByName("vpcs", name)
@@ -35,6 +39,7 @@ func LoadVpcClass(name string) (VpcClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllVpcClasses loads all Vpc Classes
 func LoadAllVpcClasses() (VpcClasses, error) {
 	cfgs := make(VpcClasses)
 	items, err := GetItemsByType("vpcs")
@@ -46,6 +51,7 @@ func LoadAllVpcClasses() (VpcClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into a Vpc Class
 func (c VpcClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "vpcs/", "", -1)

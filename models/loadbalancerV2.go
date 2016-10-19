@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// LoadBalancerV2 represents an Application Load Balancer
 type LoadBalancerV2 struct {
 	Name                  string    `json:"name"`
 	DNSName               string    `json:"dnsName"`

@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// ExtractAwsmTable Extracts the keys and values of a struct for use in building tables of assets
 func ExtractAwsmTable(index int, in interface{}, header *[]string, rows *[][]string) {
 
 	t := reflect.TypeOf(in)

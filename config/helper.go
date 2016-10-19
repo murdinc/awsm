@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// ExtractAwsmList extracts the keys and values from an awsm class config struct for displaying on the frontend
 func ExtractAwsmList(in interface{}) (keys, values []string) {
 
 	t := reflect.TypeOf(in)

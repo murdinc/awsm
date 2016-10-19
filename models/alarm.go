@@ -1,5 +1,6 @@
 package models
 
+// Alarm represents a CloudWatch Alarm
 type Alarm struct {
 	Name        string   `json:"name" awsmTable:"Name"`
 	Arn         string   `json:"arn"`

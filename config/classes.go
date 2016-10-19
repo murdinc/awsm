@@ -11,6 +11,7 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// InsertClasses inserts Classes into SimpleDB
 func InsertClasses(classType string, classInterface interface{}) error {
 
 	var itemName string
@@ -139,6 +140,7 @@ func InsertClasses(classType string, classInterface interface{}) error {
 
 }
 
+// LoadAllClasses loads all classes of a type
 func LoadAllClasses(classType string) (configs interface{}, err error) {
 
 	switch classType {
@@ -187,6 +189,7 @@ func LoadAllClasses(classType string) (configs interface{}, err error) {
 	return configs, err
 }
 
+// LoadClassByName loads a class by its type and name
 func LoadClassByName(classType, className string) (configs interface{}, err error) {
 
 	switch classType {
@@ -235,6 +238,7 @@ func LoadClassByName(classType, className string) (configs interface{}, err erro
 	return configs, err
 }
 
+// LoadAllClassNames loads all class named by a type
 func LoadAllClassNames(classType string) ([]string, error) {
 	// Check for the awsm db
 	if !CheckDB() {

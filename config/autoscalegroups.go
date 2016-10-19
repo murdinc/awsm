@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// AutoscaleGroupClasses is a map of Autoscale Group Classes
 type AutoscaleGroupClasses map[string]AutoscaleGroupClass
 
+// AutoscaleGroupClass is a single Autoscale Group Class
 type AutoscaleGroupClass struct {
 	LaunchConfigurationClass string   `json:"launchConfigurationClass" awsmList:"Launch Configuration Class"`
 	Propagate                bool     `json:"propagate" awsmList:"Propagate"`
@@ -27,6 +29,7 @@ type AutoscaleGroupClass struct {
 	Alarms                   []string `json:"alarms" awsmList:"Alarms"`
 }
 
+// DefaultAutoscaleGroupClasses returns the default Autoscale Group Classes
 func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
 	defaultASGs := make(AutoscaleGroupClasses)
 
@@ -51,6 +54,7 @@ func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
 	return defaultASGs
 }
 
+// LoadAutoscalingGroupClass loads an Autoscaling Group Class
 func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClass, error) {
 	cfgs := make(AutoscaleGroupClasses)
 	item, err := GetItemByName("autoscalinggroups", name)
@@ -62,6 +66,7 @@ func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllAutoscalingGroupClasses loads all Autoscaling Group Classes
 func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClasses, error) {
 	cfgs := make(AutoscaleGroupClasses)
 	items, err := GetItemsByType("autoscalinggroups")
@@ -73,6 +78,7 @@ func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts the items from simpledb into an AutoscaleGroupClass struct
 func (c AutoscaleGroupClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "autoscalinggroups/", "", -1)

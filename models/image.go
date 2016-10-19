@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Image represents an Elastic Block Storage (EBS) Volume
 type Image struct {
 	Name         string    `json:"name" awsmTable:"Name"`
 	Class        string    `json:"class" awsmTable:"Class"`

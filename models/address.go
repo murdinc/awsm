@@ -1,5 +1,6 @@
 package models
 
+// Address represents an Elastic IP Address
 type Address struct {
 	AllocationID            string `json:"allocationID" awsmTable:"Allocation ID"`
 	PublicIP                string `json:"publicIP" awsmTable:"Public IP"`

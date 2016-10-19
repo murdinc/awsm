@@ -7,13 +7,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// SecurityGroupClasses is a map of Security Group Classes
 type SecurityGroupClasses map[string]SecurityGroupClass
 
+// SecurityGroupClass is a single Security Group Class
 type SecurityGroupClass struct {
 	Description         string               `json:"description" awsmList:"Description"`
 	SecurityGroupGrants []SecurityGroupGrant `json:"securityGroupGrants"`
 }
 
+// SecurityGroupGrant is a Security Group Grant
 type SecurityGroupGrant struct {
 	ID         string   `json:"id" hash:"ignore" awsm:"ignore"`
 	Note       string   `json:"note" hash:"ignore"`
@@ -24,6 +27,7 @@ type SecurityGroupGrant struct {
 	CidrIP     []string `json:"cidrIP" hash:"set"`
 }
 
+// DefaultSecurityGroupClasses returns the defauly Security Group Classes
 func DefaultSecurityGroupClasses() SecurityGroupClasses {
 	defaultSecurityGroups := make(SecurityGroupClasses)
 
@@ -74,6 +78,7 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 	return defaultSecurityGroups
 }
 
+// LoadSecurityGroupClass loads a Security Group Class by its name
 func LoadSecurityGroupClass(name string) (SecurityGroupClass, error) {
 	cfgs := make(SecurityGroupClasses)
 	item, err := GetItemByName("securitygroups", name)
@@ -85,6 +90,7 @@ func LoadSecurityGroupClass(name string) (SecurityGroupClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllSecurityGroupClasses loads all Security Group Classes
 func LoadAllSecurityGroupClasses() (SecurityGroupClasses, error) {
 	cfgs := make(SecurityGroupClasses)
 	items, err := GetItemsByType("securitygroups")
@@ -96,6 +102,7 @@ func LoadAllSecurityGroupClasses() (SecurityGroupClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into a Security Group Class
 func (c SecurityGroupClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "securitygroups/", "", -1)

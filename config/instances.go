@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// InstanceClasses is a map if Instance classes
 type InstanceClasses map[string]InstanceClass
 
+// InstanceClass is a single Instance class
 type InstanceClass struct {
 	InstanceType     string   `json:"instanceType" awsmList:"Instance Type"`
 	SecurityGroups   []string `json:"securityGroups" awsmList:"Security Groups"`
@@ -25,6 +27,7 @@ type InstanceClass struct {
 	UserData         string   `json:"userData"`
 }
 
+// DefaultInstanceClasses returns the default Instance classes
 func DefaultInstanceClasses() InstanceClasses {
 	defaultInstances := make(InstanceClasses)
 
@@ -68,6 +71,7 @@ func DefaultInstanceClasses() InstanceClasses {
 	return defaultInstances
 }
 
+// LoadInstanceClass returns an Instance class by its name
 func LoadInstanceClass(name string) (InstanceClass, error) {
 	cfgs := make(InstanceClasses)
 	item, err := GetItemByName("instances", name)
@@ -78,6 +82,7 @@ func LoadInstanceClass(name string) (InstanceClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllInstanceClasses returns all Instance classes
 func LoadAllInstanceClasses() (InstanceClasses, error) {
 	cfgs := make(InstanceClasses)
 	items, err := GetItemsByType("instances")
@@ -89,6 +94,7 @@ func LoadAllInstanceClasses() (InstanceClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into an Instance class
 func (c InstanceClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "instances/", "", -1)

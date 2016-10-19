@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Volume represents an EBS Volume
 type Volume struct {
 	Name             string    `json:"name" awsmTable:"Name"`
 	Class            string    `json:"class" awsmTable:"Class"`

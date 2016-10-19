@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// VolumeClasses is a map of Volume Classes
 type VolumeClasses map[string]VolumeClass
 
+// VolumeClass is a single Volume Class
 type VolumeClass struct {
 	DeviceName          string `json:"deviceName" awsmList:"Device Name"`
 	VolumeSize          int    `json:"volumeSize" awsmList:"Volume Size"`
@@ -20,6 +22,7 @@ type VolumeClass struct {
 	Encrypted           bool   `json:"encrypted" awsmList:"Encrypted"`
 }
 
+// DefaultVolumeClasses returns the default Volume Classes
 func DefaultVolumeClasses() VolumeClasses {
 	defaultVolumes := make(VolumeClasses)
 
@@ -46,6 +49,7 @@ func DefaultVolumeClasses() VolumeClasses {
 	return defaultVolumes
 }
 
+// LoadVolumeClass loads a Volume Class by its name
 func LoadVolumeClass(name string) (VolumeClass, error) {
 	cfgs := make(VolumeClasses)
 	item, err := GetItemByName("volumes", name)
@@ -57,6 +61,7 @@ func LoadVolumeClass(name string) (VolumeClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllVolumeClasses loads all Volume Classes
 func LoadAllVolumeClasses() (VolumeClasses, error) {
 	cfgs := make(VolumeClasses)
 	items, err := GetItemsByType("volumes")
@@ -68,6 +73,7 @@ func LoadAllVolumeClasses() (VolumeClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB int a Volume Class
 func (c VolumeClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "volumes/", "", -1)

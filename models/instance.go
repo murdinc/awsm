@@ -1,5 +1,6 @@
 package models
 
+// Instance represents an Elastic Computer Cloud (EC2) Instance
 type Instance struct {
 	Name             string `json:"name" awsmTable:"Name"`
 	Class            string `json:"class" awsmTable:"Class""`

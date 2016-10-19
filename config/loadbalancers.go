@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// LoadBalancerClasses is a map of Load Balancers Classes
 type LoadBalancerClasses map[string]LoadBalancerClass
 
+// LoadBalancerClass is a single Load Balancer Class
 type LoadBalancerClass struct {
 	Scheme            string                 `json:"scheme" awsmList:"Scheme"`
 	SecurityGroups    []string               `json:"securityGroups" awsmList:"Security Groups"`
@@ -17,6 +19,7 @@ type LoadBalancerClass struct {
 	Listeners         []LoadBalancerListener `json:"listeners"  awsmList:"Listeners"`
 }
 
+// LoadBalancerListener is a Load Balancer Listener
 type LoadBalancerListener struct {
 	ID               string `json:"id" hash:"ignore" awsm:"ignore"` // Needed?
 	InstancePort     int    `json:"instancePort"`
@@ -26,6 +29,7 @@ type LoadBalancerListener struct {
 	SSLCertificateID string `json:"sslCertificateID"`
 }
 
+// DefaultLoadBalancerClasses returns the default Load Balancer Classes
 func DefaultLoadBalancerClasses() LoadBalancerClasses {
 	defaultLBs := make(LoadBalancerClasses)
 
@@ -48,6 +52,7 @@ func DefaultLoadBalancerClasses() LoadBalancerClasses {
 	return defaultLBs
 }
 
+// LoadLoadBalancerClass loads a Load Balancer Class by its name
 func LoadLoadBalancerClass(name string) (LoadBalancerClass, error) {
 	cfgs := make(LoadBalancerClasses)
 	item, err := GetItemByName("loadbalancers", name)
@@ -58,6 +63,7 @@ func LoadLoadBalancerClass(name string) (LoadBalancerClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllLoadBalancerClasses loads all Load Balancer Classes
 func LoadAllLoadBalancerClasses() (LoadBalancerClasses, error) {
 	cfgs := make(LoadBalancerClasses)
 	items, err := GetItemsByType("loadbalancers")
@@ -69,6 +75,7 @@ func LoadAllLoadBalancerClasses() (LoadBalancerClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into a Load Balancer Class
 func (c LoadBalancerClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "loadbalancers/", "", -1)

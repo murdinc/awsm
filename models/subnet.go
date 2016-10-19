@@ -1,5 +1,6 @@
 package models
 
+// Subnet represents a VPC Subnet
 type Subnet struct {
 	Name             string `json:"name" awsmTable:"Name"`
 	Class            string `json:"class" awsmTable:"Class"`

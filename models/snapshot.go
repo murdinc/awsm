@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Snapshot represents a EBS Snapshot
 type Snapshot struct {
 	Name         string    `json:"name" awsmTable:"Name"`
 	Class        string    `json:"class" awsmTable:"Class"`

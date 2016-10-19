@@ -1,5 +1,6 @@
 package models
 
+// Vpc represents a Virtual Private Cloud
 type Vpc struct {
 	Name      string `json:"name" awsmTable:"Name"`
 	Class     string `json:"class" awsmTable:"Class"`

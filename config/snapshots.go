@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// SnapshotClasses is a map of Snapshot Classes
 type SnapshotClasses map[string]SnapshotClass
 
+// SnapshotClass is a single Snapshot Class
 type SnapshotClass struct {
 	Retain           int      `json:"retain" awsmList:"Retain"`
 	Rotate           bool     `json:"rotate" awsmList:"Rotate"`
@@ -17,6 +19,7 @@ type SnapshotClass struct {
 	VolumeID         string   `json:"volumeID" awsmList:"Volume ID"`
 }
 
+// DefaultSnapshotClasses returns the default Snapshot Classes
 func DefaultSnapshotClasses() SnapshotClasses {
 	defaultSnapshots := make(SnapshotClasses)
 
@@ -37,6 +40,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 	return defaultSnapshots
 }
 
+// LoadSnapshotClass loads a Snapshot Class by its name
 func LoadSnapshotClass(name string) (SnapshotClass, error) {
 	cfgs := make(SnapshotClasses)
 	item, err := GetItemByName("snapshots", name)
@@ -48,6 +52,7 @@ func LoadSnapshotClass(name string) (SnapshotClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllSnapshotClasses loads all Snapshot Classes
 func LoadAllSnapshotClasses() (SnapshotClasses, error) {
 	cfgs := make(SnapshotClasses)
 	items, err := GetItemsByType("snapshots")
@@ -59,6 +64,7 @@ func LoadAllSnapshotClasses() (SnapshotClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into a Snapshot Class
 func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "snapshots/", "", -1)

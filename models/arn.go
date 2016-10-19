@@ -1,5 +1,6 @@
 package models
 
+// ARN represents an Amazon Resource Number
 type ARN struct {
 	Arn                  string `json:"arn"`
 	Partition            string `json:"partition"`

@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// ScalingPolicyClasses is a map of Scaling Policy Classes
 type ScalingPolicyClasses map[string]ScalingPolicyClass
 
+// ScalingPolicyClass is a single Scaling Policy Class
 type ScalingPolicyClass struct {
 	ScalingAdjustment int      `json:"scalingAdjustment" awsmList:"Scaling Adjustment"`
 	AdjustmentType    string   `json:"adjustmentType" awsmList:"Adjustment Type"`
@@ -16,6 +18,7 @@ type ScalingPolicyClass struct {
 	Alarms            []string `json:"alarms" awsmList:"Alarms"`
 }
 
+// DefaultScalingPolicyClasses returns the defauly Scaling Policy Classes
 func DefaultScalingPolicyClasses() ScalingPolicyClasses {
 	defaultScalingPolicies := make(ScalingPolicyClasses)
 
@@ -36,6 +39,7 @@ func DefaultScalingPolicyClasses() ScalingPolicyClasses {
 	return defaultScalingPolicies
 }
 
+// LoadScalingPolicyClass loads a Scaling Policy Class by its name
 func LoadScalingPolicyClass(name string) (ScalingPolicyClass, error) {
 	cfgs := make(ScalingPolicyClasses)
 	item, err := GetItemByName("scalingpolicies", name)
@@ -47,6 +51,7 @@ func LoadScalingPolicyClass(name string) (ScalingPolicyClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllScalingPolicyClasses loads all Scaling Policies Classes
 func LoadAllScalingPolicyClasses() (ScalingPolicyClasses, error) {
 	cfgs := make(ScalingPolicyClasses)
 	items, err := GetItemsByType("scalingpolicies")
@@ -58,6 +63,7 @@ func LoadAllScalingPolicyClasses() (ScalingPolicyClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts items from SimpleDB into a Scaling Policy Class
 func (c ScalingPolicyClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "scalingpolicies/", "", -1)

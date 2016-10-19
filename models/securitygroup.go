@@ -2,6 +2,7 @@ package models
 
 import "github.com/murdinc/awsm/config"
 
+// SecurityGroup represents a Security Group
 type SecurityGroup struct {
 	Name                string                      `json:"name" awsmTable:"Name"`
 	Class               string                      `json:"class" awsmTable:"Class"`

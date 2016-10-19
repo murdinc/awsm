@@ -7,8 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/simpledb"
 )
 
+// AlarmClasses is a map of Alarm Classes
 type AlarmClasses map[string]AlarmClass
 
+// AlarmClass is a single Alarm Class
 type AlarmClass struct {
 	AlarmDescription        string   `json:"alarmDescription" awsmList:"Alarm Description"`
 	AlarmActions            []string `json:"alarmActions" awsmList:"Alarm Actions"`
@@ -25,6 +27,7 @@ type AlarmClass struct {
 	Unit                    string   `json:"unit" awsmList:"Unit"`
 }
 
+// DefaultAlarms returns the defauly Alarm Classes
 func DefaultAlarms() AlarmClasses {
 	defaultAlarms := make(AlarmClasses)
 
@@ -57,6 +60,7 @@ func DefaultAlarms() AlarmClasses {
 	return defaultAlarms
 }
 
+// LoadAlarmClass loads a single Alarm Class
 func LoadAlarmClass(name string) (AlarmClass, error) {
 	cfgs := make(AlarmClasses)
 	item, err := GetItemByName("alarms", name)
@@ -68,6 +72,7 @@ func LoadAlarmClass(name string) (AlarmClass, error) {
 	return cfgs[name], nil
 }
 
+// LoadAllAlarmClasses loads all Alarm Classes
 func LoadAllAlarmClasses() (AlarmClasses, error) {
 	cfgs := make(AlarmClasses)
 	items, err := GetItemsByType("alarms")
@@ -79,6 +84,7 @@ func LoadAllAlarmClasses() (AlarmClasses, error) {
 	return cfgs, nil
 }
 
+// Marshal puts the items from simpledb into an AlarmClass struct
 func (c AlarmClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "alarms/", "", -1)
