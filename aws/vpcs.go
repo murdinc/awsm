@@ -18,10 +18,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Vpcs represents a slice of VPCs
 type Vpcs []Vpc
 
+// Vpc represents a single VPC
 type Vpc models.Vpc
 
+// GetVpcByTag returns a single VPC that matches the provided region and Tag key/value
 func GetVpcByTag(region, key, value string) (Vpc, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
@@ -56,6 +59,7 @@ func GetVpcByTag(region, key, value string) (Vpc, error) {
 	return Vpc{}, errors.New("Found more than one VPC with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 }
 
+// GetVpcSecurityGroupByTag returns a VPC Security Group that matches the provided Tag key/value
 func (v *Vpc) GetVpcSecurityGroupByTag(key, value string) (SecurityGroup, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(v.Region)}))
@@ -96,6 +100,7 @@ func (v *Vpc) GetVpcSecurityGroupByTag(key, value string) (SecurityGroup, error)
 	return SecurityGroup{}, errors.New("Found more than one VPC Security Group with [" + key + "] of [" + value + "] in [" + v.Region + "], Aborting!")
 }
 
+// GetVpcSecurityGroupByTagMulti returns a slice VPC Security Groups that matches the provided Tag key/value. Multiple values can be passed
 func (v *Vpc) GetVpcSecurityGroupByTagMulti(key string, value []string) (SecurityGroups, error) {
 	var secList SecurityGroups
 	for _, val := range value {
@@ -110,6 +115,7 @@ func (v *Vpc) GetVpcSecurityGroupByTagMulti(key string, value []string) (Securit
 	return secList, nil
 }
 
+// GetVpcSubnetByTag Gets a single VPC Subnet that matches the provided Tag key/value
 func (v *Vpc) GetVpcSubnetByTag(key, value string) (Subnet, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(v.Region)}))
@@ -151,6 +157,7 @@ func (v *Vpc) GetVpcSubnetByTag(key, value string) (Subnet, error) {
 	return Subnet{}, errors.New("Please limit your request to return only one Subnet")
 }
 
+// GetVpcs returns a slice of VPCs that match the provided search term
 func GetVpcs(search string) (*Vpcs, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -175,6 +182,7 @@ func GetVpcs(search string) (*Vpcs, []error) {
 	return vpcList, errs
 }
 
+// Marshal parses the response from the aws sdk into an awsm Vpc
 func (v *Vpc) Marshal(vpc *ec2.Vpc, region string) {
 	v.Name = GetTagValue("Name", vpc.Tags)
 	v.Class = GetTagValue("Class", vpc.Tags)
@@ -187,6 +195,7 @@ func (v *Vpc) Marshal(vpc *ec2.Vpc, region string) {
 	v.Region = region
 }
 
+// GetRegionVpcs returns a list of a regions VPCs that match the provided search term
 func GetRegionVpcs(region string, vpcList *Vpcs, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeVpcs(&ec2.DescribeVpcsInput{})
@@ -222,6 +231,7 @@ func GetRegionVpcs(region string, vpcList *Vpcs, search string) error {
 	return nil
 }
 
+// GetVpcName returns the name of a VPC given its ID
 func (i *Vpcs) GetVpcName(id string) string {
 	for _, vpc := range *i {
 		if vpc.VpcID == id && vpc.Name != "" {
@@ -231,6 +241,7 @@ func (i *Vpcs) GetVpcName(id string) string {
 	return id
 }
 
+// PrintTable Prints an ascii table of the list of VPCs
 func (i *Vpcs) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No VPCs Found!")
@@ -250,6 +261,7 @@ func (i *Vpcs) PrintTable() {
 	table.Render()
 }
 
+// CreateVpc creates a new VPC
 func CreateVpc(class, name, ip, region string, dryRun bool) error {
 
 	// --dry-run flag
@@ -346,7 +358,7 @@ func DeleteVpcs(search, region string, dryRun bool) (err error) {
 	return nil
 }
 
-// Private function without the confirmation terminal prompts
+// private function without the confirmation terminal prompts
 func deleteVpcs(vpcList *Vpcs, dryRun bool) (err error) {
 	for _, vpc := range *vpcList {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(vpc.Region)}))

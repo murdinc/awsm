@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
+// GetRegionList returns a list of AWS Regions
 func GetRegionList() []*ec2.Region {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String("us-east-1")}))
 
@@ -21,6 +22,7 @@ func GetRegionList() []*ec2.Region {
 	return resp.Regions
 }
 
+// ValidRegion returns true if the provided region is valid
 func ValidRegion(region string) bool {
 	vregions := GetRegionList()
 	for _, vregion := range vregions {

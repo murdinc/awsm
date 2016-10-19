@@ -21,10 +21,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// AutoScaleGroups represents a slice of AutoScale Groups
 type AutoScaleGroups []AutoScaleGroup
 
+// AutoScaleGroup represents a single AutoScale Group
 type AutoScaleGroup models.AutoScaleGroup
 
+// GetAutoScaleGroups returns a slice of AutoScale Groups based on the given search term
 func GetAutoScaleGroups(search string) (*AutoScaleGroups, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -49,6 +52,7 @@ func GetAutoScaleGroups(search string) (*AutoScaleGroups, []error) {
 	return asgList, errs
 }
 
+// GetRegionAutoScaleGroups returns a list of AutoScale Groups for a given region into the provided AutoScaleGroups slice
 func GetRegionAutoScaleGroups(region string, asgList *AutoScaleGroups, search string) error {
 	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
@@ -87,19 +91,20 @@ func GetRegionAutoScaleGroups(region string, asgList *AutoScaleGroups, search st
 	return nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm AutoScale Group
 func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region string, subList *Subnets) {
 	a.Name = aws.StringValue(autoscalegroup.AutoScalingGroupName)
 	a.Class = GetTagValue("Class", autoscalegroup.Tags)
 	a.HealthCheckType = aws.StringValue(autoscalegroup.HealthCheckType)
 	a.HealthCheckGracePeriod = int(aws.Int64Value(autoscalegroup.HealthCheckGracePeriod))
 	a.LaunchConfig = aws.StringValue(autoscalegroup.LaunchConfigurationName)
-	a.LoadBalancers = strings.Join(aws.StringValueSlice(autoscalegroup.LoadBalancerNames), ", ")
+	a.LoadBalancers = aws.StringValueSlice(autoscalegroup.LoadBalancerNames)
 	a.InstanceCount = len(autoscalegroup.Instances)
 	a.DesiredCapacity = int(aws.Int64Value(autoscalegroup.DesiredCapacity))
 	a.MinSize = int(aws.Int64Value(autoscalegroup.MinSize))
 	a.MaxSize = int(aws.Int64Value(autoscalegroup.MaxSize))
 	a.DefaultCooldown = int(aws.Int64Value(autoscalegroup.DefaultCooldown))
-	a.AvailabilityZones = strings.Join(aws.StringValueSlice(autoscalegroup.AvailabilityZones), ", ")
+	a.AvailabilityZones = aws.StringValueSlice(autoscalegroup.AvailabilityZones)
 	a.SubnetID = aws.StringValue(autoscalegroup.VPCZoneIdentifier)
 	a.SubnetName = subList.GetSubnetName(a.SubnetID)
 	a.VpcID = subList.GetVpcIDBySubnetID(a.SubnetID)
@@ -107,6 +112,7 @@ func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region strin
 	a.Region = region
 }
 
+// LockedLaunchConfigurations returns a map of Launch Configurations that are locked (currently being used in an AutoScale Group)
 func (a *AutoScaleGroups) LockedLaunchConfigurations() map[string]bool {
 
 	ids := make(map[string]bool, len(*a))
@@ -116,6 +122,7 @@ func (a *AutoScaleGroups) LockedLaunchConfigurations() map[string]bool {
 	return ids
 }
 
+// CreateAutoScaleGroups creates a new AutoScale Group of the given class
 func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -249,7 +256,7 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 
 }
 
-// UpdateAutoScaleGroups - Public function with confirmation terminal prompt
+// UpdateAutoScaleGroups updates existing AutoScale Groups that match the given search term to the provided version of Launch Configuration
 func UpdateAutoScaleGroups(name, version string, double, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -395,7 +402,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 	return nil
 }
 
-// DeleteAutoScaleGroups - Public function with confirmation terminal prompt
+// DeleteAutoScaleGroups deletes one or more AutoScale Groups that match the provided name and optionally the provided region
 func DeleteAutoScaleGroups(name, region string, force, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -471,6 +478,7 @@ func deleteAutoScaleGroups(asgList *AutoScaleGroups, force, dryRun bool) (err er
 	return nil
 }
 
+// SuspendProcesses suspends AutoScaling actions on AutoScaling Groups that match the provided search term and (optional) region
 func SuspendProcesses(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -538,6 +546,7 @@ func suspendProcesses(asgList *AutoScaleGroups) error {
 	return nil
 }
 
+// ResumeProcesses resumes AutoScaling actions on AutoScaling Groups that match the provided search term and (optional) region
 func ResumeProcesses(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -605,6 +614,7 @@ func resumeProcesses(asgList *AutoScaleGroups) error {
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of AutoScaling Groups
 func (a *AutoScaleGroups) PrintTable() {
 	if len(*a) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Autoscale Groups Found!")

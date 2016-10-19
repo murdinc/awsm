@@ -18,10 +18,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Alarms represents a slice of CloudWatch Alarms
 type Alarms []Alarm
 
+// Alarm represents a single CloudWatch Alarm
 type Alarm models.Alarm
 
+// GetAlarms returns a slice of CloudWatch Alarms
 func GetAlarms() (*Alarms, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -46,6 +49,7 @@ func GetAlarms() (*Alarms, []error) {
 	return alList, errs
 }
 
+// GetRegionAlarms returns a list of CloudWatch Alarms for the given region into the provided Alarms slice
 func GetRegionAlarms(region string, alList *Alarms) error {
 	svc := cloudwatch.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeAlarms(&cloudwatch.DescribeAlarmsInput{})
@@ -62,6 +66,7 @@ func GetRegionAlarms(region string, alList *Alarms) error {
 	return nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm Alarm
 func (a *Alarm) Marshal(alarm *cloudwatch.MetricAlarm, region string) {
 	var dimensions []string
 	var operator string
@@ -113,6 +118,7 @@ func (a *Alarm) Marshal(alarm *cloudwatch.MetricAlarm, region string) {
 	a.Region = region
 }
 
+// CreateAlarm creates a new CloudWatch Alarm given the provided class, region, and dimensions of that Alarm
 func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool) error {
 
 	// --dry-run flag
@@ -186,6 +192,7 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of CloudWatch Alarms
 func (i *Alarms) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Alarms Found!")

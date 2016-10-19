@@ -71,7 +71,7 @@ func testCreds() (credentials.Value, error) {
 	return sess.Config.Credentials.Get()
 }
 
-// Reads in the config and returns a awsmCreds struct
+// readCreds reads in the config and returns a awsmCreds struct
 func readCreds() (*awsmCreds, error) {
 	// Reads in our config file
 	config := new(awsmCreds)
@@ -107,7 +107,7 @@ func readCreds() (*awsmCreds, error) {
 	return config, err
 }
 
-// Save our list of profile into the config file
+// SaveCreds Saves our list of profiles into the config file
 func (a *awsmCreds) SaveCreds() error {
 	// Saves our config file
 	currentUser, _ := user.Current()

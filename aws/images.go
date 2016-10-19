@@ -21,10 +21,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Images represents a slice of Amazon Machine Images
 type Images []Image
 
+// Image represents a single Amazon Machine Image
 type Image models.Image
 
+// GetImageName returns the name of an AMI given the provided AMI ID
 func (i *Images) GetImageName(id string) string {
 	for _, img := range *i {
 		if img.ImageID == id && img.Name != "" {
@@ -36,6 +39,7 @@ func (i *Images) GetImageName(id string) string {
 	return id
 }
 
+// GetImagesByTag returns a slice of Amazon Machine Images given the provided region, and tag key/values
 func GetImagesByTag(region, key, value string) (Images, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -66,6 +70,7 @@ func GetImagesByTag(region, key, value string) (Images, error) {
 
 }
 
+// GetLatestImageByTag returns the newest Amazon Machine Image in the provided region that matches the key/value tag provided
 func GetLatestImageByTag(region, key, value string) (Image, error) {
 	images, err := GetImagesByTag(region, key, value)
 	sort.Sort(images)
@@ -73,6 +78,7 @@ func GetLatestImageByTag(region, key, value string) (Image, error) {
 	return images[0], err
 }
 
+// GetImages returns a slice of Images based on the provided search term and optional available flag
 func GetImages(search string, available bool) (*Images, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -97,6 +103,7 @@ func GetImages(search string, available bool) (*Images, []error) {
 	return imgList, errs
 }
 
+// GetRegionImages returns a slice of AMI's into the passed Image slice based on the provided region and search term, and optional available flag
 func GetRegionImages(region string, imgList *Images, search string, available bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeImages(&ec2.DescribeImagesInput{Owners: []*string{aws.String("self")}})
@@ -139,6 +146,7 @@ func GetRegionImages(region string, imgList *Images, search string, available bo
 	return nil
 }
 
+// CopyImage copies an existing AMI to another region
 func CopyImage(search, region string, dryRun bool) error {
 
 	// --dry-run flag
@@ -176,6 +184,7 @@ func CopyImage(search, region string, dryRun bool) error {
 	return SetEc2NameAndClassTags(copyImageResp.ImageId, image.Name, image.Class, region)
 }
 
+// private function without prompts
 func copyImage(image Image, region string, dryRun bool) (*ec2.CopyImageOutput, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
@@ -202,6 +211,7 @@ func copyImage(image Image, region string, dryRun bool) (*ec2.CopyImageOutput, e
 	return copyImageResp, err
 }
 
+// CreateImage creates a new Amazon Machine Image from an instance matching the provided search term. It assigns the Image the class and name that was provided
 func CreateImage(search, class, name string, dryRun bool) error {
 
 	// --dry-run flag
@@ -293,7 +303,7 @@ func CreateImage(search, class, name string, dryRun bool) error {
 
 	// Rotate out older images
 	if cfg.Retain > 1 {
-		err := RotateImages(class, cfg, dryRun)
+		err := rotateImages(class, cfg, dryRun)
 		if err != nil {
 			terminal.ShowErrorMessage(fmt.Sprintf("Error rotating [%s] images!", sourceImage.Class), err.Error())
 			return err
@@ -303,7 +313,8 @@ func CreateImage(search, class, name string, dryRun bool) error {
 	return nil
 }
 
-func RotateImages(class string, cfg config.ImageClass, dryRun bool) error {
+// rotateImages rotates out images based on the "retain" number set in the Image class
+func rotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -354,6 +365,7 @@ func RotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 	return nil
 }
 
+// waitForImage waits for an Image to complete being created
 func waitForImage(imageID, region string, dryRun bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -373,6 +385,7 @@ func waitForImage(imageID, region string, dryRun bool) error {
 	return err
 }
 
+// createImage is the private function without terminal prompts
 func createImage(instanceID, name, region string, dryRun bool) (*ec2.CreateImageOutput, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
@@ -413,6 +426,7 @@ func createImage(instanceID, name, region string, dryRun bool) (*ec2.CreateImage
 	return createImageResp, err
 }
 
+// Marshal parses the response from the aws sdk into an awsm Image
 func (i *Image) Marshal(image *ec2.Image, region string) {
 	var snapshotID, volSize string
 	root := aws.StringValue(image.RootDeviceType)
@@ -507,19 +521,22 @@ func deleteImages(imgList *Images, dryRun bool) (err error) {
 	return nil
 }
 
-// Functions for sorting
+// Len returns the number of Images within the Images slice
 func (i Images) Len() int {
 	return len(i)
 }
 
+// Swap swaps the position of two Images within the Image slice
 func (i Images) Swap(k, j int) {
 	i[k], i[j] = i[j], i[k]
 }
 
+// Less returns true if the Image at index k is newer than the Image at index j
 func (i Images) Less(k, j int) bool {
 	return i[k].CreationDate.After(i[j].CreationDate)
 }
 
+// PrintTable Prints an ascii table of the list of Amazon Machine Images
 func (i *Images) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Images Found!")

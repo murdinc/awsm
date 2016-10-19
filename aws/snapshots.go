@@ -20,10 +20,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Snapshots represents a slice of EBS Snapshots
 type Snapshots []Snapshot
 
+// Snapshot represents a single EBS Snapshot
 type Snapshot models.Snapshot
 
+// GetSnapshotsByTag returns a slice of EBS Snapshots that match the provided region and Tag key/value
 func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -53,6 +56,7 @@ func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 	return snapList, err
 }
 
+// GetLatestSnapshotByTag returns the newest EBS Snapshot that matches the provided region and Tag key/value
 func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
 	snapshots, err := GetSnapshotsByTag(region, key, value)
 	sort.Sort(snapshots)
@@ -60,6 +64,7 @@ func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
 	return snapshots[0], err
 }
 
+// GetLatestSnapshotByTagMulti returns a slice of the newest EBS Snapshot that matches the provided region and Tag key/value. Multiple Tag values can be provided
 func GetLatestSnapshotByTagMulti(region, key string, value []string) (Snapshots, error) {
 	var snapList Snapshots
 	for _, v := range value {
@@ -74,6 +79,7 @@ func GetLatestSnapshotByTagMulti(region, key string, value []string) (Snapshots,
 	return snapList, nil
 }
 
+// GetSnapshots returns a slice of EBS Snapshots that match the provided search term and optional completed flag
 func GetSnapshots(search string, completed bool) (*Snapshots, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -98,6 +104,7 @@ func GetSnapshots(search string, completed bool) (*Snapshots, []error) {
 	return snapList, errs
 }
 
+// Marshal parses the response from the aws sdk into an awsm Snapshot
 func (s *Snapshot) Marshal(snapshot *ec2.Snapshot, region string) {
 	s.Name = GetTagValue("Name", snapshot.Tags)
 	s.Class = GetTagValue("Class", snapshot.Tags)
@@ -121,6 +128,7 @@ func (s *Snapshot) Marshal(snapshot *ec2.Snapshot, region string) {
 	}
 }
 
+// GetRegionSnapshots returns a list of a regions Snapshots into the provided Snapshots slice that match the provided search term and optional completed flag
 func GetRegionSnapshots(region string, snapList *Snapshots, search string, completed bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSnapshots(&ec2.DescribeSnapshotsInput{OwnerIds: []*string{aws.String("self")}})
@@ -156,6 +164,7 @@ func GetRegionSnapshots(region string, snapList *Snapshots, search string, compl
 	return nil
 }
 
+// CopySnapshot copies a Snapshot to another region
 func CopySnapshot(search, region string, dryRun bool) error {
 
 	// --dry-run flag
@@ -201,6 +210,7 @@ func CopySnapshot(search, region string, dryRun bool) error {
 	return nil
 }
 
+// private function without terminal prompts
 func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnapshotOutput, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -226,6 +236,7 @@ func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnaps
 	return copySnapResp, err
 }
 
+// CreateSnapshot creates a new EBS Snapshot
 func CreateSnapshot(search, class, name string, dryRun bool) error {
 
 	// --dry-run flag
@@ -316,7 +327,7 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 
 	// Rotate out older snapshots
 	if cfg.Retain > 1 {
-		err := RotateSnapshots(class, cfg, dryRun)
+		err := rotateSnapshots(class, cfg, dryRun)
 		if err != nil {
 			terminal.ShowErrorMessage(fmt.Sprintf("Error rotating [%s] snapshots!", sourceSnapshot.Class), err.Error())
 			return err
@@ -326,7 +337,8 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 	return nil
 }
 
-func RotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error {
+// rotateSnapshots rotates out older Snapshots
+func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -377,6 +389,7 @@ func RotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 	return nil
 }
 
+// waitForSnapshot waits for a snapshot to complete
 func waitForSnapshot(snapshotID, region string, dryRun bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -395,6 +408,7 @@ func waitForSnapshot(snapshotID, region string, dryRun bool) error {
 	return err
 }
 
+// private function without terminal prompts
 func createSnapshot(volumeID, region string, dryRun bool) (*ec2.Snapshot, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -415,7 +429,7 @@ func createSnapshot(volumeID, region string, dryRun bool) (*ec2.Snapshot, error)
 	return createSnapshotResp, err
 }
 
-// DeleteSnapshots deletes one oe more EBS Snapshots based on the given search term an optional region input.
+// DeleteSnapshots deletes one or more EBS Snapshots based on the given search term an optional region input.
 func DeleteSnapshots(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -462,7 +476,7 @@ func DeleteSnapshots(search, region string, dryRun bool) (err error) {
 	return nil
 }
 
-// Private function without the confirmation terminal prompts
+// private function without the confirmation terminal prompts
 func deleteSnapshots(snapList *Snapshots, dryRun bool) (err error) {
 	for _, snapshot := range *snapList {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(snapshot.Region)}))
@@ -483,18 +497,22 @@ func deleteSnapshots(snapList *Snapshots, dryRun bool) (err error) {
 	return nil
 }
 
+// Len returns the number of EBS Snapshots
 func (s Snapshots) Len() int {
 	return len(s)
 }
 
+// Swap swaps the Snapshots at index i and j
 func (s Snapshots) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
+// Less returns true of the Snapshot at index i is newer than the Snapshot at index j
 func (s Snapshots) Less(i, j int) bool {
 	return s[i].StartTime.After(s[j].StartTime)
 }
 
+// PrintTable Prints an ascii table of the list of EBS Snapshots
 func (s *Snapshots) PrintTable() {
 	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Snapshots Found!")

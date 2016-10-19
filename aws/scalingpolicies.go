@@ -15,10 +15,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// ScalingPolicies represents a slice of Scaling Policies
 type ScalingPolicies []ScalingPolicy
 
+// ScalingPolicy represents a single Scaling Policy
 type ScalingPolicy models.ScalingPolicy
 
+// GetScalingPolicies returns a slice of Scaling Policies
 func GetScalingPolicies() (*ScalingPolicies, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -43,6 +46,7 @@ func GetScalingPolicies() (*ScalingPolicies, []error) {
 	return spList, errs
 }
 
+// GetRegionScalingPolicies returns a slice of Scaling Policies for a region into the given ScalingPolicies slice
 func GetRegionScalingPolicies(region string, spList *ScalingPolicies) error {
 	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribePolicies(&autoscaling.DescribePoliciesInput{})
@@ -59,6 +63,7 @@ func GetRegionScalingPolicies(region string, spList *ScalingPolicies) error {
 	return nil
 }
 
+// GetPolicyNameByArn returns the name of a Scaling Policy given the provided arn of that policy
 func (s *ScalingPolicies) GetPolicyNameByArn(arn string) string {
 	for _, policy := range *s {
 		if policy.Arn == arn && policy.Name != "" {
@@ -70,6 +75,7 @@ func (s *ScalingPolicies) GetPolicyNameByArn(arn string) string {
 	return arn
 }
 
+// Marshal parses the response from the aws sdk into an awsm ScalingPolicy
 func (s *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string) {
 	adjustment := int(aws.Int64Value(policy.ScalingAdjustment))
 	adjustmentStr := fmt.Sprint(adjustment)
@@ -105,6 +111,7 @@ func (s *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string
 	s.Region = region
 }
 
+// PrintTable Prints an ascii table of the list of Scaling Policies
 func (s *ScalingPolicies) PrintTable() {
 	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Scaling Policies Found!")

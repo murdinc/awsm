@@ -18,10 +18,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Subnets represents a slice of Subnets
 type Subnets []Subnet
 
+// Subnet represents a single Subnet
 type Subnet models.Subnet
 
+// GetSubnetNames returns a slice of Subnet Names given their ID's
 func (s *Subnets) GetSubnetNames(ids []string) []string {
 	names := make([]string, len(ids))
 	for i, id := range ids {
@@ -36,6 +39,7 @@ func (s *Subnets) GetSubnetNames(ids []string) []string {
 	return names
 }
 
+// GetSubnetByTag returns a single Subnet given the provided region and Tag key/value
 func GetSubnetByTag(region, key, value string) (Subnet, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -73,6 +77,7 @@ func GetSubnetByTag(region, key, value string) (Subnet, error) {
 	return Subnet{}, errors.New("Found more than one Subnet with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 }
 
+// GetSubnets returns a slice of Subnets that match the provided search term
 func GetSubnets(search string) (*Subnets, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -97,6 +102,7 @@ func GetSubnets(search string) (*Subnets, []error) {
 	return subList, errs
 }
 
+// Marshal parses the response from the aws sdk into an awsm Subnet
 func (s *Subnet) Marshal(subnet *ec2.Subnet, region string, vpcList *Vpcs) {
 	s.Name = GetTagValue("Name", subnet.Tags)
 	s.Class = GetTagValue("Class", subnet.Tags)
@@ -112,6 +118,7 @@ func (s *Subnet) Marshal(subnet *ec2.Subnet, region string, vpcList *Vpcs) {
 	s.Region = region
 }
 
+// GetRegionSubnets returns a list of Subnets of a region into the provided Subnets slice
 func GetRegionSubnets(region string, subList *Subnets, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: &region}))
 	result, err := svc.DescribeSubnets(&ec2.DescribeSubnetsInput{})
@@ -150,6 +157,7 @@ func GetRegionSubnets(region string, subList *Subnets, search string) error {
 	return nil
 }
 
+// GetSubnetsByVpcID returns a slice of Subnets that belong to the provided VPC ID
 func GetSubnetsByVpcID(vpcID string, region string) (Subnets, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -181,6 +189,7 @@ func GetSubnetsByVpcID(vpcID string, region string) (Subnets, error) {
 	return Subnets{}, nil
 }
 
+// GetSubnetName returns the name of a Subnet given its ID
 func (s *Subnets) GetSubnetName(id string) string {
 	for _, subnet := range *s {
 		if subnet.SubnetID == id && subnet.Name != "" {
@@ -190,6 +199,7 @@ func (s *Subnets) GetSubnetName(id string) string {
 	return id
 }
 
+// GetVpcIDBySubnetID returns the ID of a VPC given the ID of a Subnet
 func (s *Subnets) GetVpcIDBySubnetID(id string) string {
 	for _, subnet := range *s {
 		if subnet.SubnetID == id && subnet.VpcName != "" {
@@ -201,6 +211,7 @@ func (s *Subnets) GetVpcIDBySubnetID(id string) string {
 	return ""
 }
 
+// GetVpcNameBySubnetID returns the Name of a VPC given the ID of a Subnet
 func (s *Subnets) GetVpcNameBySubnetID(id string) string {
 	for _, subnet := range *s {
 		if subnet.SubnetID == id && subnet.VpcName != "" {
@@ -212,6 +223,7 @@ func (s *Subnets) GetVpcNameBySubnetID(id string) string {
 	return ""
 }
 
+// CreateSubnet creates a new VPC Subnet
 func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 
 	// --dry-run flag
@@ -322,7 +334,7 @@ func DeleteSubnets(name, region string, dryRun bool) (err error) {
 	return nil
 }
 
-// Private function without the confirmation terminal prompts
+// private function without the confirmation terminal prompts
 func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 	for _, subnet := range *subnetList {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(subnet.Region)}))
@@ -343,6 +355,7 @@ func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of Subnets
 func (s *Subnets) PrintTable() {
 	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Subnets Found!")

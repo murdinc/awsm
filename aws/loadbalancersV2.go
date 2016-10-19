@@ -17,10 +17,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// LoadBalancersV2 represents a slice of Application Load Balancers
 type LoadBalancersV2 []LoadBalancerV2
 
+// LoadBalancerV2 represents a single Application Load Balancer
 type LoadBalancerV2 models.LoadBalancerV2
 
+// GetLoadBalancersV2 returns a slice of Application Load Balancers
 func GetLoadBalancersV2() (*LoadBalancersV2, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -45,6 +48,7 @@ func GetLoadBalancersV2() (*LoadBalancersV2, []error) {
 	return lbList, errs
 }
 
+// GetRegionLoadBalancersV2 returns a slice of Application Load Balancers in the region into the provided LoadBalancersV2 slice
 func GetRegionLoadBalancersV2(region string, lbList *LoadBalancersV2) error {
 	svc := elbv2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeLoadBalancers(&elbv2.DescribeLoadBalancersInput{})
@@ -67,6 +71,7 @@ func GetRegionLoadBalancersV2(region string, lbList *LoadBalancersV2) error {
 	return nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm LoadBalancerV2
 func (l *LoadBalancerV2) Marshal(balancer *elbv2.LoadBalancer, region string, secGrpList *SecurityGroups) {
 
 	secGroupNames := secGrpList.GetSecurityGroupNames(aws.StringValueSlice(balancer.SecurityGroups))
@@ -89,6 +94,7 @@ func (l *LoadBalancerV2) Marshal(balancer *elbv2.LoadBalancer, region string, se
 
 }
 
+// PrintTable Prints an ascii table of the list of Application Load Balancers
 func (i *LoadBalancersV2) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Application Load Balancers Found!")

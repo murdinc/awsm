@@ -21,10 +21,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Volumes represents a slice of EBS Volumes
 type Volumes []Volume
 
+// Volume represents a single EBS Volume
 type Volume models.Volume
 
+// GetVolumeByTag returns a single EBS Volume given a region and Tag key/value
 func GetVolumeByTag(region, key, value string) (Volume, error) {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
@@ -72,6 +75,7 @@ func GetVolumeByTag(region, key, value string) (Volume, error) {
 	return Volume{}, errors.New("Please limit your search to return only one volume.")
 }
 
+// GetVolumes returns a slice of Volumes that match the provided search term and optional available flag
 func GetVolumes(search string, available bool) (*Volumes, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -96,6 +100,7 @@ func GetVolumes(search string, available bool) (*Volumes, []error) {
 	return volList, errs
 }
 
+// GetRegionVolumes returns a slice of region Volumes into the provided Volumes slice that matches the provided region and search, and optional available flag
 func GetRegionVolumes(region string, volList *Volumes, search string, available bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeVolumes(&ec2.DescribeVolumesInput{})
@@ -134,6 +139,7 @@ func GetRegionVolumes(region string, volList *Volumes, search string, available 
 	return nil
 }
 
+// DetachVolume detaches an EBS Volume from an Instance
 func DetachVolume(volume, instance string, force, dryRun bool) error {
 	// Get the instance
 	instances, _ := GetInstances(instance, true)
@@ -186,6 +192,7 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 	return nil
 }
 
+// AttachVolume attaches an EBS Volume to an Instance
 func AttachVolume(volume, instance string, dryRun bool) error {
 
 	// Get the instance
@@ -246,6 +253,7 @@ func AttachVolume(volume, instance string, dryRun bool) error {
 	return nil
 }
 
+// CreateVolume creates a new EBS Volume
 func CreateVolume(class, name, az string, dryRun bool) error {
 
 	// --dry-run flag
@@ -387,6 +395,7 @@ func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
 	return nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm Volume
 func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances) {
 	v.Name = GetTagValue("Name", volume.Tags)
 	v.Class = GetTagValue("Class", volume.Tags)
@@ -412,18 +421,22 @@ func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances)
 
 }
 
+// Len returns the number of EBS Volumes
 func (v Volumes) Len() int {
 	return len(v)
 }
 
+// Swap swaps the Volumes at index i and j
 func (v Volumes) Swap(i, j int) {
 	v[i], v[j] = v[j], v[i]
 }
 
+// Less returns true if the Volume at index i was created after the volume at index j
 func (v Volumes) Less(i, j int) bool {
 	return v[i].CreationTime.After(v[j].CreationTime)
 }
 
+// PrintTable Prints an ascii table of the list of EBS Volumes
 func (v *Volumes) PrintTable() {
 	if len(*v) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Volumes Found!")

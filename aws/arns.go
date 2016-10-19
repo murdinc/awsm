@@ -13,8 +13,10 @@ import (
 	to make these human friendly before Marshalling would cause an infinite-loop. :-(
 */
 
+// ARN represents a single Amazon Resource Number
 type ARN models.ARN
 
+// ParseArn parses an ARN string and returns an awsm ARN object
 func ParseArn(arnStr string) (*ARN, error) {
 	split := strings.SplitN(arnStr, ":", -1)
 

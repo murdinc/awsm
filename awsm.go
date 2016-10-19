@@ -643,7 +643,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.DeleteSimpleDBDomain(c.NamedArg("search"), c.NamedArg("region"))
+				err := aws.DeleteSimpleDBDomains(c.NamedArg("search"), c.NamedArg("region"))
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}

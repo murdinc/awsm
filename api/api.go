@@ -8,6 +8,7 @@ import (
 	"github.com/pressly/chi/middleware"
 )
 
+// StartAPI Starts the API listener on port 8081
 func StartAPI() {
 	r := chi.NewRouter()
 

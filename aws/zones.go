@@ -11,10 +11,13 @@ import (
 	"github.com/murdinc/terminal"
 )
 
+// AZs represents a slice of Availability Zones
 type AZs []AZ
 
+// AZ represents a single Availability Zone
 type AZ models.AZ
 
+// AZList returns a slice of Availability Zone names (strings)
 func AZList() []string {
 	azs, _ := GetAZs()
 	azlist := make([]string, len(*azs))
@@ -25,6 +28,7 @@ func AZList() []string {
 	return azlist
 }
 
+// GetAZs returns a slice of Availability Zones
 func GetAZs() (*AZs, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -50,6 +54,7 @@ func GetAZs() (*AZs, []error) {
 	return azList, errs
 }
 
+// GetRegionAZs returns a slice of a regions Availability Zones into the provided AZs
 func GetRegionAZs(region string, azList *AZs) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeAvailabilityZones(nil)
@@ -72,6 +77,7 @@ func GetRegionAZs(region string, azList *AZs) error {
 	return nil
 }
 
+// ValidAZ returns true if the provided string is a valid Availability Zone
 func (a *AZs) ValidAZ(az string) bool {
 	for _, vaz := range *a {
 		if az == vaz.Name {
@@ -81,6 +87,7 @@ func (a *AZs) ValidAZ(az string) bool {
 	return false
 }
 
+// GetRegion returns the region of a provided Availability Zone
 func (a *AZs) GetRegion(az string) string {
 	for _, vaz := range *a {
 		if az == vaz.Name {
@@ -90,6 +97,7 @@ func (a *AZs) GetRegion(az string) string {
 	return ""
 }
 
+// GetRegionMap returns a map of Regions and their Availability Zones
 func (a *AZs) GetRegionMap(azList []string) map[string][]string {
 	azs, _ := GetAZs()
 

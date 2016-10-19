@@ -17,10 +17,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// LoadBalancers represents a slice of AWS Load Balancers
 type LoadBalancers []LoadBalancer
 
+// LoadBalancer represents a single AWS Load Balancer
 type LoadBalancer models.LoadBalancer
 
+// GetLoadBalancers returns a slice of AWS Load Balancers
 func GetLoadBalancers() (*LoadBalancers, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -45,6 +48,7 @@ func GetLoadBalancers() (*LoadBalancers, []error) {
 	return lbList, errs
 }
 
+// GetRegionLoadBalancers returns a list of Load Balancers in a region into the provided LoadBalancers slice
 func GetRegionLoadBalancers(region string, lbList *LoadBalancers) error {
 	svc := elb.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{})
@@ -70,6 +74,7 @@ func GetRegionLoadBalancers(region string, lbList *LoadBalancers) error {
 	return nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm LoadBalancer
 func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region string, secGrpList *SecurityGroups, vpcList *Vpcs, subList *Subnets) {
 
 	// security groups
@@ -98,6 +103,7 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 	l.Region = region
 }
 
+// PrintTable Prints an ascii table of the list of Load Balancers
 func (i *LoadBalancers) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Load Balancers Found!")

@@ -20,10 +20,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Instances represents a slice of EC2 Instances
 type Instances []Instance
 
+// Instance represents a single EC2 Instace
 type Instance models.Instance
 
+// GetInstances returns a list of EC2 Instances that match the provided search term and optional running flag
 func GetInstances(search string, running bool) (*Instances, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -49,6 +52,7 @@ func GetInstances(search string, running bool) (*Instances, []error) {
 	return instList, errs
 }
 
+// GetInstanceName returns the the name of an EC2 Instance given an EC2 Instance ID
 func (i *Instances) GetInstanceName(id string) string {
 	for _, instance := range *i {
 		if instance.InstanceID == id && instance.Name != "" {
@@ -58,6 +62,7 @@ func (i *Instances) GetInstanceName(id string) string {
 	return id
 }
 
+// Marshal parses the response from the aws sdk into an awsm Instance
 func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subnets, vpcList *Vpcs, imgList *Images) {
 
 	subnet := subList.GetSubnetName(aws.StringValue(instance.SubnetId))
@@ -86,6 +91,7 @@ func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subne
 	//instance.SecurityGroups
 }
 
+// GetRegionInstances returns a slice of Instances into the passed Instances slice based on the provided region and search term, and optional running flag
 func GetRegionInstances(region string, instList *Instances, search string, running bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: &region}))
 	result, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{})
@@ -129,6 +135,7 @@ func GetRegionInstances(region string, instList *Instances, search string, runni
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of Instances
 func (i *Instances) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Instances Found!")
@@ -148,6 +155,7 @@ func (i *Instances) PrintTable() {
 	table.Render()
 }
 
+// LaunchInstance Launches a new EC2 Instance
 func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	// --dry-run flag

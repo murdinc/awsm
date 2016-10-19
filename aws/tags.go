@@ -22,6 +22,7 @@ func GetTagValue(key string, tags interface{}) string {
 	return ""
 }
 
+// SetEc2NameAndClassTags sets the Name and Class tags of an EC2 asset
 func SetEc2NameAndClassTags(resource *string, name, class, region string) error {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))

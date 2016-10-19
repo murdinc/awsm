@@ -17,10 +17,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// SimpleDBDomains represents a slice of SimpleDB Domains
 type SimpleDBDomains []SimpleDBDomain
 
+// SimpleDBDomain represents a single SimpleDB Domain
 type SimpleDBDomain models.SimpleDBDomain
 
+// GetSimpleDBDomains returns a slice of SimpleDB Domains that match the provided search term
 func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -47,6 +50,7 @@ func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 	return domainList, errs
 }
 
+// GetRegionSimpleDBDomains returns a slice of a regions SimpleDB Domains into the provided SimpleDBDomains slice
 func GetRegionSimpleDBDomains(region *string, domainList *SimpleDBDomains, search string) error {
 	svc := simpledb.New(session.New(&aws.Config{Region: region}))
 	result, err := svc.ListDomains(nil)
@@ -85,6 +89,7 @@ func GetRegionSimpleDBDomains(region *string, domainList *SimpleDBDomains, searc
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of SimpleDB Domains
 func (i *SimpleDBDomains) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No SimpleDB Domains Found!")
@@ -104,6 +109,7 @@ func (i *SimpleDBDomains) PrintTable() {
 	table.Render()
 }
 
+// CreateSimpleDBDomain creates a new SimpleDB Domain
 func CreateSimpleDBDomain(domain, region string) error {
 
 	// Validate the region
@@ -127,7 +133,8 @@ func CreateSimpleDBDomain(domain, region string) error {
 	return err
 }
 
-func DeleteSimpleDBDomain(search, region string) (err error) {
+// DeleteSimpleDBDomains deletes one or more SimpleDB Domains
+func DeleteSimpleDBDomains(search, region string) (err error) {
 
 	domainList := new(SimpleDBDomains)
 

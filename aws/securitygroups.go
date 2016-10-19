@@ -19,10 +19,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// SecurityGroups represents a slice of Security Groups
 type SecurityGroups []SecurityGroup
 
+// SecurityGroup represents a single Security Group
 type SecurityGroup models.SecurityGroup
 
+// GetSecurityGroupNames returns a slice of the security group names (or ID's if a name is not available)
 func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
 	names := make([]string, len(ids))
 	for i, id := range ids {
@@ -37,6 +40,7 @@ func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
 	return names
 }
 
+// GetSecurityGroupByTag returns a single Security Group that matches a provided region and key/value tag
 func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -73,6 +77,7 @@ func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
 	return SecurityGroup{}, errors.New("Found more than one Security Group with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
 }
 
+// GetSecurityGroupByTagMulti returns a slice of Security Groups that matches a provided region and key/value tag. Accepts multiple tag values for a single key.
 func GetSecurityGroupByTagMulti(region, key string, value []string) (SecurityGroups, error) {
 	var secList SecurityGroups
 	for _, v := range value {
@@ -87,6 +92,7 @@ func GetSecurityGroupByTagMulti(region, key string, value []string) (SecurityGro
 	return secList, nil
 }
 
+// GetSecurityGroups returns a slice of Security Groups given a provided search term
 func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -111,6 +117,7 @@ func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 	return secGrpList, errs
 }
 
+// GetRegionSecurityGroups returns a regions Security Groups into the provided SecurityGroups slice
 func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{})
@@ -149,6 +156,7 @@ func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups, search s
 	return nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm Security Group
 func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string, vpcList *Vpcs) {
 
 	vpc := vpcList.GetVpcName(aws.StringValue(securitygroup.VpcId))
@@ -197,6 +205,7 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 
 }
 
+// PrintTable Prints an ascii table of the list of Security Groups
 func (s *SecurityGroups) PrintTable() {
 	if len(*s) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Security Groups Found!")
@@ -216,6 +225,7 @@ func (s *SecurityGroups) PrintTable() {
 	table.Render()
 }
 
+// CreateSecurityGroup creates a new Security Group based on the provided class, region, and VPC ID
 func CreateSecurityGroup(class, region, vpcID string, dryRun bool) error {
 
 	// --dry-run flag
@@ -258,6 +268,7 @@ func CreateSecurityGroup(class, region, vpcID string, dryRun bool) error {
 	return nil
 }
 
+// DeleteSecurityGroups deletes one or more Security Groups that match the provided search term and optional region
 func DeleteSecurityGroups(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -304,6 +315,7 @@ func DeleteSecurityGroups(search, region string, dryRun bool) (err error) {
 	return nil
 }
 
+// UpdateSecurityGroups updates one or more Security Groups that match the provided search term and optional region
 func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -350,6 +362,7 @@ func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
 	return nil
 }
 
+// private function without terminal prompts
 func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 
 	for _, secGrp := range *secGrpList {
@@ -410,6 +423,7 @@ func revokeEgress() {
 
 }
 
+// private function without terminal prompts
 func deleteSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 
 	for _, secGrp := range *secGrpList {

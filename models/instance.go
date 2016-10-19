@@ -4,7 +4,7 @@ type Instance struct {
 	Name             string `json:"name" awsmTable:"Name"`
 	Class            string `json:"class" awsmTable:"Class""`
 	PrivateIP        string `json:"privateIP" awsmTable:"Private IP`
-	PublicIP         string `json:"publicIP" awsmTable:"PublicIP""`
+	PublicIP         string `json:"publicIP" awsmTable:"Public IP""`
 	InstanceID       string `json:"instanceID" awsmTable:"Instance ID`
 	AMIID            string `json:"amiID" awsmTable:"AMI ID`
 	AMIName          string `json:"amiName" awsmTable:"AMI Name`

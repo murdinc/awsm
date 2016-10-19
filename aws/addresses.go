@@ -18,10 +18,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// Addresses represents a slice of Elastic IP Addresses
 type Addresses []Address
 
+// Address represents a single Elastic IP Address
 type Address models.Address
 
+// GetAddresses returns a slice of Elastic IP Addresses based on the given search term and optional available flag
 func GetAddresses(search string, available bool) (*Addresses, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -46,6 +49,7 @@ func GetAddresses(search string, available bool) (*Addresses, []error) {
 	return ipList, errs
 }
 
+// Marshal parses the response from the aws sdk into an awsm Address
 func (a *Address) Marshal(address *ec2.Address, region string, instList *Instances) {
 
 	a.AllocationID = aws.StringValue(address.AllocationId)
@@ -68,6 +72,7 @@ func (a *Address) Marshal(address *ec2.Address, region string, instList *Instanc
 	}
 }
 
+// GetRegionAddresses returns a list of Elastic IP Addresses for a given region into the provided Addresses slice
 func GetRegionAddresses(region string, adrList *Addresses, search string, available bool) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeAddresses(&ec2.DescribeAddressesInput{})
@@ -106,6 +111,7 @@ func GetRegionAddresses(region string, adrList *Addresses, search string, availa
 	return nil
 }
 
+// CreateAddress creates a new Elastic IP Address in the given region and domain
 func CreateAddress(region, domain string, dryRun bool) error {
 
 	// --dry-run flag
@@ -142,7 +148,7 @@ func CreateAddress(region, domain string, dryRun bool) error {
 	return nil
 }
 
-// DeleteAddresses - Public function with confirmation terminal prompt
+// DeleteAddresses Deletes one or more Elastic IP Addresses based on the given search term and optional region
 func DeleteAddresses(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -211,6 +217,7 @@ func deleteAddresses(addrList *Addresses, dryRun bool) (err error) {
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of Elastic IP Addresses
 func (i *Addresses) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Addresses Found!")

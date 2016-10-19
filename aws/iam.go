@@ -12,10 +12,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// IAMUsers represents a slice of AWS IAM Users
 type IAMUsers []IAMUser
 
+// IAMUser represents a single IAM User
 type IAMUser models.IAMUser
 
+// GetIAMUser returns a single IAM User that matches the provided username
 func GetIAMUser(username string) (IAMUser, error) {
 	svc := iam.New(session.New())
 
@@ -34,6 +37,7 @@ func GetIAMUser(username string) (IAMUser, error) {
 	return *user, nil
 }
 
+// GetIAMUsers returns a list of IAM Users that match the provided search term
 func GetIAMUsers(search string) (*IAMUsers, error) {
 	svc := iam.New(session.New())
 	result, err := svc.ListUsers(&iam.ListUsersInput{}) // TODO truncated?
@@ -51,6 +55,7 @@ func GetIAMUsers(search string) (*IAMUsers, error) {
 	return &iamList, nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm IAM User
 func (i *IAMUser) Marshal(user *iam.User) {
 	i.UserName = aws.StringValue(user.UserName)
 	i.UserID = aws.StringValue(user.UserId)
@@ -61,6 +66,7 @@ func (i *IAMUser) Marshal(user *iam.User) {
 	i.PasswordLastUsedHuman = humanize.Time(i.PasswordLastUsed) // humans
 }
 
+// PrintTable Prints an ascii table of the list of IAM Users
 func (i *IAMUsers) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No IAM Users Found!")
@@ -80,6 +86,7 @@ func (i *IAMUsers) PrintTable() {
 	table.Render()
 }
 
+// CreateIAMUser creates a new IAM User with the provided username and path
 func CreateIAMUser(username, path string) error {
 
 	svc := iam.New(session.New())
@@ -96,6 +103,7 @@ func CreateIAMUser(username, path string) error {
 	return err
 }
 
+// DeleteIAMUsers deletes one or more IAM Users that match the provided username
 func DeleteIAMUsers(username string) (err error) {
 
 	userList, err := GetIAMUsers(username)

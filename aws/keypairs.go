@@ -23,10 +23,13 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// KeyPairs represents a slice of AWS KeyPairs
 type KeyPairs []KeyPair
 
+// KeyPair represents a single AWS KeyPair
 type KeyPair models.KeyPair
 
+// GetKeyPairByName returns a single KeyPair given the provided region and name
 func GetKeyPairByName(region, name string) (KeyPair, error) {
 
 	if len(name) < 1 {
@@ -61,6 +64,7 @@ func GetKeyPairByName(region, name string) (KeyPair, error) {
 
 }
 
+// GetKeyPairs returns a slice of KeyPairs that match the provided search term
 func GetKeyPairs(search string) (*KeyPairs, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -86,12 +90,14 @@ func GetKeyPairs(search string) (*KeyPairs, []error) {
 	return keyList, errs
 }
 
+// Marshal parses the response from the aws sdk into an awsm KeyPair
 func (k *KeyPair) Marshal(keyPair *ec2.KeyPairInfo, region string) {
 	k.KeyName = aws.StringValue(keyPair.KeyName)
 	k.KeyFingerprint = aws.StringValue(keyPair.KeyFingerprint)
 	k.Region = region
 }
 
+// GetRegionKeyPairs returns a list of KeyPairs for a given region into the provided KeyPairs slice
 func GetRegionKeyPairs(region string, keyList *KeyPairs, search string) error {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{})
@@ -126,6 +132,7 @@ func GetRegionKeyPairs(region string, keyList *KeyPairs, search string) error {
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of KeyPairs
 func (i *KeyPairs) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No KeyPairs Found!")
@@ -145,6 +152,7 @@ func (i *KeyPairs) PrintTable() {
 	table.Render()
 }
 
+// CreateAndImportKeyPair creates a new KeyPair and imports it into AWS
 func CreateAndImportKeyPair(name string, dryRun bool) []error {
 
 	var wg sync.WaitGroup
@@ -170,7 +178,7 @@ func CreateAndImportKeyPair(name string, dryRun bool) []error {
 		go func(region *ec2.Region) {
 			defer wg.Done()
 
-			err := ImportKeyPair(*region.RegionName, name, pubKey, dryRun)
+			err := importKeyPair(*region.RegionName, name, pubKey, dryRun)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error importing public key to region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -183,7 +191,7 @@ func CreateAndImportKeyPair(name string, dryRun bool) []error {
 	return errs
 }
 
-func ImportKeyPair(region, name string, publicKey []byte, dryRun bool) error {
+func importKeyPair(region, name string, publicKey []byte, dryRun bool) error {
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -203,6 +211,7 @@ func ImportKeyPair(region, name string, publicKey []byte, dryRun bool) error {
 	return nil
 }
 
+// DeleteKeyPairs deletes an existing KeyPair from AWS
 func DeleteKeyPairs(name string, dryRun bool) (errs []error) {
 
 	if dryRun {

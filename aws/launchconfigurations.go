@@ -22,10 +22,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+//LaunchConfigs represents a slice of Launch Configurations
 type LaunchConfigs []LaunchConfig
 
+// LaunchConfig represents a single Launch Configuration
 type LaunchConfig models.LaunchConfig
 
+// GetLaunchConfigurationName returns the name of a Launch Configuration that matches the provided class and version, while also verifying that it exists
 func GetLaunchConfigurationName(region, class string, version int) string {
 	name := fmt.Sprintf("%s-v%d", class, version)
 	_, err := GetLaunchConfigurationsByName(region, name)
@@ -36,6 +39,7 @@ func GetLaunchConfigurationName(region, class string, version int) string {
 	return name
 }
 
+// GetLaunchConfigurationsByName returns a slice of Launch Configurations for a given region and name
 func GetLaunchConfigurationsByName(region, name string) (LaunchConfigs, error) {
 
 	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
@@ -67,6 +71,7 @@ func GetLaunchConfigurationsByName(region, name string) (LaunchConfigs, error) {
 	return lcList, err
 }
 
+// GetLaunchConfigurations returns a slice of Launch Configurations that match the provided search term
 func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
 	var wg sync.WaitGroup
 	var errs []error
@@ -91,6 +96,7 @@ func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
 	return lcList, errs
 }
 
+// GetRegionLaunchConfigurations returns a slice of Launch Configurations into the provided LaunchConfigs slice that match the region and search term
 func GetRegionLaunchConfigurations(region string, lcList *LaunchConfigs, search string) error {
 	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
 	result, err := svc.DescribeLaunchConfigurations(&autoscaling.DescribeLaunchConfigurationsInput{})
@@ -131,6 +137,7 @@ func GetRegionLaunchConfigurations(region string, lcList *LaunchConfigs, search 
 	return nil
 }
 
+// Marshal parses the response from the aws sdk into an awsm LaunchConfig
 func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region string, secGrpList *SecurityGroups, imgList *Images) {
 	secGroupNames := secGrpList.GetSecurityGroupNames(aws.StringValueSlice(config.SecurityGroups))
 	secGroupNamesSorted := sort.StringSlice(secGroupNames[0:])
@@ -152,6 +159,7 @@ func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region s
 	}
 }
 
+// LockedSnapshotIds returns a map of locked EBS Snapshots (that are currently being used in Launch Configurations)
 func (l *LaunchConfigs) LockedSnapshotIds() (ids map[string]bool) {
 	for _, config := range *l {
 		for _, snap := range config.SnapshotIDs {
@@ -161,6 +169,7 @@ func (l *LaunchConfigs) LockedSnapshotIds() (ids map[string]bool) {
 	return ids
 }
 
+// LockedImageIds returns a list of locked AMI's (that are currently being used in Launch Configurations)
 func (l *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
 	for _, config := range *l {
 		ids[config.ImageID] = true
@@ -168,6 +177,7 @@ func (l *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
 	return ids
 }
 
+// CreateLaunchConfigurations creates a new Launch Configuration of a given class
 func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 	// Verify the launch config class input
@@ -364,6 +374,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 	return nil
 }
 
+// RotateLaunchConfigurations rotates out older Launch Configurations
 func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClass, dryRun bool) error {
 	var wg sync.WaitGroup
 	var errs []error
@@ -415,18 +426,22 @@ func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClas
 	return nil
 }
 
+// Len returns the current number of Launch Configurations in the slice
 func (l LaunchConfigs) Len() int {
 	return len(l)
 }
 
+// Swap swaps the position of two Launch Configurations in the slice
 func (l LaunchConfigs) Swap(i, j int) {
 	l[i], l[j] = l[j], l[i]
 }
 
+// Less returns true of the Launch Configuration at indes i was created after the Launch Configuration at index j
 func (l LaunchConfigs) Less(i, j int) bool {
 	return l[i].CreationTime.After(l[j].CreationTime)
 }
 
+// DeleteLaunchConfigurations deletes one or more Launch Configurations that match the provided search term and optional region
 func DeleteLaunchConfigurations(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
@@ -495,6 +510,7 @@ func deleteLaunchConfigurations(lcList *LaunchConfigs, dryRun bool) (err error) 
 	return nil
 }
 
+// PrintTable Prints an ascii table of the list of Launch Configurations
 func (l *LaunchConfigs) PrintTable() {
 	if len(*l) == 0 {
 		terminal.ShowErrorMessage("Warning", "No Launch Configurations Found!")
