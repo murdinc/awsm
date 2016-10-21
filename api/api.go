@@ -34,7 +34,8 @@ func StartAPI() {
 				r.Get("/", getClasses)
 				r.Get("/names", getClassNames)
 				r.Get("/name/:className", getClassByName)
-
+				r.Put("/name/:className", putClass)
+				r.Delete("/name/:className", deleteClass)
 			})
 		})
 	})

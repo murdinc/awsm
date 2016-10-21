@@ -11,6 +11,28 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// DeleteClass deletes a class from SimpleDB
+func DeleteClass(classType, className string) error {
+	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+
+	itemName := classType + "/" + className
+
+	params := &simpledb.DeleteAttributesInput{
+		DomainName: aws.String("awsm"),
+		ItemName:   aws.String(itemName),
+	}
+
+	terminal.Information("Deleting [" + itemName + "] Configuration...")
+	_, err := svc.DeleteAttributes(params)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
 // InsertClasses inserts Classes into SimpleDB
 func InsertClasses(classType string, classInterface interface{}) error {
 
