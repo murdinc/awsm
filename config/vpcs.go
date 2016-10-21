@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
@@ -25,6 +26,17 @@ func DefaultVpcClasses() VpcClasses {
 	}
 
 	return defaultVpcs
+}
+
+// SaveVpcClass reads unmarshals a byte slice and inserts it into the db
+func SaveVpcClass(className string, data []byte) (class VpcClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("images", VpcClasses{className: class})
+	return
 }
 
 // LoadVpcClass loads a Vpc Class by its name

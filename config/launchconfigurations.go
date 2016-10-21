@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,17 @@ func DefaultLaunchConfigurationClasses() LaunchConfigurationClasses {
 	}
 
 	return defaultLCs
+}
+
+// SaveLaunchConfigurationClass reads unmarshals a byte slice and inserts it into the db
+func SaveLaunchConfigurationClass(className string, data []byte) (class LaunchConfigurationClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("launchconfigurations", LaunchConfigurationClasses{className: class})
+	return
 }
 
 // LoadLaunchConfigurationClass returns a Launch Configuration Class by its name

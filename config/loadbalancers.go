@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -50,6 +51,17 @@ func DefaultLoadBalancerClasses() LoadBalancerClasses {
 	}
 
 	return defaultLBs
+}
+
+// SaveLoadBalancerClass reads unmarshals a byte slice and inserts it into the db
+func SaveLoadBalancerClass(className string, data []byte) (class LoadBalancerClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("loadbalancers", LoadBalancerClasses{className: class})
+	return
 }
 
 // LoadLoadBalancerClass loads a Load Balancer Class by its name

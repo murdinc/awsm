@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -58,6 +59,17 @@ func DefaultAlarms() AlarmClasses {
 	}
 
 	return defaultAlarms
+}
+
+// SaveAlarmClass reads unmarshals a byte slice and inserts it into the db
+func SaveAlarmClass(className string, data []byte) (class AlarmClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("alarms", AlarmClasses{className: class})
+	return
 }
 
 // LoadAlarmClass loads a single Alarm Class

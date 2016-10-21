@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
@@ -27,6 +28,17 @@ func DefaultSubnetClasses() SubnetClasses {
 	}
 
 	return defaultSubnets
+}
+
+// SaveSubnetClass reads unmarshals a byte slice and inserts it into the db
+func SaveSubnetClass(className string, data []byte) (class SubnetClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("subnets", SubnetClasses{className: class})
+	return
 }
 
 // LoadSubnetClass loads a Subnet Class by its name

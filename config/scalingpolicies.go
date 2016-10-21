@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -37,6 +38,17 @@ func DefaultScalingPolicyClasses() ScalingPolicyClasses {
 	}
 
 	return defaultScalingPolicies
+}
+
+// SaveScalingPolicyClass reads unmarshals a byte slice and inserts it into the db
+func SaveScalingPolicyClass(className string, data []byte) (class ScalingPolicyClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("scalingpolicies", ScalingPolicyClasses{className: class})
+	return
 }
 
 // LoadScalingPolicyClass loads a Scaling Policy Class by its name

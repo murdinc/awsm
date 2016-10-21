@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -69,6 +70,17 @@ func DefaultInstanceClasses() InstanceClasses {
 	}
 
 	return defaultInstances
+}
+
+// SaveInstanceClass reads unmarshals a byte slice and inserts it into the db
+func SaveInstanceClass(className string, data []byte) (class InstanceClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("instances", InstanceClasses{className: class})
+	return
 }
 
 // LoadInstanceClass returns an Instance class by its name

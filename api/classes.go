@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -45,42 +44,6 @@ func getClassByName(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, map[string]interface{}{"classType": classType, "className": className, "class": resp, "success": true})
 }
 
-func putClass(w http.ResponseWriter, r *http.Request) {
-	classType := chi.URLParam(r, "classType")
-	className := chi.URLParam(r, "className")
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
-		return
-	}
-
-	// check for empty body?
-	if len(body) == 0 {
-		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{"No class object was passed!"}})
-		return
-	}
-
-	switch classType {
-	case "instances":
-		var t config.InstanceClass
-
-		err = json.Unmarshal(body, &t)
-		if err != nil {
-			render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
-			return
-		}
-
-		err = config.InsertClasses(classType, config.InstanceClasses{className: t})
-		if err != nil {
-			render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
-			return
-		}
-	}
-
-	render.JSON(w, r, map[string]interface{}{"success": true})
-}
-
 func deleteClass(w http.ResponseWriter, r *http.Request) {
 	classType := chi.URLParam(r, "classType")
 	className := chi.URLParam(r, "className")
@@ -91,4 +54,70 @@ func deleteClass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.JSON(w, r, map[string]interface{}{"success": true})
+}
+
+func putClass(w http.ResponseWriter, r *http.Request) {
+	classType := chi.URLParam(r, "classType")
+	className := chi.URLParam(r, "className")
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
+		return
+	}
+
+	// check for empty body?
+	if len(data) == 0 {
+		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{"No class object was passed!"}})
+		return
+	}
+
+	var class interface{}
+
+	switch classType {
+
+	case "vpcs":
+		class, err = config.SaveVpcClass(className, data)
+
+	case "subnets":
+		class, err = config.SaveSubnetClass(className, data)
+
+	case "instances":
+		class, err = config.SaveInstanceClass(className, data)
+
+	case "volumes":
+		class, err = config.SaveVolumeClass(className, data)
+
+	case "snapshots":
+		class, err = config.SaveSnapshotClass(className, data)
+
+	case "images":
+		class, err = config.SaveImageClass(className, data)
+
+	case "autoscalegroups":
+		class, err = config.SaveAutoscalingGroupClass(className, data)
+
+	case "launchconfigurations":
+		class, err = config.SaveLaunchConfigurationClass(className, data)
+
+	case "loadbalancers":
+		class, err = config.SaveLoadBalancerClass(className, data)
+
+	case "scalingpolicies":
+		class, err = config.SaveScalingPolicyClass(className, data)
+
+	case "alarms":
+		class, err = config.SaveAlarmClass(className, data)
+
+	case "securitygroups":
+		class, err = config.SaveSecurityGroupClass(className, data)
+
+	}
+
+	if err != nil {
+		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
+		return
+	}
+
+	render.JSON(w, r, map[string]interface{}{"classType": classType, "class": class, "success": true})
 }

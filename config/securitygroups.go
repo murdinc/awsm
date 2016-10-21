@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -76,6 +77,17 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 	}
 
 	return defaultSecurityGroups
+}
+
+// SaveSecurityGroupClass reads unmarshals a byte slice and inserts it into the db
+func SaveSecurityGroupClass(className string, data []byte) (class SecurityGroupClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("securitygroups", SecurityGroupClasses{className: class})
+	return
 }
 
 // LoadSecurityGroupClass loads a Security Group Class by its name

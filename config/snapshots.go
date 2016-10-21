@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -38,6 +39,17 @@ func DefaultSnapshotClasses() SnapshotClasses {
 	}
 
 	return defaultSnapshots
+}
+
+// SaveSnapshotClass reads unmarshals a byte slice and inserts it into the db
+func SaveSnapshotClass(className string, data []byte) (class SnapshotClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("snapshots", SnapshotClasses{className: class})
+	return
 }
 
 // LoadSnapshotClass loads a Snapshot Class by its name

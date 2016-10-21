@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -52,6 +53,17 @@ func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
 	}
 
 	return defaultASGs
+}
+
+// SaveAlarmClass reads unmarshals a byte slice and inserts it into the db
+func SaveAutoscalingGroupClass(className string, data []byte) (class AutoscaleGroupClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("alarms", AutoscaleGroupClasses{className: class})
+	return
 }
 
 // LoadAutoscalingGroupClass loads an Autoscaling Group Class

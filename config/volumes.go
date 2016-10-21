@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -47,6 +48,17 @@ func DefaultVolumeClasses() VolumeClasses {
 	}
 
 	return defaultVolumes
+}
+
+// SaveVolumeClass reads unmarshals a byte slice and inserts it into the db
+func SaveVolumeClass(className string, data []byte) (class VolumeClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("volumes", VolumeClasses{className: class})
+	return
 }
 
 // LoadVolumeClass loads a Volume Class by its name

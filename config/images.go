@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -29,6 +30,17 @@ func DefaultImageClasses() ImageClasses {
 	}
 
 	return defaultImages
+}
+
+// SaveImageClass reads unmarshals a byte slice and inserts it into the db
+func SaveImageClass(className string, data []byte) (class ImageClass, err error) {
+	err = json.Unmarshal(data, &class)
+	if err != nil {
+		return
+	}
+
+	err = InsertClasses("images", ImageClasses{className: class})
+	return
 }
 
 // LoadImageClass returns a single Image class by its name
