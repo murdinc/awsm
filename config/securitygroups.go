@@ -13,7 +13,7 @@ type SecurityGroupClasses map[string]SecurityGroupClass
 
 // SecurityGroupClass is a single Security Group Class
 type SecurityGroupClass struct {
-	Description         string               `json:"description" awsmList:"Description"`
+	Description         string               `json:"description" awsmClass:"Description"`
 	SecurityGroupGrants []SecurityGroupGrant `json:"securityGroupGrants"`
 }
 

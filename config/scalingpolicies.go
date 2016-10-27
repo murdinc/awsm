@@ -13,10 +13,10 @@ type ScalingPolicyClasses map[string]ScalingPolicyClass
 
 // ScalingPolicyClass is a single Scaling Policy Class
 type ScalingPolicyClass struct {
-	ScalingAdjustment int      `json:"scalingAdjustment" awsmList:"Scaling Adjustment"`
-	AdjustmentType    string   `json:"adjustmentType" awsmList:"Adjustment Type"`
-	Cooldown          int      `json:"cooldown" awsmList:"Cooldown"`
-	Alarms            []string `json:"alarms" awsmList:"Alarms"`
+	ScalingAdjustment int      `json:"scalingAdjustment" awsmClass:"Scaling Adjustment"`
+	AdjustmentType    string   `json:"adjustmentType" awsmClass:"Adjustment Type"`
+	Cooldown          int      `json:"cooldown" awsmClass:"Cooldown"`
+	Alarms            []string `json:"alarms" awsmClass:"Alarms"`
 }
 
 // DefaultScalingPolicyClasses returns the defauly Scaling Policy Classes

@@ -12,8 +12,8 @@ type VpcClasses map[string]VpcClass
 
 // VpcClass is a single Vpc Class
 type VpcClass struct {
-	CIDR    string `json:"cidr" awsmList:"CIDR"`
-	Tenancy string `json:"tenancy" awsmList:"Tenancy"`
+	CIDR    string `json:"cidr" awsmClass:"CIDR"`
+	Tenancy string `json:"tenancy" awsmClass:"Tenancy"`
 }
 
 // DefaultVpcClasses returns the default Vpc Classes
@@ -35,7 +35,7 @@ func SaveVpcClass(className string, data []byte) (class VpcClass, err error) {
 		return
 	}
 
-	err = InsertClasses("images", VpcClasses{className: class})
+	err = InsertClasses("vpcs", VpcClasses{className: class})
 	return
 }
 

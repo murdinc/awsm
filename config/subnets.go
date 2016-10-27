@@ -12,7 +12,7 @@ type SubnetClasses map[string]SubnetClass
 
 // SubnetClass is a single Subnet Class
 type SubnetClass struct {
-	CIDR string `json:"cidr" awsmList:"CIDR"`
+	CIDR string `json:"cidr" awsmClass:"CIDR"`
 }
 
 // DefaultSubnetClasses returns the defauly Subnet Classes

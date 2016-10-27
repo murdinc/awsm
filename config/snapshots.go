@@ -13,11 +13,11 @@ type SnapshotClasses map[string]SnapshotClass
 
 // SnapshotClass is a single Snapshot Class
 type SnapshotClass struct {
-	Retain           int      `json:"retain" awsmList:"Retain"`
-	Rotate           bool     `json:"rotate" awsmList:"Rotate"`
-	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
-	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
-	VolumeID         string   `json:"volumeID" awsmList:"Volume ID"`
+	Retain           int      `json:"retain" awsmClass:"Retain"`
+	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
+	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
+	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
+	VolumeID         string   `json:"volumeID" awsmClass:"Volume ID"`
 }
 
 // DefaultSnapshotClasses returns the default Snapshot Classes

@@ -13,11 +13,11 @@ type LaunchConfigurationClasses map[string]LaunchConfigurationClass
 
 // LaunchConfigurationClass is a single Launch Configuration Class
 type LaunchConfigurationClass struct {
-	Version       int      `json:"version" awsmList:"Version"`
-	InstanceClass string   `json:"instanceClass" awsmList:"Instance Class"`
-	Retain        int      `json:"retain" awsmList:"Retain"`
+	Version       int      `json:"version" awsmClass:"Version"`
+	InstanceClass string   `json:"instanceClass" awsmClass:"Instance Class"`
+	Retain        int      `json:"retain" awsmClass:"Retain"`
 	Rotate        bool     `json:"rotate"`
-	Regions       []string `json:"regions" awsmList:"Regions"`
+	Regions       []string `json:"regions" awsmClass:"Regions"`
 }
 
 // DefaultLaunchConfigurationClasses returns the default Launch Configuration Classes

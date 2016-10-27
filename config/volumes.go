@@ -13,14 +13,14 @@ type VolumeClasses map[string]VolumeClass
 
 // VolumeClass is a single Volume Class
 type VolumeClass struct {
-	DeviceName          string `json:"deviceName" awsmList:"Device Name"`
-	VolumeSize          int    `json:"volumeSize" awsmList:"Volume Size"`
-	DeleteOnTermination bool   `json:"deleteOnTermination" awsmList:"Delete On Termination"`
-	MountPoint          string `json:"mountPoint" awsmList:"Mount Point"`
-	Snapshot            string `json:"snapshot" awsmList:"Snapshot"`
-	VolumeType          string `json:"volumeType" awsmList:"Volume Type"`
-	Iops                int    `json:"iops" awsmList:"IOPS"`
-	Encrypted           bool   `json:"encrypted" awsmList:"Encrypted"`
+	DeviceName          string `json:"deviceName" awsmClass:"Device Name"`
+	VolumeSize          int    `json:"volumeSize" awsmClass:"Volume Size"`
+	DeleteOnTermination bool   `json:"deleteOnTermination" awsmClass:"Delete On Termination"`
+	MountPoint          string `json:"mountPoint" awsmClass:"Mount Point"`
+	Snapshot            string `json:"snapshot" awsmClass:"Snapshot"`
+	VolumeType          string `json:"volumeType" awsmClass:"Volume Type"`
+	Iops                int    `json:"iops" awsmClass:"IOPS"`
+	Encrypted           bool   `json:"encrypted" awsmClass:"Encrypted"`
 }
 
 // DefaultVolumeClasses returns the default Volume Classes

@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// ExtractAwsmList extracts the keys and values from an awsm class config struct for displaying on the frontend
-func ExtractAwsmList(in interface{}) (keys, values []string) {
+// ExtractAwsmClass extracts the tagged keys and values from an awsm class config struct for displaying on the frontend
+func ExtractAwsmClass(in interface{}) (keys, values []string) {
 
 	t := reflect.TypeOf(in)
 	tV := reflect.ValueOf(in)
@@ -20,7 +20,7 @@ func ExtractAwsmList(in interface{}) (keys, values []string) {
 	fields := s.NumField()
 
 	for k := 0; k < fields; k++ {
-		sTag := t.Field(k).Tag.Get("awsmList")
+		sTag := t.Field(k).Tag.Get("awsmClass")
 
 		var sVal string
 

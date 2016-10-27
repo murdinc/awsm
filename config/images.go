@@ -13,10 +13,10 @@ type ImageClasses map[string]ImageClass
 
 // ImageClass is a single Image class
 type ImageClass struct {
-	Propagate        bool     `json:"propagate" awsmList:"Propagate"`
-	PropagateRegions []string `json:"propagateRegions" awsmList:"Propagate Regions"`
-	Retain           int      `json:"retain" awsmList:"Retain"`
-	InstanceID       string   `json:"instanceId" awsmList:"Instance ID"`
+	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
+	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
+	Retain           int      `json:"retain" awsmClass:"Retain"`
+	InstanceID       string   `json:"instanceId" awsmClass:"Instance ID"`
 }
 
 // DefaultImageClasses returns the default Image classes

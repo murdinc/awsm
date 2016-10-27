@@ -13,21 +13,21 @@ type AutoscaleGroupClasses map[string]AutoscaleGroupClass
 
 // AutoscaleGroupClass is a single Autoscale Group Class
 type AutoscaleGroupClass struct {
-	LaunchConfigurationClass string   `json:"launchConfigurationClass" awsmList:"Launch Configuration Class"`
-	Propagate                bool     `json:"propagate" awsmList:"Propagate"`
-	Retain                   int      `json:"retain" awsmList:"Retain"`
-	AvailabilityZones        []string `json:"availabilityZones" awsmList:"Availability Zone"`
-	DesiredCapacity          int      `json:"desiredCapacity" awsmList:"Desired Capacity"`
-	MinSize                  int      `json:"minSize" awsmList:"Min Size"`
-	MaxSize                  int      `json:"maxSize" awsmList:"Max Size"`
-	DefaultCooldown          int      `json:"defaultCooldown" awsmList:"Default Cooldown"`
-	SubnetClass              string   `json:"subnetClass" awsmList:"Subnet Class"`
-	HealthCheckType          string   `json:"healthCheckType" awsmList:"Health Check Type"`
-	HealthCheckGracePeriod   int      `json:"healthCheckGracePeriod" awsmList:"Health Check Grace Period"`
-	TerminationPolicies      []string `json:"terminationPolicies" awsmList:"Termination Policies"`
-	ScalingPolicies          []string `json:"scalingPolicies" awsmList:"Scaling Policies"`
-	LoadBalancerNames        []string `json:"loadBalancerNames" awsmList:"Load Balancer Names"`
-	Alarms                   []string `json:"alarms" awsmList:"Alarms"`
+	LaunchConfigurationClass string   `json:"launchConfigurationClass" awsmClass:"Launch Configuration Class"`
+	Propagate                bool     `json:"propagate" awsmClass:"Propagate"`
+	Retain                   int      `json:"retain" awsmClass:"Retain"`
+	AvailabilityZones        []string `json:"availabilityZones" awsmClass:"Availability Zone"`
+	DesiredCapacity          int      `json:"desiredCapacity" awsmClass:"Desired Capacity"`
+	MinSize                  int      `json:"minSize" awsmClass:"Min Size"`
+	MaxSize                  int      `json:"maxSize" awsmClass:"Max Size"`
+	DefaultCooldown          int      `json:"defaultCooldown" awsmClass:"Default Cooldown"`
+	SubnetClass              string   `json:"subnetClass" awsmClass:"Subnet Class"`
+	HealthCheckType          string   `json:"healthCheckType" awsmClass:"Health Check Type"`
+	HealthCheckGracePeriod   int      `json:"healthCheckGracePeriod" awsmClass:"Health Check Grace Period"`
+	TerminationPolicies      []string `json:"terminationPolicies" awsmClass:"Termination Policies"`
+	ScalingPolicies          []string `json:"scalingPolicies" awsmClass:"Scaling Policies"`
+	LoadBalancerNames        []string `json:"loadBalancerNames" awsmClass:"Load Balancer Names"`
+	Alarms                   []string `json:"alarms" awsmClass:"Alarms"`
 }
 
 // DefaultAutoscaleGroupClasses returns the default Autoscale Group Classes

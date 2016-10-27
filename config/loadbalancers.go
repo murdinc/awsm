@@ -13,11 +13,11 @@ type LoadBalancerClasses map[string]LoadBalancerClass
 
 // LoadBalancerClass is a single Load Balancer Class
 type LoadBalancerClass struct {
-	Scheme            string                 `json:"scheme" awsmList:"Scheme"`
-	SecurityGroups    []string               `json:"securityGroups" awsmList:"Security Groups"`
-	Subnets           []string               `json:"subnets" awsmList:"Subnets"`
-	AvailabilityZones []string               `json:"availabilityZones" awsmList:"Availability Zone"`
-	Listeners         []LoadBalancerListener `json:"listeners"  awsmList:"Listeners"`
+	Scheme            string                 `json:"scheme" awsmClass:"Scheme"`
+	SecurityGroups    []string               `json:"securityGroups" awsmClass:"Security Groups"`
+	Subnets           []string               `json:"subnets" awsmClass:"Subnets"`
+	AvailabilityZones []string               `json:"availabilityZones" awsmClass:"Availability Zone"`
+	Listeners         []LoadBalancerListener `json:"listeners"  awsmClass:"Listeners"`
 }
 
 // LoadBalancerListener is a Load Balancer Listener

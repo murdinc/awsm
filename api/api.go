@@ -32,6 +32,7 @@ func StartAPI() {
 		r.Route("/classes", func(r chi.Router) {
 			r.Route("/:classType", func(r chi.Router) {
 				r.Get("/", getClasses)
+				r.Get("/options", getClassOptions)
 				r.Get("/names", getClassNames)
 				r.Get("/name/:className", getClassByName)
 				r.Put("/name/:className", putClass)

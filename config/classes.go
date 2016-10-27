@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -253,14 +254,70 @@ func LoadClassByName(classType, className string) (configs interface{}, err erro
 		return LoadSecurityGroupClass(className)
 
 	default:
-		err = errors.New("LoadClassByName does not have switch for [" + classType + "]! No configuration of this type is being loaded!")
+		err = errors.New("LoadClassByName does not have switch for [" + classType + "]! No class configuration of this type is being loaded!")
 
 	}
 
 	return configs, err
 }
 
-// LoadAllClassNames loads all class named by a type
+// LoadAllClassOptions loads all class options by a type
+func LoadAllClassOptions(classType string) (options map[string]interface{}, err error) {
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var optionKeys []string
+
+	options = make(map[string]interface{})
+
+	switch classType {
+
+	case "vpcs":
+
+	case "subnets":
+
+	case "instances":
+		optionKeys = []string{"securitygroups", "volumes", "vpcs", "subnets", "images", "keypairs", "iamusers"}
+
+	case "volumes":
+
+	case "snapshots":
+
+	case "images":
+
+	case "autoscalegroups":
+
+	case "launchconfigurations":
+
+	case "loadbalancers":
+
+	case "scalingpolicies":
+
+	case "alarms":
+
+	case "securitygroups":
+
+	default:
+		err = errors.New("LoadAllClassOptions does not have switch for [" + classType + "]! No options of this type are being loaded!")
+	}
+
+	for _, key := range optionKeys {
+		wg.Add(1)
+
+		go func(key string) {
+			defer wg.Done()
+			mu.Lock()
+			options[key], _ = LoadAllClassNames(key)
+			mu.Unlock()
+		}(key)
+	}
+
+	wg.Wait()
+
+	return options, err
+}
+
+// LoadAllClassNames loads all class names of a type
 func LoadAllClassNames(classType string) ([]string, error) {
 	// Check for the awsm db
 	if !CheckDB() {

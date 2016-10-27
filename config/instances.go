@@ -13,18 +13,18 @@ type InstanceClasses map[string]InstanceClass
 
 // InstanceClass is a single Instance class
 type InstanceClass struct {
-	InstanceType     string   `json:"instanceType" awsmList:"Instance Type"`
-	SecurityGroups   []string `json:"securityGroups" awsmList:"Security Groups"`
-	EBSVolumes       []string `json:"ebsVolumes" awsmList:"EBS Volumes"`
-	Vpc              string   `json:"vpc" awsmList:"VPC"`
-	Subnet           string   `json:"subnet" awsmList:"Subnet"`
-	PublicIPAddress  bool     `json:"publicIpAddress" awsmList:"Public IP Address"`
-	AMI              string   `json:"ami" awsmList:"AMI"`
-	KeyName          string   `json:"keyName" awsmList:"Key Name"`
-	EbsOptimized     bool     `json:"ebsOptimized" awsmList:"EBS Optimized"`
-	Monitoring       bool     `json:"monitoring" awsmList:"Monitoring"`
-	ShutdownBehavior string   `json:"shutdownBehavior" awsmList:"Shutdown Behaviour"`
-	IAMUser          string   `json:"iamUser" awsmList:"IAM User"`
+	InstanceType     string   `json:"instanceType" awsmClass:"Instance Type"`
+	SecurityGroups   []string `json:"securityGroups" awsmClass:"Security Groups"`
+	EBSVolumes       []string `json:"ebsVolumes" awsmClass:"EBS Volumes"`
+	Vpc              string   `json:"vpc" awsmClass:"VPC"`
+	Subnet           string   `json:"subnet" awsmClass:"Subnet"`
+	PublicIPAddress  bool     `json:"publicIpAddress" awsmClass:"Public IP Address"`
+	AMI              string   `json:"ami" awsmClass:"AMI"`
+	KeyName          string   `json:"keyName" awsmClass:"Key Name"`
+	EbsOptimized     bool     `json:"ebsOptimized" awsmClass:"EBS Optimized"`
+	Monitoring       bool     `json:"monitoring" awsmClass:"Monitoring"`
+	ShutdownBehavior string   `json:"shutdownBehavior" awsmClass:"Shutdown Behaviour"`
+	IAMUser          string   `json:"iamUser" awsmClass:"IAM User"`
 	UserData         string   `json:"userData"`
 }
 

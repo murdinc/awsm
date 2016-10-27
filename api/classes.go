@@ -21,6 +21,18 @@ func getClasses(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, map[string]interface{}{"classType": classType, "classes": resp, "success": true})
 }
 
+func getClassOptions(w http.ResponseWriter, r *http.Request) {
+	classType := chi.URLParam(r, "classType")
+	resp, err := config.LoadAllClassOptions(classType)
+
+	if err != nil {
+		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
+		return
+	}
+
+	render.JSON(w, r, map[string]interface{}{"classType": classType, "classOptions": resp, "success": true})
+}
+
 func getClassNames(w http.ResponseWriter, r *http.Request) {
 	classType := chi.URLParam(r, "classType")
 	resp, err := config.LoadAllClassNames(classType)
@@ -65,7 +77,7 @@ func putClass(w http.ResponseWriter, r *http.Request) {
 
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
+		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{"Error Reading Body!", err.Error()}})
 		return
 	}
 
@@ -118,7 +130,7 @@ func putClass(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
+		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{"Error saving Class!", err.Error()}})
 		return
 	}
 

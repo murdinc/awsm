@@ -13,19 +13,19 @@ type AlarmClasses map[string]AlarmClass
 
 // AlarmClass is a single Alarm Class
 type AlarmClass struct {
-	AlarmDescription        string   `json:"alarmDescription" awsmList:"Alarm Description"`
-	AlarmActions            []string `json:"alarmActions" awsmList:"Alarm Actions"`
-	OKActions               []string `json:"okActions" awsmList:"OK Actions"`
-	InsufficientDataActions []string `json:"insufficientDataActions" awsmList:"Insufficient Data Actions"`
-	MetricName              string   `json:"metricName" awsmList:"Metric Name"`
-	Namespace               string   `json:"namespace awsmList:"Namespace"`
-	Statistic               string   `json:"statistic" awsmList:"Statistic"`
-	Period                  int      `json:"period" awsmList:"Period"`
-	EvaluationPeriods       int      `json:"evaluationPeriods" awsmList:"Evaluation Periods"`
-	Threshold               float64  `json:"threshold" awsmList:"Threshold"`
-	ComparisonOperator      string   `json:"comparisonOperator" awsmList:"Comparison Operator"`
-	ActionsEnabled          bool     `json:"actionsEnabled" awsmList:"Actions Enabled"`
-	Unit                    string   `json:"unit" awsmList:"Unit"`
+	AlarmDescription        string   `json:"alarmDescription" awsmClass:"Alarm Description"`
+	AlarmActions            []string `json:"alarmActions" awsmClass:"Alarm Actions"`
+	OKActions               []string `json:"okActions" awsmClass:"OK Actions"`
+	InsufficientDataActions []string `json:"insufficientDataActions" awsmClass:"Insufficient Data Actions"`
+	MetricName              string   `json:"metricName" awsmClass:"Metric Name"`
+	Namespace               string   `json:"namespace awsmClass:"Namespace"`
+	Statistic               string   `json:"statistic" awsmClass:"Statistic"`
+	Period                  int      `json:"period" awsmClass:"Period"`
+	EvaluationPeriods       int      `json:"evaluationPeriods" awsmClass:"Evaluation Periods"`
+	Threshold               float64  `json:"threshold" awsmClass:"Threshold"`
+	ComparisonOperator      string   `json:"comparisonOperator" awsmClass:"Comparison Operator"`
+	ActionsEnabled          bool     `json:"actionsEnabled" awsmClass:"Actions Enabled"`
+	Unit                    string   `json:"unit" awsmClass:"Unit"`
 }
 
 // DefaultAlarms returns the defauly Alarm Classes
