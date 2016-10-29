@@ -107,6 +107,7 @@ func CreateAwsmDatabase() error {
 	InsertClasses("volumes", DefaultVolumeClasses())
 	InsertClasses("snapshots", DefaultSnapshotClasses())
 	InsertClasses("autoscalegroups", DefaultAutoscaleGroupClasses())
+	InsertClasses("keypairs", DefaultKeyPairClasses())
 
 	return nil
 }
@@ -142,7 +143,7 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 				Replace: aws.Bool(true),
 			})
 
-		case []string:
+		case []string, []byte:
 			for s := 0; s < val.Field(i).Len(); s++ {
 				attributes = append(attributes, &simpledb.ReplaceableAttribute{
 					Name:    aws.String(name),

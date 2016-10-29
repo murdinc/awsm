@@ -127,6 +127,9 @@ func putClass(w http.ResponseWriter, r *http.Request) {
 	case "securitygroups":
 		class, err = config.SaveSecurityGroupClass(className, data)
 
+	case "keypairs":
+		class, err = config.SaveKeyPairClass(className, data)
+
 	}
 
 	if err != nil {

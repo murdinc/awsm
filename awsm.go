@@ -104,19 +104,19 @@ func main() {
 			},
 		},
 		{
-			Name:  "createLocalKeyPair",
-			Usage: "Create and a local Key Pair",
+			Name:  "installKeyPair",
+			Usage: "Installs a Key Pair locally",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "name",
-					Description: "The name of the key pair",
+					Name:        "class",
+					Description: "The class of the key pair",
 					Optional:    false,
 				},
 			},
 			Action: func(c *cli.Context) error {
-				_, err := aws.MakeKeyPair(c.NamedArg("name"), dryRun)
+				err := aws.InstallKeyPair(c.NamedArg("class"), dryRun)
 				if err != nil {
-					return cli.NewExitError("Error Creating Local KeyPair!", 1)
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},
@@ -279,18 +279,23 @@ func main() {
 		},
 		{
 			Name:  "createKeyPair",
-			Usage: "Create and upload an AWS Key Pair",
+			Usage: "Create an AWS Key Pair in the specified region",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "name",
-					Description: "The name of the key pair",
+					Name:        "class",
+					Description: "The class of the key pair",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to create the keypair in",
 					Optional:    false,
 				},
 			},
 			Action: func(c *cli.Context) error {
-				errs := aws.CreateAndImportKeyPair(c.NamedArg("name"), dryRun)
-				if errs != nil {
-					return cli.NewExitError("Error Creating KeyPair!", 1)
+				err := aws.CreateKeyPair(c.NamedArg("class"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
 				}
 				return nil
 			},

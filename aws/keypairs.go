@@ -1,10 +1,6 @@
 package aws
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -18,10 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/aws/regions"
+	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
-	"golang.org/x/crypto/ssh"
 )
 
 // KeyPairs represents a slice of AWS KeyPairs
@@ -62,7 +58,6 @@ func GetKeyPairByName(region, name string) (KeyPair, error) {
 	}
 
 	return KeyPair{}, errors.New("Found more than one KeyPair named [" + name + "] in [" + region + "]!")
-
 }
 
 // GetKeyPairs returns a slice of KeyPairs that match the provided search term
@@ -153,43 +148,33 @@ func (i *KeyPairs) PrintTable() {
 	table.Render()
 }
 
-// CreateAndImportKeyPair creates a new KeyPair and imports it into AWS
-func CreateAndImportKeyPair(name string, dryRun bool) []error {
-
-	var wg sync.WaitGroup
-	var errs []error
+// CreateKeyPair creates a KeyPair of a specified class in the specified region
+func CreateKeyPair(class, region string, dryRun bool) error {
 
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
 	}
 
-	// Create the KeyPair locally
-	pubKey, err := MakeKeyPair(name, dryRun)
+	// KeyPair Class Config
+	keypairCfg, err := config.LoadKeyPairClass(class)
 	if err != nil {
-		errs = append(errs, err)
-		return errs
+		return err
 	}
 
-	// Import the KeyPair to each AWS Region
-	regions := regions.GetRegionList()
+	terminal.Information("Found KeyPair class configuration for [" + class + "]!")
 
-	for _, region := range regions {
-		wg.Add(1)
-
-		go func(region *ec2.Region) {
-			defer wg.Done()
-
-			err := importKeyPair(*region.RegionName, name, pubKey, dryRun)
-			if err != nil {
-				terminal.ShowErrorMessage(fmt.Sprintf("Error importing public key to region [%s]", *region.RegionName), err.Error())
-				errs = append(errs, err)
-			}
-		}(region)
+	// Validate the region
+	if !regions.ValidRegion(region) {
+		return errors.New("Region [" + region + "] is Invalid!")
 	}
 
-	wg.Wait()
+	// Import the KeyPair to the requested region
+	err = importKeyPair(region, class, []byte(keypairCfg.PublicKey), dryRun)
+	if err != nil {
+		return err
+	}
 
-	return errs
+	return nil
 }
 
 func importKeyPair(region, name string, publicKey []byte, dryRun bool) error {
@@ -213,7 +198,7 @@ func importKeyPair(region, name string, publicKey []byte, dryRun bool) error {
 }
 
 // DeleteKeyPairs deletes an existing KeyPair from AWS
-func DeleteKeyPairs(name string, dryRun bool) (errs []error) {
+func DeleteKeyPairs(name string, dryRun bool) error {
 
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
@@ -222,8 +207,7 @@ func DeleteKeyPairs(name string, dryRun bool) (errs []error) {
 	keyList, err := GetKeyPairs(name)
 	if err != nil {
 		terminal.ErrorLine("Error gathering KeyPair list")
-		errs = append(errs, err...)
-		return
+		return nil
 	}
 
 	if len(*keyList) > 0 {
@@ -231,13 +215,13 @@ func DeleteKeyPairs(name string, dryRun bool) (errs []error) {
 		keyList.PrintTable()
 	} else {
 		terminal.ErrorLine("No KeyPairs found, Aborting!")
-		return
+		return nil
 	}
 
 	// Confirm
 	if !terminal.PromptBool("Are you sure you want to delete these KeyPairs?") {
 		terminal.ErrorLine("Aborting!")
-		return
+		return nil
 	}
 
 	// Delete 'Em
@@ -253,79 +237,65 @@ func DeleteKeyPairs(name string, dryRun bool) (errs []error) {
 
 		if err != nil {
 			terminal.ErrorLine(err.Error())
-			errs = append(errs, err)
 		} else {
 			terminal.Information("Deleted KeyPair [" + key.KeyName + "] in region [" + key.Region + "]!")
 		}
 
 	}
 
-	return
+	return nil
 }
 
-// MakeKeyPair creates an ssh keypair
-// Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
-// Private Key generated is PEM encoded
-// http://stackoverflow.com/a/34347463
-func MakeKeyPair(name string, dryRun bool) ([]byte, error) {
+// InstallKeyPair installs a keypair locally
+func InstallKeyPair(class string, dryRun bool) error {
 
-	var publicKey []byte
+	// KeyPair Class Config
+	keypairCfg, err := config.LoadKeyPairClass(class)
+	if err != nil {
+		return err
+	}
 
-	currentUser, _ := user.Current()
-	sshLocation := currentUser.HomeDir + "/.ssh/"
-
-	privateKeyPath := sshLocation + name + ".pem"
-	publicKeyPath := sshLocation + name + ".pub"
+	terminal.Information("Found KeyPair class configuration for [" + class + "]!")
 
 	if !dryRun {
 
-		// Check that the key doesn't exist yet
-		if _, err := os.Stat(privateKeyPath); !os.IsNotExist(err) {
-			terminal.Information("Local key named [" + name + "] already exists, reading from existing public key file!")
+		currentUser, _ := user.Current()
+		sshLocation := currentUser.HomeDir + "/.ssh/"
 
-			publicKey, err = ioutil.ReadFile(publicKeyPath)
-			if err != nil {
-				terminal.ErrorLine("Error while reading public key file!")
-				return publicKey, err
-			}
+		privateKeyPath := sshLocation + class + ".pem"
+		publicKeyPath := sshLocation + class + ".pub"
+
+		// Private Key
+		if _, err := os.Stat(privateKeyPath); !os.IsNotExist(err) {
+			terminal.Information("Local private key named [" + class + "] already exists!")
 
 		} else {
-			privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
+
+			privateKey := []byte(keypairCfg.PrivateKey1 + keypairCfg.PrivateKey2 + keypairCfg.PrivateKey3 + keypairCfg.PrivateKey4)
+
+			err = ioutil.WriteFile(privateKeyPath, privateKey, 0655)
 			if err != nil {
-				return publicKey, err
+				return err
 			}
 
-			// Generate and write private key as PEM
-			privateKeyFile, err := os.Create(privateKeyPath)
-			defer privateKeyFile.Close()
-			if err != nil {
-				return publicKey, err
-			}
-
-			privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-			if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
-				return publicKey, err
-			}
-
-			// Generate and write public key
-			pub, err := ssh.NewPublicKey(&privateKey.PublicKey)
-			if err != nil {
-				return publicKey, err
-			}
-
-			publicKey = ssh.MarshalAuthorizedKey(pub)
-
-			err = ioutil.WriteFile(publicKeyPath, publicKey, 0655)
-			if err != nil {
-				return publicKey, err
-			}
-
-			terminal.Information("Created KeyPair named [" + name + "]")
+			terminal.Information("Created private key at [" + privateKeyPath + "]")
 		}
 
-	} else {
-		publicKey = []byte("dryRun!")
+		// Public Key
+		if _, err := os.Stat(publicKeyPath); !os.IsNotExist(err) {
+			terminal.Information("Local public key named [" + class + "] already exists!")
+
+		} else {
+
+			err = ioutil.WriteFile(publicKeyPath, []byte(keypairCfg.PublicKey), 0655)
+			if err != nil {
+				return err
+			}
+
+			terminal.Information("Created public key at [" + publicKeyPath + "]")
+		}
+
 	}
 
-	return publicKey, nil
+	return nil
 }

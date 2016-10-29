@@ -128,6 +128,12 @@ func InsertClasses(classType string, classInterface interface{}) error {
 			}
 		}
 
+	case "keypairs":
+		for class, config := range classInterface.(KeyPairClasses) {
+			itemName = classType + "/" + class
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
+		}
+
 	default:
 		return errors.New("InsertClasses does not have switch for [" + classType + "]! No configurations of this type are being installed!")
 
@@ -205,6 +211,9 @@ func LoadAllClasses(classType string) (configs interface{}, err error) {
 	case "securitygroups":
 		return LoadAllSecurityGroupClasses()
 
+	case "keypairs":
+		return LoadAllKeyPairClasses()
+
 		/*
 			case "addresses":
 				return LoadAllAddresses()
@@ -259,6 +268,9 @@ func LoadClassByName(classType, className string) (configs interface{}, err erro
 	case "securitygroups":
 		return LoadSecurityGroupClass(className)
 
+	case "keypairs":
+		return LoadKeyPairClass(className)
+
 	default:
 		err = errors.New("LoadClassByName does not have switch for [" + classType + "]! No class configuration of this type is being loaded!")
 
@@ -309,6 +321,8 @@ func LoadAllClassOptions(classType string) (options map[string]interface{}, err 
 		classOptionKeys = []string{"scalingpolicies"} // TODO: don't limit to only scaling policies?
 
 	case "securitygroups":
+
+	case "keypairs":
 
 	default:
 		err = errors.New("LoadAllClassOptions does not have switch for [" + classType + "]! No options of this type are being loaded!")

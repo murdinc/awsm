@@ -54,7 +54,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		AMI:              "hvm-base",
 		KeyName:          "awsm",
 		ShutdownBehavior: "terminate",
-		UserData:         "#!/bin/bash \n echo wemadeit > ~/didwemakeit",
+		UserData:         "#!/bin/bash\necho wemadeit > ~/didwemakeit",
 	}
 
 	defaultInstances["prod"] = InstanceClass{
