@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/cli"
@@ -32,7 +33,7 @@ func GetInstances(search string, running bool) (*Instances, []error) {
 	var errs []error
 
 	instList := new(Instances)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -172,7 +173,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	terminal.Information("Found Instance class configuration for [" + class + "]!")
 
 	// AZ
-	azs, _ := GetAZs()
+	azs, _ := regions.GetAZs()
 	if !azs.ValidAZ(az) {
 		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
 	}
@@ -471,7 +472,7 @@ func TerminateInstances(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func terminateInstances(instList *Instances, dryRun bool) (err error) {
 	for _, instance := range *instList {
-		azs, _ := GetAZs()
+		azs, _ := regions.GetAZs()
 
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
 
@@ -542,7 +543,7 @@ func StopInstances(search, region string, force, dryRun bool) (err error) {
 
 // Private function without the confirmation terminal prompts
 func stopInstances(instList *Instances, force, dryRun bool) (err error) {
-	azs, _ := GetAZs()
+	azs, _ := regions.GetAZs()
 
 	for _, instance := range *instList {
 
@@ -617,7 +618,7 @@ func StartInstances(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func startInstances(instList *Instances, dryRun bool) (err error) {
 
-	azs, _ := GetAZs()
+	azs, _ := regions.GetAZs()
 
 	for _, instance := range *instList {
 
@@ -691,7 +692,7 @@ func RebootInstances(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func rebootInstances(instList *Instances, dryRun bool) (err error) {
 	for _, instance := range *instList {
-		azs, _ := GetAZs()
+		azs, _ := regions.GetAZs()
 
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
 

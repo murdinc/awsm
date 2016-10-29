@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/simpledb"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -29,7 +30,7 @@ func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 	var errs []error
 
 	domainList := new(SimpleDBDomains)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -113,7 +114,7 @@ func (i *SimpleDBDomains) PrintTable() {
 func CreateSimpleDBDomain(domain, region string) error {
 
 	// Validate the region
-	if !ValidRegion(region) {
+	if !regions.ValidRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 

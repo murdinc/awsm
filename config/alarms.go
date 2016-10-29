@@ -18,7 +18,7 @@ type AlarmClass struct {
 	OKActions               []string `json:"okActions" awsmClass:"OK Actions"`
 	InsufficientDataActions []string `json:"insufficientDataActions" awsmClass:"Insufficient Data Actions"`
 	MetricName              string   `json:"metricName" awsmClass:"Metric Name"`
-	Namespace               string   `json:"namespace awsmClass:"Namespace"`
+	Namespace               string   `json:"namespace" awsmClass:"Namespace"`
 	Statistic               string   `json:"statistic" awsmClass:"Statistic"`
 	Period                  int      `json:"period" awsmClass:"Period"`
 	EvaluationPeriods       int      `json:"evaluationPeriods" awsmClass:"Evaluation Periods"`

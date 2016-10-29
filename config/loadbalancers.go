@@ -35,9 +35,9 @@ func DefaultLoadBalancerClasses() LoadBalancerClasses {
 	defaultLBs := make(LoadBalancerClasses)
 
 	defaultLBs["prod"] = LoadBalancerClass{
-		Scheme:         "",
-		SecurityGroups: []string{},
-		Subnets:        []string{},
+		Scheme:         "internet-facing",
+		SecurityGroups: []string{"prod"},
+		Subnets:        []string{"public"},
 		Listeners: []LoadBalancerListener{
 			LoadBalancerListener{
 				InstancePort:     80,

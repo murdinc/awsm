@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/cli"
@@ -33,7 +34,7 @@ func GetAutoScaleGroups(search string) (*AutoScaleGroups, []error) {
 	var errs []error
 
 	asgList := new(AutoScaleGroups)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -145,7 +146,7 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 	terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
 
 	// Get the AZs
-	azs, errs := GetAZs()
+	azs, errs := regions.GetAZs()
 	if errs != nil {
 		return errors.New("Error gathering region list")
 	}
@@ -309,7 +310,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 		terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
 
 		// Get the AZs
-		azs, errs := GetAZs()
+		azs, errs := regions.GetAZs()
 		if errs != nil {
 			return errors.New("Error gathering region list")
 		}

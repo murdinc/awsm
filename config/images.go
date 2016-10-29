@@ -13,10 +13,11 @@ type ImageClasses map[string]ImageClass
 
 // ImageClass is a single Image class
 type ImageClass struct {
+	InstanceID       string   `json:"instanceID" awsmClass:"Instance ID"`
+	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
+	Retain           int      `json:"retain" awsmClass:"Retain"`
 	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
-	Retain           int      `json:"retain" awsmClass:"Retain"`
-	InstanceID       string   `json:"instanceId" awsmClass:"Instance ID"`
 }
 
 // DefaultImageClasses returns the default Image classes
@@ -24,9 +25,11 @@ func DefaultImageClasses() ImageClasses {
 	defaultImages := make(ImageClasses)
 
 	defaultImages["base"] = ImageClass{
-		Propagate:        true,
+		Rotate:           true,
 		Retain:           5,
+		Propagate:        true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
+		InstanceID:       "test",
 	}
 
 	return defaultImages
@@ -67,10 +70,7 @@ func LoadAllImageClasses() (ImageClasses, error) {
 }
 
 // Marshal puts items from SimpleDB into Image Classes
-func (c *ImageClasses) Marshal(items []*simpledb.Item) {
-
-	cfgs := make(ImageClasses)
-
+func (c ImageClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
 		name := strings.Replace(*item.Name, "images/", "", -1)
 		cfg := new(ImageClass)
@@ -84,20 +84,20 @@ func (c *ImageClasses) Marshal(items []*simpledb.Item) {
 			case "Propagate":
 				cfg.Propagate, _ = strconv.ParseBool(val)
 
-			case "Retain":
-				cfg.Retain, _ = strconv.Atoi(val)
-
 			case "PropagateRegions":
 				cfg.PropagateRegions = append(cfg.PropagateRegions, val)
+
+			case "Rotate":
+				cfg.Rotate, _ = strconv.ParseBool(val)
+
+			case "Retain":
+				cfg.Retain, _ = strconv.Atoi(val)
 
 			case "InstanceID":
 				cfg.InstanceID = val
 
 			}
 		}
-
-		cfgs[name] = *cfg
+		c[name] = *cfg
 	}
-
-	c = &cfgs
 }

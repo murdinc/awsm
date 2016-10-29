@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/terminal"
 	"github.com/satori/go.uuid"
 )
@@ -204,6 +205,11 @@ func LoadAllClasses(classType string) (configs interface{}, err error) {
 	case "securitygroups":
 		return LoadAllSecurityGroupClasses()
 
+		/*
+			case "addresses":
+				return LoadAllAddresses()
+		*/
+
 	default:
 		err = errors.New("LoadAllClasses does not have switch for [" + classType + "]! No configurations of this type are being loaded!")
 
@@ -266,7 +272,7 @@ func LoadAllClassOptions(classType string) (options map[string]interface{}, err 
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	var optionKeys []string
+	var classOptionKeys []string
 
 	options = make(map[string]interface{})
 
@@ -277,23 +283,30 @@ func LoadAllClassOptions(classType string) (options map[string]interface{}, err 
 	case "subnets":
 
 	case "instances":
-		optionKeys = []string{"securitygroups", "volumes", "vpcs", "subnets", "images", "keypairs", "iamusers"}
+		classOptionKeys = []string{"securitygroups", "volumes", "vpcs", "subnets", "images", "keypairs", "iamusers"}
 
 	case "volumes":
+		classOptionKeys = []string{"snapshots"}
 
 	case "snapshots":
+		classOptionKeys = []string{"regions"}
 
 	case "images":
+		classOptionKeys = []string{"regions"}
 
 	case "autoscalegroups":
+		classOptionKeys = []string{"launchconfigurations", "zones", "subnets", "scalingpolicies", "alarms", "loadbalancers"}
 
 	case "launchconfigurations":
+		classOptionKeys = []string{"regions"}
 
 	case "loadbalancers":
+		classOptionKeys = []string{"securitygroups", "subnets", "zones"}
 
 	case "scalingpolicies":
 
 	case "alarms":
+		classOptionKeys = []string{"scalingpolicies"} // TODO: don't limit to only scaling policies?
 
 	case "securitygroups":
 
@@ -301,13 +314,25 @@ func LoadAllClassOptions(classType string) (options map[string]interface{}, err 
 		err = errors.New("LoadAllClassOptions does not have switch for [" + classType + "]! No options of this type are being loaded!")
 	}
 
-	for _, key := range optionKeys {
+	for _, key := range classOptionKeys {
 		wg.Add(1)
 
 		go func(key string) {
 			defer wg.Done()
 			mu.Lock()
-			options[key], _ = LoadAllClassNames(key)
+
+			switch key {
+			case "regions":
+				options[key] = regions.GetRegionNameList()
+
+			case "zones":
+				options[key] = regions.GetAZNameList()
+
+			default:
+				options[key], _ = LoadAllClassNames(key)
+
+			}
+
 			mu.Unlock()
 		}(key)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
@@ -30,7 +31,7 @@ func GetAlarms() (*Alarms, []error) {
 	var errs []error
 
 	alList := new(Alarms)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -127,7 +128,7 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 	}
 
 	// Validate the region
-	if !ValidRegion(region) {
+	if !regions.ValidRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 

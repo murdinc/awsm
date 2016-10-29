@@ -13,8 +13,8 @@ type SnapshotClasses map[string]SnapshotClass
 
 // SnapshotClass is a single Snapshot Class
 type SnapshotClass struct {
-	Retain           int      `json:"retain" awsmClass:"Retain"`
 	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
+	Retain           int      `json:"retain" awsmClass:"Retain"`
 	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
 	VolumeID         string   `json:"volumeID" awsmClass:"Volume ID"`
@@ -90,17 +90,18 @@ func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 			case "Propagate":
 				cfg.Propagate, _ = strconv.ParseBool(val)
 
+			case "PropagateRegions":
+				cfg.PropagateRegions = append(cfg.PropagateRegions, val)
+
 			case "Retain":
 				cfg.Retain, _ = strconv.Atoi(val)
 
-			case "PropagateRegions":
-				cfg.PropagateRegions = append(cfg.PropagateRegions, val)
+			case "Rotate":
+				cfg.Rotate, _ = strconv.ParseBool(val)
 
 			case "VolumeID":
 				cfg.VolumeID = val
 
-			case "Rotate":
-				cfg.Rotate, _ = strconv.ParseBool(val)
 			}
 		}
 		c[name] = *cfg

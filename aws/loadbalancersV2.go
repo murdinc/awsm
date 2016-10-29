@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/dustin/go-humanize"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -29,7 +30,7 @@ func GetLoadBalancersV2() (*LoadBalancersV2, []error) {
 	var errs []error
 
 	lbList := new(LoadBalancersV2)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)

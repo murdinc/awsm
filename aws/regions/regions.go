@@ -1,4 +1,4 @@
-package aws
+package regions
 
 import (
 	"fmt"
@@ -7,18 +7,33 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/awsm/models"
-	"github.com/murdinc/terminal"
 )
 
-// AZs represents a slice of Availability Zones
-type AZs []AZ
+// GetRegionList returns a list of AWS Regions as a slice of *ec2.Region
+func GetRegionList() []*ec2.Region {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String("us-east-1")}))
 
-// AZ represents a single Availability Zone
-type AZ models.AZ
+	resp, err := svc.DescribeRegions(nil)
 
-// AZList returns a slice of Availability Zone names (strings)
-func AZList() []string {
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
+
+	return resp.Regions
+}
+
+// GetRegionNameList returns a list of AWS Region Names as slice of strings
+func GetRegionNameList() (names []string) {
+	vregions := GetRegionList()
+	for _, vregion := range vregions {
+		names = append(names, aws.StringValue(vregion.RegionName))
+	}
+	return
+}
+
+// GetAZNameList returns a list of AWS Availability Zone Names as slice of strings
+func GetAZNameList() (names []string) {
 	azs, _ := GetAZs()
 	azlist := make([]string, len(*azs))
 
@@ -26,6 +41,27 @@ func AZList() []string {
 		azlist[i] = az.Name
 	}
 	return azlist
+}
+
+// ValidRegion returns true if the provided region is valid
+func ValidRegion(region string) bool {
+	vregions := GetRegionList()
+	for _, vregion := range vregions {
+		if region == aws.StringValue(vregion.RegionName) {
+			return true
+		}
+	}
+	return false
+}
+
+// AZs represents a slice of Availability Zones
+type AZs []AZ
+
+// AZ represents a single Availability Zone
+type AZ struct {
+	Name   string `json:"name"`
+	Region string `json:"region"`
+	State  string `json:"state"`
 }
 
 // GetAZs returns a slice of Availability Zones
@@ -43,7 +79,6 @@ func GetAZs() (*AZs, []error) {
 			defer wg.Done()
 			err := GetRegionAZs(*region.RegionName, azList)
 			if err != nil {
-				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering az list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
 			}
 		}(region)

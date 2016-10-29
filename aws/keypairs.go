@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -70,7 +71,7 @@ func GetKeyPairs(search string) (*KeyPairs, []error) {
 	var errs []error
 
 	keyList := new(KeyPairs)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -170,7 +171,7 @@ func CreateAndImportKeyPair(name string, dryRun bool) []error {
 	}
 
 	// Import the KeyPair to each AWS Region
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)

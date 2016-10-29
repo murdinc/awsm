@@ -62,14 +62,14 @@ func SaveAutoscalingGroupClass(className string, data []byte) (class AutoscaleGr
 		return
 	}
 
-	err = InsertClasses("alarms", AutoscaleGroupClasses{className: class})
+	err = InsertClasses("autoscalegroups", AutoscaleGroupClasses{className: class})
 	return
 }
 
 // LoadAutoscalingGroupClass loads an Autoscaling Group Class
 func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClass, error) {
 	cfgs := make(AutoscaleGroupClasses)
-	item, err := GetItemByName("autoscalinggroups", name)
+	item, err := GetItemByName("autoscalegroups", name)
 	if err != nil {
 		return cfgs[name], err
 	}
@@ -81,7 +81,7 @@ func LoadAutoscalingGroupClass(name string) (AutoscaleGroupClass, error) {
 // LoadAllAutoscalingGroupClasses loads all Autoscaling Group Classes
 func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClasses, error) {
 	cfgs := make(AutoscaleGroupClasses)
-	items, err := GetItemsByType("autoscalinggroups")
+	items, err := GetItemsByType("autoscalegroups")
 	if err != nil {
 		return cfgs, err
 	}
@@ -93,7 +93,7 @@ func LoadAllAutoscalingGroupClasses() (AutoscaleGroupClasses, error) {
 // Marshal puts the items from simpledb into an AutoscaleGroupClass struct
 func (c AutoscaleGroupClasses) Marshal(items []*simpledb.Item) {
 	for _, item := range items {
-		name := strings.Replace(*item.Name, "autoscalinggroups/", "", -1)
+		name := strings.Replace(*item.Name, "autoscalegroups/", "", -1)
 		cfg := new(AutoscaleGroupClass)
 		for _, attribute := range item.Attributes {
 

@@ -106,7 +106,7 @@ func CreateAwsmDatabase() error {
 	InsertClasses("loadbalancers", DefaultLoadBalancerClasses())
 	InsertClasses("volumes", DefaultVolumeClasses())
 	InsertClasses("snapshots", DefaultSnapshotClasses())
-	InsertClasses("autoscalinggroups", DefaultAutoscaleGroupClasses())
+	InsertClasses("autoscalegroups", DefaultAutoscaleGroupClasses())
 
 	return nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 
@@ -30,7 +31,7 @@ func GetAddresses(search string, available bool) (*Addresses, []error) {
 	var errs []error
 
 	ipList := new(Addresses)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -120,7 +121,7 @@ func CreateAddress(region, domain string, dryRun bool) error {
 	}
 
 	// Validate the region
-	if !ValidRegion(region) {
+	if !regions.ValidRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/mitchellh/hashstructure"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
@@ -98,7 +99,7 @@ func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 	var errs []error
 
 	secGrpList := new(SecurityGroups)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -234,7 +235,7 @@ func CreateSecurityGroup(class, region, vpcID string, dryRun bool) error {
 	}
 
 	// Validate the region
-	if !ValidRegion(region) {
+	if !regions.ValidRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 

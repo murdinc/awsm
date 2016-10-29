@@ -67,9 +67,6 @@ func getAssets(w http.ResponseWriter, r *http.Request) {
 	case "vpcs":
 		resp, errs = aws.GetVpcs("")
 
-	case "zones":
-		resp, errs = aws.GetAZs()
-
 		/*
 			case "buckets": // TODO
 				resp, errs = aws.GetBuckets()

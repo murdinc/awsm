@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/cli"
@@ -83,7 +84,7 @@ func GetSubnets(search string) (*Subnets, []error) {
 	var errs []error
 
 	subList := new(Subnets)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -240,7 +241,7 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	terminal.Information("Found Subnet Class Configuration for [" + class + "]!")
 
 	// Verify the az input
-	azs, errs := GetAZs()
+	azs, errs := regions.GetAZs()
 	if errs != nil {
 		return errors.New("Error Verifying Availability Zone input")
 	}

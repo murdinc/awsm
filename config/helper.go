@@ -3,41 +3,52 @@ package config
 import (
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 // ExtractAwsmClass extracts the tagged keys and values from an awsm class config struct for displaying on the frontend
 func ExtractAwsmClass(in interface{}) (keys, values []string) {
 
-	t := reflect.TypeOf(in)
-	tV := reflect.ValueOf(in)
+	inType := reflect.TypeOf(in)
+	inValue := reflect.ValueOf(in)
 
-	value := reflect.New(t).Interface()
+	emtpyStruct := reflect.New(inType).Interface()
 
-	v := reflect.ValueOf(value)
-	i := reflect.Indirect(v)
-	s := i.Type()
-	fields := s.NumField()
+	emtpyStructValue := reflect.ValueOf(emtpyStruct)
+	emtpyStructIndirect := reflect.Indirect(emtpyStructValue)
+	fields := emtpyStructIndirect.Type().NumField()
 
 	for k := 0; k < fields; k++ {
-		sTag := t.Field(k).Tag.Get("awsmClass")
-
-		var sVal string
-
-		switch tV.Field(k).Interface().(type) {
-		case int:
-			sVal = fmt.Sprint(tV.Field(k).Int())
-		case string:
-			sVal = tV.Field(k).String()
-		case bool:
-			sVal = fmt.Sprint(tV.Field(k).Bool())
-		case []string:
-			sVal = strings.Join(tV.Field(k).Interface().([]string), ", ")
-
-			// TODO other types?
-		}
+		sTag := inType.Field(k).Tag.Get("awsmClass")
 
 		if sTag != "" {
+
+			var sVal string
+
+			switch inValue.Field(k).Type().String() {
+			case "int":
+				sVal = fmt.Sprint(inValue.Field(k).Int())
+			case "string":
+				sVal = inValue.Field(k).String()
+			case "bool":
+				sVal = fmt.Sprint(inValue.Field(k).Bool())
+			case "[]string":
+
+				//println(inValue.Field(k))
+
+				fmt.Printf(">  %#v", inValue.Field(k).String())
+				/*
+					vals := inValue.Field(k). .Interface()
+
+					sVal = strings.Join(
+						vals.([]string),
+						", ",
+					)
+				*/
+			default:
+				fmt.Printf("ExtractAwsmClass does not have a switch for type: %#v\n", inValue.Field(k).Type().String())
+
+			}
+
 			keys = append(keys, sTag)
 			values = append(values, sVal)
 		}

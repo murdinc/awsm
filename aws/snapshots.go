@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/dustin/go-humanize"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
@@ -85,7 +86,7 @@ func GetSnapshots(search string, completed bool) (*Snapshots, []error) {
 	var errs []error
 
 	snapList := new(Snapshots)
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -173,7 +174,7 @@ func CopySnapshot(search, region string, dryRun bool) error {
 	}
 
 	// Validate the destination region
-	if !ValidRegion(region) {
+	if !regions.ValidRegion(region) {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 
@@ -348,7 +349,7 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 	}
 	excludedSnaps := launchConfigs.LockedSnapshotIds()
 
-	regions := GetRegionList()
+	regions := regions.GetRegionList()
 
 	for _, region := range regions {
 		wg.Add(1)
