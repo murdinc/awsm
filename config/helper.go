@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // ExtractAwsmClass extracts the tagged keys and values from an awsm class config struct for displaying on the frontend
@@ -32,18 +33,7 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 			case "bool":
 				sVal = fmt.Sprint(inValue.Field(k).Bool())
 			case "[]string":
-
-				//println(inValue.Field(k))
-
-				fmt.Printf(">  %#v", inValue.Field(k).String())
-				/*
-					vals := inValue.Field(k). .Interface()
-
-					sVal = strings.Join(
-						vals.([]string),
-						", ",
-					)
-				*/
+				sVal = strings.Join(inValue.Field(k).Interface().([]string), ", ")
 			default:
 				fmt.Printf("ExtractAwsmClass does not have a switch for type: %#v\n", inValue.Field(k).Type().String())
 

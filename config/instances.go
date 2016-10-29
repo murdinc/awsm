@@ -33,7 +33,7 @@ func DefaultInstanceClasses() InstanceClasses {
 	defaultInstances := make(InstanceClasses)
 
 	defaultInstances["base"] = InstanceClass{
-		InstanceType:     "t1.micro",
+		InstanceType:     "t2.nano",
 		SecurityGroups:   []string{"dev"},
 		EBSVolumes:       []string{},
 		Vpc:              "awsm",
