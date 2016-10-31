@@ -57,6 +57,10 @@ func SaveVolumeClass(className string, data []byte) (class VolumeClass, err erro
 		return
 	}
 
+	if class.VolumeType != "io1" {
+		class.Iops = 0
+	}
+
 	err = InsertClasses("volumes", VolumeClasses{className: class})
 	return
 }

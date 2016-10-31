@@ -171,6 +171,27 @@ func InsertClasses(classType string, classInterface interface{}) error {
 }
 
 // LoadAllClasses loads all classes of a type
+func Export() (export map[string]interface{}, err error) {
+
+	export = make(map[string]interface{})
+	export["vpcs"], _ = LoadAllVpcClasses()
+	export["subnets"], _ = LoadAllSubnetClasses()
+	export["instances"], _ = LoadAllInstanceClasses()
+	export["volumes"], _ = LoadAllVolumeClasses()
+	export["snapshots"], _ = LoadAllSnapshotClasses()
+	export["images"], _ = LoadAllImageClasses()
+	export["autoscalegroups"], _ = LoadAllAutoscalingGroupClasses()
+	export["launchconfigurations"], _ = LoadAllLaunchConfigurationClasses()
+	export["loadbalancers"], _ = LoadAllLoadBalancerClasses()
+	export["scalingpolicies"], _ = LoadAllScalingPolicyClasses()
+	export["alarms"], _ = LoadAllAlarmClasses()
+	export["securitygroups"], _ = LoadAllSecurityGroupClasses()
+	export["keypairs"], _ = LoadAllKeyPairClasses()
+
+	return
+}
+
+// LoadAllClasses loads all classes of a type
 func LoadAllClasses(classType string) (configs interface{}, err error) {
 
 	switch classType {

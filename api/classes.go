@@ -9,6 +9,18 @@ import (
 	"github.com/pressly/chi/render"
 )
 
+func exportClasses(w http.ResponseWriter, r *http.Request) {
+
+	resp, err := config.Export()
+
+	if err != nil {
+		render.JSON(w, r, map[string]interface{}{"success": false, "errors": []string{err.Error()}})
+		return
+	}
+
+	render.JSON(w, r, map[string]interface{}{"classes": resp, "success": true})
+}
+
 func getClasses(w http.ResponseWriter, r *http.Request) {
 	classType := chi.URLParam(r, "classType")
 	resp, err := config.LoadAllClasses(classType)

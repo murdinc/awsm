@@ -29,25 +29,9 @@ type KeyPairClass struct {
 // DefaultKeyPairClasses returns the default Image classes
 func DefaultKeyPairClasses() KeyPairClasses {
 	defaultKeyPairs := make(KeyPairClasses)
-	defaultKeyNames := []string{"awsm"}
 
-	for _, keyName := range defaultKeyNames {
-		publicKey, privateKey, err := GenerateKeyPair(keyName)
-		if err != nil {
-			terminal.ErrorLine("Error while generating keypair class: " + keyName)
-			return defaultKeyPairs
-		}
-
-		privateKeyLen := len(privateKey) / 4
-
-		defaultKeyPairs[keyName] = KeyPairClass{
-			Description: "Default KeyPair",
-			PublicKey:   publicKey,
-			PrivateKey1: privateKey[:privateKeyLen],
-			PrivateKey2: privateKey[privateKeyLen : privateKeyLen*2],
-			PrivateKey3: privateKey[privateKeyLen*2 : privateKeyLen*3],
-			PrivateKey4: privateKey[privateKeyLen*3:],
-		}
+	defaultKeyPairs["awsm"] = KeyPairClass{
+		Description: "Default awsm Key Pair",
 	}
 
 	return defaultKeyPairs
@@ -58,6 +42,25 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 	err = json.Unmarshal(data, &class)
 	if err != nil {
 		return
+	}
+
+	// Generate the keys if needed.
+	if class.PrivateKey1 == "" {
+		var publicKey, privateKey string
+
+		publicKey, privateKey, err = GenerateKeyPair(className)
+		if err != nil {
+			terminal.ErrorLine("Error while generating keypair class: " + className)
+			return
+		}
+
+		privateKeyLen := len(privateKey) / 4
+		class.PublicKey = publicKey
+		class.PrivateKey1 = privateKey[:privateKeyLen]
+		class.PrivateKey2 = privateKey[privateKeyLen : privateKeyLen*2]
+		class.PrivateKey3 = privateKey[privateKeyLen*2 : privateKeyLen*3]
+		class.PrivateKey4 = privateKey[privateKeyLen*3:]
+
 	}
 
 	err = InsertClasses("keypairs", KeyPairClasses{className: class})

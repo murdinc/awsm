@@ -41,19 +41,19 @@ func DefaultInstanceClasses() InstanceClasses {
 		PublicIPAddress:  false,
 		AMI:              "base",
 		KeyName:          "awsm",
-		ShutdownBehavior: "terminate",
+		ShutdownBehavior: "stop",
 	}
 
 	defaultInstances["dev"] = InstanceClass{
 		InstanceType:     "r3.large",
 		SecurityGroups:   []string{"all", "dev"},
-		EBSVolumes:       []string{"git-standard", "mysql-data-standard"}, // TODO
+		EBSVolumes:       []string{"git-standard", "mysql-data-standard"},
 		Vpc:              "awsm",
 		Subnet:           "private",
 		PublicIPAddress:  false,
 		AMI:              "hvm-base",
 		KeyName:          "awsm",
-		ShutdownBehavior: "terminate",
+		ShutdownBehavior: "stop",
 		UserData:         "#!/bin/bash\necho wemadeit > ~/didwemakeit",
 	}
 
@@ -66,7 +66,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		PublicIPAddress:  false,
 		AMI:              "hvm-base",
 		KeyName:          "awsm",
-		ShutdownBehavior: "terminate",
+		ShutdownBehavior: "stop",
 	}
 
 	return defaultInstances
