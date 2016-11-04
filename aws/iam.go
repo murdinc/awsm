@@ -93,7 +93,10 @@ func CreateIAMUser(username, path string) error {
 
 	params := &iam.CreateUserInput{
 		UserName: aws.String(username),
-		Path:     aws.String(path),
+	}
+
+	if path != "" {
+		params.Path = aws.String(path)
 	}
 	_, err := svc.CreateUser(params)
 	if err == nil {

@@ -49,7 +49,7 @@ func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
 		TerminationPolicies:      []string{"OldestInstance"},
 		ScalingPolicies:          []string{"scaleUp", "scaleDown"},
 		LoadBalancerNames:        []string{"prod"},
-		Alarms:                   []string{"CPUAlarmHigh", "CPUAlarmLow"},
+		Alarms:                   []string{"cpuHigh", "cpuLow"},
 	}
 
 	return defaultASGs

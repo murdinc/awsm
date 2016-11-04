@@ -29,7 +29,14 @@ func DefaultImageClasses() ImageClasses {
 		Retain:           5,
 		Propagate:        true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
-		InstanceID:       "test",
+		InstanceID:       "",
+	}
+	defaultImages["hvm-base"] = ImageClass{
+		Rotate:           true,
+		Retain:           5,
+		Propagate:        true,
+		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
+		InstanceID:       "",
 	}
 
 	return defaultImages

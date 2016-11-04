@@ -34,6 +34,19 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 				sVal = fmt.Sprint(inValue.Field(k).Bool())
 			case "[]string":
 				sVal = strings.Join(inValue.Field(k).Interface().([]string), ", ")
+
+			case "[]config.SecurityGroupGrant":
+				grants := inValue.Field(k).Interface().([]SecurityGroupGrant)
+				for _, grant := range grants {
+
+					direction := ">"
+					if grant.Type == "egress" {
+						direction = "<"
+					}
+
+					sVal += fmt.Sprintf("%s:%d%s:%d\n\n", grant.IPProtocol, grant.FromPort, direction, grant.ToPort)
+				}
+
 			default:
 				fmt.Printf("ExtractAwsmClass does not have a switch for type: %#v\n", inValue.Field(k).Type().String())
 
