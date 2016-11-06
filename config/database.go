@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
+	"github.com/murdinc/terminal"
 )
 
 // CheckDB checks for an awsm database
@@ -78,6 +79,39 @@ func GetItemsByType(classType string) ([]*simpledb.Item, error) {
 	}
 
 	return resp.Items, nil
+}
+
+// DeleteItemsByType batch deletes classes from SimpleDB
+func DeleteItemsByType(classType string) error {
+	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+
+	existingItems, err := GetItemsByType(classType)
+	if err != nil {
+		return err
+	}
+
+	params := &simpledb.BatchDeleteAttributesInput{
+		DomainName: aws.String("awsm"),
+		//Items:      deleteList,
+	}
+
+	for _, item := range existingItems {
+		itemName := aws.StringValue(item.Name)
+		params.Items = append(params.Items, &simpledb.DeletableItem{
+			Name: item.Name,
+		})
+
+		terminal.Information("Deleting [" + itemName + "] Configuration...")
+	}
+
+	_, err = svc.BatchDeleteAttributes(params)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
 }
 
 // CreateAwsmDatabase creates an awsm SimpleDB Domain

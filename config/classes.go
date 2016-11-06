@@ -97,10 +97,13 @@ func InsertClasses(classType string, classInterface interface{}) error {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 
+			// Delete the existing listeners
+			DeleteItemsByType(classType + "/" + class + "/listeners")
+
 			// Load Balancer Listeners
-			for _, rule := range config.Listeners {
+			for _, listener := range config.Listeners {
 				itemName = classType + "/" + class + "/listeners/" + uuid.NewV4().String()
-				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(rule, classType+"/"+class+"/listeners")...)
+				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(listener, classType+"/"+class+"/listeners")...)
 			}
 		}
 
@@ -121,10 +124,13 @@ func InsertClasses(classType string, classInterface interface{}) error {
 			itemName = classType + "/" + class
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 
+			// Delete the existing grants
+			DeleteItemsByType(classType + "/" + class + "/grants")
+
 			// Security Group Grants
-			for _, rule := range config.SecurityGroupGrants {
+			for _, grant := range config.SecurityGroupGrants {
 				itemName = classType + "/" + class + "/grants/" + uuid.NewV4().String()
-				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(rule, classType+"/"+class+"/grants")...)
+				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(grant, classType+"/"+class+"/grants")...)
 			}
 		}
 

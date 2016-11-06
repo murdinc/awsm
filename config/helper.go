@@ -47,6 +47,12 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 					sVal += fmt.Sprintf("%s:%d%s:%d\n\n", grant.IPProtocol, grant.FromPort, direction, grant.ToPort)
 				}
 
+			case "[]config.LoadBalancerListener":
+				listeners := inValue.Field(k).Interface().([]LoadBalancerListener)
+				for _, listener := range listeners {
+					sVal += fmt.Sprintf("%s:%d>%s:%d\n\n", listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort)
+				}
+
 			default:
 				fmt.Printf("ExtractAwsmClass does not have a switch for type: %#v\n", inValue.Field(k).Type().String())
 
