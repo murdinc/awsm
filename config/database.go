@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -101,7 +102,7 @@ func DeleteItemsByType(classType string) error {
 			Name: item.Name,
 		})
 
-		terminal.Information("Deleting [" + itemName + "] Configuration...")
+		terminal.Information("Deleting [" + classType + "/" + itemName + "] Configuration...")
 	}
 
 	_, err = svc.BatchDeleteAttributes(params)
@@ -142,6 +143,7 @@ func CreateAwsmDatabase() error {
 	InsertClasses("snapshots", DefaultSnapshotClasses())
 	InsertClasses("autoscalegroups", DefaultAutoscaleGroupClasses())
 	InsertClasses("keypairs", DefaultKeyPairClasses())
+	InsertClasses("widgets", DefaultWidgets())
 
 	return nil
 }
@@ -170,6 +172,13 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 				Replace: aws.Bool(true),
 			})
 
+		case float64:
+			attributes = append(attributes, &simpledb.ReplaceableAttribute{
+				Name:    aws.String(name),
+				Value:   aws.String(fmt.Sprint(val.Field(i).Float())),
+				Replace: aws.Bool(true),
+			})
+
 		case string:
 			attributes = append(attributes, &simpledb.ReplaceableAttribute{
 				Name:    aws.String(name),
@@ -184,7 +193,6 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 					Value:   aws.String(val.Field(i).Index(s).String()),
 					Replace: aws.Bool(true),
 				})
-
 			}
 
 		case bool:
@@ -193,6 +201,21 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 				Value:   aws.String(fmt.Sprint(val.Field(i).Bool())),
 				Replace: aws.Bool(true),
 			})
+
+		case time.Time:
+			t := val.Field(i).Interface().(time.Time).UTC().String()
+			attributes = append(attributes, &simpledb.ReplaceableAttribute{
+				Name:    aws.String(name),
+				Value:   aws.String(t),
+				Replace: aws.Bool(true),
+			})
+
+		case []SecurityGroupGrant, []LoadBalancerListener:
+			// Handled in config/classes.go, for now
+
+		default:
+			println("BuildAttributes does not have a switch for type:")
+			println(val.Field(i).Type().String())
 
 		}
 	}

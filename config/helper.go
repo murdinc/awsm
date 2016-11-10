@@ -28,6 +28,8 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 			switch inValue.Field(k).Type().String() {
 			case "int":
 				sVal = fmt.Sprint(inValue.Field(k).Int())
+			case "float64":
+				sVal = fmt.Sprint(inValue.Field(k).Float())
 			case "string":
 				sVal = inValue.Field(k).String()
 			case "bool":

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 // ExtractAwsmTable Extracts the keys and values of a struct for use in building tables of assets
@@ -33,6 +36,13 @@ func ExtractAwsmTable(index int, in interface{}, header *[]string, rows *[][]str
 			sVal = fmt.Sprint(tV.Field(k).Bool())
 		case []string:
 			sVal = strings.Join(tV.Field(k).Interface().([]string), ", ")
+
+		case time.Time:
+			sVal = humanize.Time(tV.Field(k).Interface().(time.Time))
+
+		default:
+			println("ExtractAwsmTable does not have a switch for type:")
+			println(tV.Field(k).Type().String())
 
 			// TODO other types?
 		}

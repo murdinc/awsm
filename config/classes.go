@@ -140,6 +140,12 @@ func InsertClasses(classType string, classInterface interface{}) error {
 			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
 		}
 
+	case "widgets":
+		for widget, config := range classInterface.(Widgets) {
+			itemName = classType + "/" + widget
+			itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(config, classType)...)
+		}
+
 	default:
 		return errors.New("InsertClasses does not have switch for [" + classType + "]! No configurations of this type are being installed!")
 
@@ -176,7 +182,7 @@ func InsertClasses(classType string, classInterface interface{}) error {
 
 }
 
-// LoadAllClasses loads all classes of a type
+// Export exports all configurations
 func Export() (export map[string]interface{}, err error) {
 
 	export = make(map[string]interface{})
@@ -193,6 +199,7 @@ func Export() (export map[string]interface{}, err error) {
 	export["alarms"], _ = LoadAllAlarmClasses()
 	export["securitygroups"], _ = LoadAllSecurityGroupClasses()
 	export["keypairs"], _ = LoadAllKeyPairClasses()
+	export["widgets"], _ = LoadAllWidgets()
 
 	return
 }

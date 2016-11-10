@@ -24,6 +24,15 @@ func StartAPI() {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/api", func(r chi.Router) {
+		r.Route("/dashboard", func(r chi.Router) {
+			r.Route("/widgets", func(r chi.Router) {
+				r.Get("/", getWidgets)
+				r.Put("/", putWidgets)
+				r.Get("/options", getWidgetOptions)
+				r.Get("/events", getEvents)
+				r.Get("/securitybulletins", getSecurityBulletins)
+			})
+		})
 		r.Route("/assets", func(r chi.Router) {
 			r.Route("/:assetType", func(r chi.Router) {
 				r.Get("/", getAssets)
@@ -31,6 +40,7 @@ func StartAPI() {
 		})
 		r.Route("/classes", func(r chi.Router) {
 			r.Get("/export", exportClasses)
+			//r.Get("/import", importClasses) // TODO
 			r.Route("/:classType", func(r chi.Router) {
 				r.Get("/", getClasses)
 				r.Get("/options", getClassOptions)
