@@ -48,7 +48,7 @@ func SaveSnapshotClass(className string, data []byte) (class SnapshotClass, err 
 		return
 	}
 
-	err = InsertClasses("snapshots", SnapshotClasses{className: class})
+	err = Insert("snapshots", SnapshotClasses{className: class})
 	return
 }
 

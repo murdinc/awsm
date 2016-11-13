@@ -62,7 +62,7 @@ func SaveAutoscalingGroupClass(className string, data []byte) (class AutoscaleGr
 		return
 	}
 
-	err = InsertClasses("autoscalegroups", AutoscaleGroupClasses{className: class})
+	err = Insert("autoscalegroups", AutoscaleGroupClasses{className: class})
 	return
 }
 

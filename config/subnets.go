@@ -37,7 +37,7 @@ func SaveSubnetClass(className string, data []byte) (class SubnetClass, err erro
 		return
 	}
 
-	err = InsertClasses("subnets", SubnetClasses{className: class})
+	err = Insert("subnets", SubnetClasses{className: class})
 	return
 }
 

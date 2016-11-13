@@ -5,16 +5,38 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
+	"github.com/murdinc/terminal"
 )
 
 // Widgets is a map of Widgets
 type Widgets map[string]Widget
 
+type WidgetSlice []Widget
+
 // Widget is a single widget class
 type Widget struct {
-	Index   int  `json:"index" awsmWidget:"Index"`
-	Enabled bool `json:"enabled" awsmWidget:"Enabled"`
+	WidgetType string `json:"widgetType" awsmWidget:"Widget Type"`
+	Title      string `json:"title" awsmWidget:"Title"`
+	RssURL     string `json:"rssUrl" awsmWidget:"RSS URL"`
+	Index      int    `json:"index"`
+	Enabled    bool   `json:"enabled" awsmWidget:"Enabled"`
+	Count      int    `json:"count" awsmWidget:"Count"`
+	Name       string `json:"-"` // temporary only
+}
+
+func (f WidgetSlice) Len() int {
+	return len(f)
+}
+
+func (f WidgetSlice) Less(i, j int) bool {
+	return f[i].Index < f[j].Index
+}
+
+func (f WidgetSlice) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
 }
 
 // DefaultWidgets returns the default Widget classes
@@ -22,16 +44,26 @@ func DefaultWidgets() Widgets {
 	defaultWidgets := make(Widgets)
 
 	defaultWidgets["events"] = Widget{
-		Index:   0,
-		Enabled: true,
+		WidgetType: "events",
+		Title:      "AWS Events",
+		Index:      0,
+		Enabled:    true,
 	}
 	defaultWidgets["securitybulletins"] = Widget{
-		Index:   1,
-		Enabled: true,
+		WidgetType: "rss",
+		Title:      "AWS Security Bulletins",
+		RssURL:     "http://aws.amazon.com/security/security-bulletins/feed/",
+		Count:      10,
+		Index:      1,
+		Enabled:    true,
 	}
-	defaultWidgets["alarms"] = Widget{
-		Index:   2,
-		Enabled: false,
+	defaultWidgets["awsblog"] = Widget{
+		WidgetType: "rss",
+		Title:      "AWS Blog",
+		RssURL:     "http://feeds.feedburner.com/AmazonWebServicesBlog",
+		Count:      10,
+		Index:      2,
+		Enabled:    true,
 	}
 
 	return defaultWidgets
@@ -44,8 +76,30 @@ func SaveWidget(widgetName string, data []byte) (widget Widget, err error) {
 		return
 	}
 
-	err = InsertClasses("widgets", Widgets{widgetName: widget})
+	err = Insert("widgets", Widgets{widgetName: widget})
 	return
+}
+
+// DeleteWidget deletes a widget from SimpleDB
+func DeleteWidget(widgetName string) error {
+	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+
+	itemName := "widgets/" + widgetName
+
+	params := &simpledb.DeleteAttributesInput{
+		DomainName: aws.String("awsm"),
+		ItemName:   aws.String(itemName),
+	}
+
+	terminal.Information("Deleting [" + itemName + "] Configuration...")
+	_, err := svc.DeleteAttributes(params)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
 }
 
 // LoadWidget returns a single Widget by its name
@@ -83,8 +137,20 @@ func (d Widgets) Marshal(items []*simpledb.Item) {
 
 			switch *attribute.Name {
 
+			case "WidgetType":
+				cfg.WidgetType = val
+
+			case "Title":
+				cfg.Title = val
+
+			case "RssURL":
+				cfg.RssURL = val
+
 			case "Index":
 				cfg.Index, _ = strconv.Atoi(val)
+
+			case "Count":
+				cfg.Count, _ = strconv.Atoi(val)
 
 			case "Enabled":
 				cfg.Enabled, _ = strconv.ParseBool(val)
@@ -93,4 +159,25 @@ func (d Widgets) Marshal(items []*simpledb.Item) {
 		}
 		d[name] = *cfg
 	}
+}
+
+// LoadAllWidgetNames loads all widget names
+func LoadAllWidgetNames() ([]string, error) {
+	// Check for the awsm db
+	if !CheckDB() {
+		return nil, nil
+	}
+
+	// Get the widgets
+	items, err := GetItemsByType("widget")
+	if err != nil {
+		return nil, err
+	}
+
+	names := make([]string, len(items))
+	for i, item := range items {
+		names[i] = strings.Replace(*item.Name, "widget/", "", -1)
+	}
+
+	return names, nil
 }

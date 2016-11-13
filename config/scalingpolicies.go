@@ -47,7 +47,7 @@ func SaveScalingPolicyClass(className string, data []byte) (class ScalingPolicyC
 		return
 	}
 
-	err = InsertClasses("scalingpolicies", ScalingPolicyClasses{className: class})
+	err = Insert("scalingpolicies", ScalingPolicyClasses{className: class})
 	return
 }
 

@@ -60,7 +60,7 @@ func SaveLoadBalancerClass(className string, data []byte) (class LoadBalancerCla
 		return
 	}
 
-	err = InsertClasses("loadbalancers", LoadBalancerClasses{className: class})
+	err = Insert("loadbalancers", LoadBalancerClasses{className: class})
 	return
 }
 

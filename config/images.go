@@ -49,7 +49,7 @@ func SaveImageClass(className string, data []byte) (class ImageClass, err error)
 		return
 	}
 
-	err = InsertClasses("images", ImageClasses{className: class})
+	err = Insert("images", ImageClasses{className: class})
 	return
 }
 

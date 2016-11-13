@@ -79,7 +79,7 @@ func SaveInstanceClass(className string, data []byte) (class InstanceClass, err 
 		return
 	}
 
-	err = InsertClasses("instances", InstanceClasses{className: class})
+	err = Insert("instances", InstanceClasses{className: class})
 	return
 }
 

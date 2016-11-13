@@ -63,7 +63,7 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 
 	}
 
-	err = InsertClasses("keypairs", KeyPairClasses{className: class})
+	err = Insert("keypairs", KeyPairClasses{className: class})
 
 	if err != nil {
 		println(err)

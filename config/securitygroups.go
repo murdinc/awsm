@@ -86,7 +86,7 @@ func SaveSecurityGroupClass(className string, data []byte) (class SecurityGroupC
 		return
 	}
 
-	err = InsertClasses("securitygroups", SecurityGroupClasses{className: class})
+	err = Insert("securitygroups", SecurityGroupClasses{className: class})
 	return
 }
 

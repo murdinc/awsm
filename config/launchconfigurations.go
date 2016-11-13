@@ -42,7 +42,7 @@ func SaveLaunchConfigurationClass(className string, data []byte) (class LaunchCo
 		return
 	}
 
-	err = InsertClasses("launchconfigurations", LaunchConfigurationClasses{className: class})
+	err = Insert("launchconfigurations", LaunchConfigurationClasses{className: class})
 	return
 }
 
@@ -108,7 +108,7 @@ func (c *LaunchConfigurationClass) SetVersion(name string, version int) error {
 	updateCfgs := make(LaunchConfigurationClasses)
 	updateCfgs[name] = *c
 
-	return InsertClasses("launchconfig", updateCfgs)
+	return Insert("launchconfig", updateCfgs)
 }
 
 // Increment increments the version of a Launch Configuration

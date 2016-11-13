@@ -35,7 +35,7 @@ func SaveVpcClass(className string, data []byte) (class VpcClass, err error) {
 		return
 	}
 
-	err = InsertClasses("vpcs", VpcClasses{className: class})
+	err = Insert("vpcs", VpcClasses{className: class})
 	return
 }
 

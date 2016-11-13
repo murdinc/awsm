@@ -8,5 +8,5 @@ type FeedItem struct {
 	Summary  string    `json:"summary"`
 	Category string    `json:"category"`
 	ID       string    `json:"guid"`
-	Link     string    `json:"link" awsmTable:"Link"`
+	Link     string    `json:"link" awsmLink:"Title"`
 }

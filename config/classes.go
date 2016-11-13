@@ -35,8 +35,8 @@ func DeleteClass(classType, className string) error {
 	return nil
 }
 
-// InsertClasses inserts Classes into SimpleDB
-func InsertClasses(classType string, classInterface interface{}) error {
+// Insert inserts Classes into SimpleDB
+func Insert(classType string, classInterface interface{}) error {
 
 	var itemName string
 	itemsMap := make(map[string][]*simpledb.ReplaceableAttribute)
@@ -147,7 +147,7 @@ func InsertClasses(classType string, classInterface interface{}) error {
 		}
 
 	default:
-		return errors.New("InsertClasses does not have switch for [" + classType + "]! No configurations of this type are being installed!")
+		return errors.New("Insert does not have switch for [" + classType + "]! No configurations of this type are being installed!")
 
 	}
 

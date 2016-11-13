@@ -63,14 +63,6 @@ func main() {
 				return nil
 			},
 		},
-		{
-			Name:  "test",
-			Usage: "temporary test",
-			Action: func(c *cli.Context) error {
-				api.TestGetStatusWidget()
-				return nil
-			},
-		},
 		/*
 			{
 				Name:  "dashboard",

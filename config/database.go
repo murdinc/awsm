@@ -130,20 +130,20 @@ func CreateAwsmDatabase() error {
 	}
 
 	// Insert our default configs
-	InsertClasses("securitygroups", DefaultSecurityGroupClasses())
-	InsertClasses("vpcs", DefaultVpcClasses())
-	InsertClasses("subnets", DefaultSubnetClasses())
-	InsertClasses("instances", DefaultInstanceClasses())
-	InsertClasses("alarms", DefaultAlarms())
-	InsertClasses("images", DefaultImageClasses())
-	InsertClasses("scalingpolicies", DefaultScalingPolicyClasses())
-	InsertClasses("launchconfigurations", DefaultLaunchConfigurationClasses())
-	InsertClasses("loadbalancers", DefaultLoadBalancerClasses())
-	InsertClasses("volumes", DefaultVolumeClasses())
-	InsertClasses("snapshots", DefaultSnapshotClasses())
-	InsertClasses("autoscalegroups", DefaultAutoscaleGroupClasses())
-	InsertClasses("keypairs", DefaultKeyPairClasses())
-	InsertClasses("widgets", DefaultWidgets())
+	Insert("securitygroups", DefaultSecurityGroupClasses())
+	Insert("vpcs", DefaultVpcClasses())
+	Insert("subnets", DefaultSubnetClasses())
+	Insert("instances", DefaultInstanceClasses())
+	Insert("alarms", DefaultAlarms())
+	Insert("images", DefaultImageClasses())
+	Insert("scalingpolicies", DefaultScalingPolicyClasses())
+	Insert("launchconfigurations", DefaultLaunchConfigurationClasses())
+	Insert("loadbalancers", DefaultLoadBalancerClasses())
+	Insert("volumes", DefaultVolumeClasses())
+	Insert("snapshots", DefaultSnapshotClasses())
+	Insert("autoscalegroups", DefaultAutoscaleGroupClasses())
+	Insert("keypairs", DefaultKeyPairClasses())
+	Insert("widgets", DefaultWidgets())
 
 	return nil
 }

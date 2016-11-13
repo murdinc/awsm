@@ -68,7 +68,7 @@ func SaveAlarmClass(className string, data []byte) (class AlarmClass, err error)
 		return
 	}
 
-	err = InsertClasses("alarms", AlarmClasses{className: class})
+	err = Insert("alarms", AlarmClasses{className: class})
 	return
 }
 

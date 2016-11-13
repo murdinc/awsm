@@ -61,7 +61,7 @@ func SaveVolumeClass(className string, data []byte) (class VolumeClass, err erro
 		class.Iops = 0
 	}
 
-	err = InsertClasses("volumes", VolumeClasses{className: class})
+	err = Insert("volumes", VolumeClasses{className: class})
 	return
 }
 

@@ -19,18 +19,20 @@ func StartAPI() {
 	})
 
 	r.Use(cors.Handler)
-	//r.Use(middleware.RequestID)
-	//r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	//r.Use(middleware.Logger)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/dashboard", func(r chi.Router) {
 			r.Route("/widgets", func(r chi.Router) {
 				r.Get("/", getWidgets)
-				r.Put("/", putWidgets)
-				r.Get("/options", getWidgetOptions)
 				r.Get("/events", getEvents)
-				r.Get("/securitybulletins", getSecurityBulletins)
+				r.Get("/feed/:feedName", getFeed)
+				r.Get("/options", getWidgetOptions)
+				r.Get("/names", getWidgetNames)
+				r.Get("/name/:widgetName", getWidgetByName)
+				r.Put("/name/:widgetName", putWidget)
+				r.Delete("/name/:widgetName", deleteWidget)
 			})
 		})
 		r.Route("/assets", func(r chi.Router) {
