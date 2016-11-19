@@ -213,7 +213,7 @@ func copyImage(image Image, region string, dryRun bool) (*ec2.CopyImageOutput, e
 }
 
 // CreateImage creates a new Amazon Machine Image from an instance matching the provided search term. It assigns the Image the class and name that was provided
-func CreateImage(search, class, name string, dryRun bool) error {
+func CreateImage(class, name string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -228,15 +228,19 @@ func CreateImage(search, class, name string, dryRun bool) error {
 
 	terminal.Information("Found Image Class Configuration for [" + class + "]!")
 
+	if cfg.Instance == "" {
+		return errors.New("Image class " + class + " does not have an instance set!")
+	}
+
 	// Locate the Instance
-	instances, _ := GetInstances(search, true)
+	instances, _ := GetInstances(cfg.Instance, true)
 	instCount := len(*instances)
 	if instCount == 0 {
-		return errors.New("No running instances found for your search terms.")
+		return errors.New("No running instances found matching: " + cfg.Instance)
 	}
 	if instCount > 1 {
 		instances.PrintTable()
-		return errors.New("Please limit your search to return only one instance.")
+		return errors.New("Found more than one instances found matching: " + cfg.Instance)
 	}
 
 	instance := (*instances)[0]

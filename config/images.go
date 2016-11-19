@@ -13,7 +13,7 @@ type ImageClasses map[string]ImageClass
 
 // ImageClass is a single Image class
 type ImageClass struct {
-	InstanceID       string   `json:"instanceID" awsmClass:"Instance ID"`
+	Instance         string   `json:"instance" awsmClass:"Instance"`
 	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
 	Retain           int      `json:"retain" awsmClass:"Retain"`
 	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
@@ -29,14 +29,14 @@ func DefaultImageClasses() ImageClasses {
 		Retain:           5,
 		Propagate:        true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
-		InstanceID:       "",
+		Instance:         "",
 	}
 	defaultImages["hvm-base"] = ImageClass{
 		Rotate:           true,
 		Retain:           5,
 		Propagate:        true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
-		InstanceID:       "",
+		Instance:         "",
 	}
 
 	return defaultImages
@@ -100,8 +100,8 @@ func (c ImageClasses) Marshal(items []*simpledb.Item) {
 			case "Retain":
 				cfg.Retain, _ = strconv.Atoi(val)
 
-			case "InstanceID":
-				cfg.InstanceID = val
+			case "Instance":
+				cfg.Instance = val
 
 			}
 		}

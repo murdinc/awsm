@@ -238,25 +238,12 @@ func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnaps
 }
 
 // CreateSnapshot creates a new EBS Snapshot
-func CreateSnapshot(search, class, name string, dryRun bool) error {
+func CreateSnapshot(class, name string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
 	}
-
-	// Locate the Volume
-	volumes, _ := GetVolumes(search, false)
-	if len(*volumes) == 0 {
-		return errors.New("No volumes found for your search terms.")
-	}
-	if len(*volumes) > 1 {
-		volumes.PrintTable()
-		return errors.New("Please limit your search to return only one volume.")
-	}
-
-	volume := (*volumes)[0]
-	region := volume.Region
 
 	// Class Config
 	cfg, err := config.LoadSnapshotClass(class)
@@ -265,6 +252,19 @@ func CreateSnapshot(search, class, name string, dryRun bool) error {
 	}
 
 	terminal.Information("Found Snapshot Class Configuration for [" + class + "]!")
+
+	// Locate the Volume
+	volumes, _ := GetVolumes(cfg.Volume, false)
+	if len(*volumes) == 0 {
+		return errors.New("No volumes found matching: " + cfg.Volume)
+	}
+	if len(*volumes) > 1 {
+		volumes.PrintTable()
+		return errors.New("Found more than one volume matching: " + cfg.Volume)
+	}
+
+	volume := (*volumes)[0]
+	region := volume.Region
 
 	// Create the snapshot
 	createSnapshotResp, err := createSnapshot(volume.VolumeID, region, dryRun)

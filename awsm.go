@@ -236,11 +236,6 @@ func main() {
 			Usage: "Create an AWS Machine Image from a running instance",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "search",
-					Description: "The AMI to create an image of",
-					Optional:    false,
-				},
-				cli.Argument{
 					Name:        "class",
 					Description: "The class of the new image",
 					Optional:    false,
@@ -252,7 +247,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.CreateImage(c.NamedArg("search"), c.NamedArg("class"), c.NamedArg("name"), dryRun)
+				err := aws.CreateImage(c.NamedArg("class"), c.NamedArg("name"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -328,11 +323,6 @@ func main() {
 			Usage: "Create an AWS EBS snapshot of a volume",
 			Arguments: []cli.Argument{
 				cli.Argument{
-					Name:        "search",
-					Description: "The volume to create a snapshot from",
-					Optional:    false,
-				},
-				cli.Argument{
 					Name:        "class",
 					Description: "The class of the new snapshot",
 					Optional:    false,
@@ -344,7 +334,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.CreateSnapshot(c.NamedArg("search"), c.NamedArg("class"), c.NamedArg("name"), dryRun)
+				err := aws.CreateSnapshot(c.NamedArg("class"), c.NamedArg("name"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
