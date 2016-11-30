@@ -35,13 +35,14 @@ func DefaultInstanceClasses() InstanceClasses {
 	defaultInstances["base"] = InstanceClass{
 		InstanceType:     "t2.nano",
 		SecurityGroups:   []string{"dev"},
-		EBSVolumes:       []string{},
+		EBSVolumes:       []string{"crusher-base"},
 		Vpc:              "awsm",
 		Subnet:           "private",
 		PublicIPAddress:  false,
-		AMI:              "base",
 		KeyName:          "awsm",
 		ShutdownBehavior: "stop",
+		UserData:         "#cloud-config\n# apt upgrade\npackage_upgrade: true\npackage_update: true\n\nmounts:\n  # mount the crusher-base volume\n  - [ /dev/xvdf1, /mnt/crusher, \"auto\", \"defaults\", \"0\", \"0\" ]\n\n# clone the example crusher repo and run the hello_world spec\nruncmd:\n  - parted -s -a optimal /dev/xvdf mklabel msdos\n  - parted -s -a optimal -- /dev/xvdf unit compact mkpart primary ext4 \"1\" \"-1\"\n  - mkfs -t ext4 -L crusher /dev/xvdf1 -F\n  - mount -a\n  - cd /mnt/crusher && git clone https://github.com/murdinc/crusher-config.git\n  - cd /mnt/crusher/crusher-config/ && ./crusher lc hello_world",
+		// No AMI Specified, will prompt user to provide one
 	}
 
 	defaultInstances["dev"] = InstanceClass{
@@ -54,7 +55,6 @@ func DefaultInstanceClasses() InstanceClasses {
 		AMI:              "hvm-base",
 		KeyName:          "awsm",
 		ShutdownBehavior: "stop",
-		UserData:         "#!/bin/bash\necho wemadeit > ~/didwemakeit",
 	}
 
 	defaultInstances["prod"] = InstanceClass{

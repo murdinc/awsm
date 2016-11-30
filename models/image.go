@@ -14,4 +14,5 @@ type Image struct {
 	SnapshotID   string    `json:"snapshotID" awsmTable:"Snapshot ID"`
 	VolumeSize   string    `json:"volumeSize" awsmTable:"Volume Size"`
 	Region       string    `json:"region" awsmTable:"Region"`
+	AmiName      string    `json:"-"`
 }

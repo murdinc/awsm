@@ -24,6 +24,13 @@ type SnapshotClass struct {
 func DefaultSnapshotClasses() SnapshotClasses {
 	defaultSnapshots := make(SnapshotClasses)
 
+	defaultSnapshots["crusher"] = SnapshotClass{
+		Propagate:        true,
+		Retain:           5,
+		Rotate:           true,
+		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
+	}
+
 	defaultSnapshots["git"] = SnapshotClass{
 		Propagate:        true,
 		Retain:           5,

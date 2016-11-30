@@ -68,12 +68,40 @@ func GetImagesByTag(region, key, value string) (Images, error) {
 	}
 
 	return imgList, err
+}
+
+// GetImageById returns an Amazon Machine Image via its ID
+func GetImageById(region, id string) (Image, error) {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeImagesInput{
+		ImageIds: []*string{
+			aws.String(id),
+		},
+	}
+
+	result, err := svc.DescribeImages(params)
+
+	if len(result.Images) == 0 {
+		return Image{}, errors.New("No Images found with id of [" + id + "] in [" + region + "].")
+	}
+
+	imgList := make(Images, len(result.Images))
+	for i, image := range result.Images {
+		imgList[i].Marshal(image, region)
+	}
+
+	return imgList[0], err
 
 }
 
 // GetLatestImageByTag returns the newest Amazon Machine Image in the provided region that matches the key/value tag provided
 func GetLatestImageByTag(region, key, value string) (Image, error) {
 	images, err := GetImagesByTag(region, key, value)
+	if err != nil {
+		return Image{}, err
+	}
+
 	sort.Sort(images)
 
 	return images[0], err
@@ -456,6 +484,7 @@ func (i *Image) Marshal(image *ec2.Image, region string) {
 	i.SnapshotID = snapshotID
 	i.VolumeSize = volSize
 	i.Region = region
+	i.AmiName = aws.StringValue(image.Name)
 }
 
 // DeleteImages deletes one or more AMI images based on the search and optional region input

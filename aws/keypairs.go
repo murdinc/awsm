@@ -273,7 +273,7 @@ func InstallKeyPair(class string, dryRun bool) error {
 
 			privateKey := []byte(keypairCfg.PrivateKey1 + keypairCfg.PrivateKey2 + keypairCfg.PrivateKey3 + keypairCfg.PrivateKey4)
 
-			err = ioutil.WriteFile(privateKeyPath, privateKey, 0655)
+			err = ioutil.WriteFile(privateKeyPath, privateKey, 0600)
 			if err != nil {
 				return err
 			}
@@ -287,7 +287,7 @@ func InstallKeyPair(class string, dryRun bool) error {
 
 		} else {
 
-			err = ioutil.WriteFile(publicKeyPath, []byte(keypairCfg.PublicKey), 0655)
+			err = ioutil.WriteFile(publicKeyPath, []byte(keypairCfg.PublicKey), 0600)
 			if err != nil {
 				return err
 			}

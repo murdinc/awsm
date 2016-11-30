@@ -1270,13 +1270,6 @@ func main() {
 					Optional:    true,
 				},
 			},
-			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name:        "double",
-					Destination: &double,
-					Usage:       "double (Doubles the desired-capacity and max-capacity)",
-				},
-			},
 			Action: func(c *cli.Context) error {
 				err := aws.UpdateSecurityGroups(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {

@@ -27,8 +27,28 @@ type VolumeClass struct {
 func DefaultVolumeClasses() VolumeClasses {
 	defaultVolumes := make(VolumeClasses)
 
-	defaultVolumes["git-standard"] = VolumeClass{
+	defaultVolumes["crusher-base"] = VolumeClass{
 		DeviceName:          "/dev/xvdf",
+		VolumeSize:          30,
+		DeleteOnTermination: false,
+		MountPoint:          "/mnt/crusher",
+		Encrypted:           true,
+		Snapshot:            "", // none, created/partitioned on base launch
+		VolumeType:          "standard",
+	}
+
+	defaultVolumes["crusher"] = VolumeClass{
+		DeviceName:          "/dev/xvdf",
+		VolumeSize:          30,
+		DeleteOnTermination: true,
+		MountPoint:          "/mnt/crusher",
+		Encrypted:           true,
+		Snapshot:            "crusher",
+		VolumeType:          "standard",
+	}
+
+	defaultVolumes["git-standard"] = VolumeClass{
+		DeviceName:          "/dev/xvdg",
 		VolumeSize:          30,
 		DeleteOnTermination: true,
 		MountPoint:          "/mnt/git",
@@ -38,7 +58,7 @@ func DefaultVolumeClasses() VolumeClasses {
 	}
 
 	defaultVolumes["mysql-data-standard"] = VolumeClass{
-		DeviceName:          "/dev/xvdg",
+		DeviceName:          "/dev/xvdh",
 		VolumeSize:          100,
 		DeleteOnTermination: true,
 		MountPoint:          "/media/mysql-data",

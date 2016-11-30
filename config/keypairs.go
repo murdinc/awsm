@@ -30,8 +30,19 @@ type KeyPairClass struct {
 func DefaultKeyPairClasses() KeyPairClasses {
 	defaultKeyPairs := make(KeyPairClasses)
 
+	publicKey, privateKey, err := GenerateKeyPair()
+	if err != nil {
+		terminal.ErrorLine("Error while generating awsm keypair")
+	}
+	privateKeyLen := len(privateKey) / 4
+
 	defaultKeyPairs["awsm"] = KeyPairClass{
 		Description: "Default awsm Key Pair",
+		PublicKey:   publicKey,
+		PrivateKey1: privateKey[:privateKeyLen],
+		PrivateKey2: privateKey[privateKeyLen : privateKeyLen*2],
+		PrivateKey3: privateKey[privateKeyLen*2 : privateKeyLen*3],
+		PrivateKey4: privateKey[privateKeyLen*3:],
 	}
 
 	return defaultKeyPairs
@@ -48,7 +59,7 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 	if class.PrivateKey1 == "" {
 		var publicKey, privateKey string
 
-		publicKey, privateKey, err = GenerateKeyPair(className)
+		publicKey, privateKey, err = GenerateKeyPair()
 		if err != nil {
 			terminal.ErrorLine("Error while generating keypair class: " + className)
 			return
@@ -131,7 +142,7 @@ func (c KeyPairClasses) Marshal(items []*simpledb.Item) {
 }
 
 // GenerateKeyPair creates an ssh keypair
-func GenerateKeyPair(name string) (publicKeyEncoded string, privateKeyEncoded string, err error) {
+func GenerateKeyPair() (publicKeyEncoded string, privateKeyEncoded string, err error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return

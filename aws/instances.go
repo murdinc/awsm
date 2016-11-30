@@ -183,12 +183,25 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	region := azs.GetRegion(az)
 
 	// AMI
-	ami, err := GetLatestImageByTag(region, "Class", instanceCfg.AMI)
-	if err != nil {
-		return err
-	}
+	var ami Image
 
-	terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]!")
+	if instanceCfg.AMI == "" {
+		amiId := terminal.PromptString("There is no AMI class configured for this Instance class, please provide an AMI to use:")
+		ami, err = GetImageById(region, amiId)
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Found AMI [" + ami.ImageID + "] with name [" + ami.AmiName + "] created [" + ami.CreatedHuman + "]!")
+
+	} else {
+		ami, err = GetLatestImageByTag(region, "Class", instanceCfg.AMI)
+		if err != nil {
+			return err
+		}
+
+		terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]!")
+	}
 
 	// EBS
 	ebsVolumes := make([]*ec2.BlockDeviceMapping, len(instanceCfg.EBSVolumes))
@@ -200,21 +213,28 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 		terminal.Information("Found Volume Class Configuration for [" + ebsClass + "]!")
 
-		latestSnapshot, err := GetLatestSnapshotByTag(region, "Class", volCfg.Snapshot)
-		if err != nil {
-			return err
-		}
+		var snapshotId string
+		if volCfg.Snapshot == "" {
+			terminal.Information("No snapshot configured for [" + ebsClass + "]! Creating a fresh volume instead.")
 
-		terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
+		} else {
+			latestSnapshot, err := GetLatestSnapshotByTag(region, "Class", volCfg.Snapshot)
+			if err != nil {
+				terminal.Information("No snapshot found for [" + ebsClass + "]! Creating a fresh volume instead.")
+
+			} else {
+				terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
+				snapshotId = latestSnapshot.SnapshotID
+			}
+		}
 
 		ebsVolumes[i] = &ec2.BlockDeviceMapping{
 			DeviceName: aws.String(volCfg.DeviceName),
 			Ebs: &ec2.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(volCfg.DeleteOnTermination),
-				//Encrypted:           aws.Bool(volCfg.Encrypted),
-				SnapshotId: aws.String(latestSnapshot.SnapshotID),
-				VolumeSize: aws.Int64(int64(volCfg.VolumeSize)),
-				VolumeType: aws.String(volCfg.VolumeType),
+				Encrypted:           aws.Bool(volCfg.Encrypted),
+				VolumeSize:          aws.Int64(int64(volCfg.VolumeSize)),
+				VolumeType:          aws.String(volCfg.VolumeType),
 			},
 			//NoDevice:    aws.String("String"),
 			//VirtualName: aws.String("String"),
@@ -222,6 +242,10 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 		if volCfg.VolumeType == "io1" {
 			ebsVolumes[i].Ebs.Iops = aws.Int64(int64(volCfg.Iops))
+		}
+
+		if snapshotId != "" {
+			ebsVolumes[i].Ebs.SnapshotId = aws.String(snapshotId)
 		}
 
 	}
@@ -246,7 +270,18 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	// KeyPair
 	keyPair, err := GetKeyPairByName(region, instanceCfg.KeyName)
 	if err != nil {
-		return err
+		// Try to create it?
+		terminal.Information("Unable to find KeyPair [" + instanceCfg.KeyName + "] in [" + region + "], trying to create it...")
+
+		err = CreateKeyPair(instanceCfg.KeyName, region, dryRun)
+		if err != nil {
+			return err
+		}
+
+		keyPair, err = GetKeyPairByName(region, instanceCfg.KeyName)
+		if err != nil {
+			return err
+		}
 	}
 
 	terminal.Information("Found KeyPair [" + keyPair.KeyName + "] in [" + keyPair.Region + "]!")
@@ -305,21 +340,12 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	}
 
-	// User Data
-
-	// ================================================================
-	// ================================================================
-	// ================================================================
-
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
-
 	params := &ec2.RunInstancesInput{
-		ImageId:             aws.String(ami.ImageID),
-		MaxCount:            aws.Int64(1),
-		MinCount:            aws.Int64(1),
-		BlockDeviceMappings: ebsVolumes,
-		DryRun:              aws.Bool(dryRun),
-		EbsOptimized:        aws.Bool(instanceCfg.EbsOptimized),
+		ImageId:      aws.String(ami.ImageID),
+		MaxCount:     aws.Int64(1),
+		MinCount:     aws.Int64(1),
+		DryRun:       aws.Bool(dryRun),
+		EbsOptimized: aws.Bool(instanceCfg.EbsOptimized),
 		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
 			Arn:  aws.String(iam.Arn),
 			Name: aws.String(iam.UserName),
@@ -372,6 +398,12 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		//RamdiskId:        aws.String("String"),
 	}
 
+	if len(ebsVolumes) > 0 {
+		params.BlockDeviceMappings = ebsVolumes
+	}
+
+	svc := ec2.New(session.New(&aws.Config{Region: &region}))
+
 	launchInstanceResp, err := svc.RunInstances(params)
 
 	if err != nil {
@@ -381,7 +413,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		return err
 	}
 
-	// Add Tags
+	// Add Instance Tags
 	instanceTagsParams := &ec2.CreateTagsInput{
 		Resources: []*string{
 			launchInstanceResp.Instances[0].InstanceId,
@@ -414,13 +446,12 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	terminal.Information("Finished Launching Instance!")
 
 	inst := make(Instances, 1)
-	inst[1].Marshal(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc}, &Images{ami})
+	inst[0].Marshal(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc}, &Images{ami})
+
+	inst[0].Name = class + sequence
+	inst[0].Class = class
 
 	inst.PrintTable()
-
-	// ================================================================
-	// ================================================================
-	// ================================================================
 
 	return nil
 }

@@ -60,6 +60,10 @@ func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 // GetLatestSnapshotByTag returns the newest EBS Snapshot that matches the provided region and Tag key/value
 func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
 	snapshots, err := GetSnapshotsByTag(region, key, value)
+	if err != nil {
+		return Snapshot{}, err
+	}
+
 	sort.Sort(snapshots)
 
 	return snapshots[0], err

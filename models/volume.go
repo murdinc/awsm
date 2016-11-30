@@ -10,6 +10,7 @@ type Volume struct {
 	Size             int       `json:"size"`
 	SizeHuman        string    `json:"sizeHuman" awsmTable:"Size"`
 	State            string    `json:"state" awsmTable:"State"`
+	Encrypted        bool      `json:"encrypted" awsmTable:"Encrypted"`
 	Iops             string    `json:"iops" awsmTable:"IOPS"`
 	InstanceID       string    `json:"instanceID" awsmTable:"Instance ID"`
 	Attachment       string    `json:"attachment" awsmTable:"Attachment"`
