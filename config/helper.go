@@ -35,9 +35,11 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 			case "bool":
 				sVal = fmt.Sprint(inValue.Field(k).Bool())
 			case "[]string":
-				strSlice, ok := inValue.Field(k).Interface().([]string)
-				if ok {
-					sVal = strings.Join(strSlice, ", ")
+				if !inValue.Field(k).IsNil() {
+					strSlice, ok := inValue.Field(k).Interface().([]string)
+					if ok {
+						sVal = strings.Join(strSlice, ", ")
+					}
 				}
 
 			case "[]config.SecurityGroupGrant":

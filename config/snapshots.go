@@ -13,11 +13,11 @@ type SnapshotClasses map[string]SnapshotClass
 
 // SnapshotClass is a single Snapshot Class
 type SnapshotClass struct {
-	Description      string   `json:"description" awsmClass:"Description"`
 	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
 	Retain           int      `json:"retain" awsmClass:"Retain"`
 	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
+	Description      string   `json:"description" awsmClass:"Description"`
 	Volume           string   `json:"volume" awsmClass:"Volume"`
 }
 
@@ -31,6 +31,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 		Retain:           5,
 		Rotate:           true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
+		Volume:           "",
 	}
 
 	defaultSnapshots["git"] = SnapshotClass{
@@ -39,6 +40,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 		Retain:           5,
 		Rotate:           true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
+		Volume:           "",
 	}
 
 	defaultSnapshots["mysql-data"] = SnapshotClass{
@@ -47,6 +49,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 		Retain:           5,
 		Rotate:           true,
 		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
+		Volume:           "",
 	}
 
 	return defaultSnapshots
