@@ -230,6 +230,9 @@ func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnaps
 		//KmsKeyId:        aws.String("String"),
 		//PresignedUrl:    aws.String("String"),
 	}
+
+	fmt.Println(params)
+
 	copySnapResp, err := svc.CopySnapshot(params)
 
 	if err != nil {
@@ -285,7 +288,7 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 		return err
 	}
 
-	sourceSnapshot := Snapshot{Name: name, Class: class, SnapshotID: *createSnapshotResp.SnapshotId}
+	sourceSnapshot := Snapshot{Name: name, Class: class, SnapshotID: *createSnapshotResp.SnapshotId, Region: region}
 
 	// Check for Propagate flag
 	if cfg.Propagate && cfg.PropagateRegions != nil {
@@ -305,7 +308,7 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 		for _, propRegion := range cfg.PropagateRegions {
 			wg.Add(1)
 
-			go func(region string) {
+			go func(propRegion string) {
 				defer wg.Done()
 
 				// Copy snapshot to the destination region
@@ -314,11 +317,11 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 				if err != nil {
 					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating snapshot [%s] to region [%s]", sourceSnapshot.SnapshotID, propRegion), err.Error())
 					errs = append(errs, err)
+				} else {
+					// Add Tags
+					SetEc2NameAndClassTags(copySnapResp.SnapshotId, name, class, propRegion)
+					terminal.Information(fmt.Sprintf("Copied snapshot [%s] to region [%s].", sourceSnapshot.SnapshotID, propRegion))
 				}
-
-				// Add Tags
-				err = SetEc2NameAndClassTags(copySnapResp.SnapshotId, name, class, propRegion)
-				terminal.Information(fmt.Sprintf("Copied snapshot [%s] to region [%s].", sourceSnapshot.SnapshotID, propRegion))
 
 			}(propRegion)
 		}

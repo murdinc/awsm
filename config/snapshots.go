@@ -13,6 +13,7 @@ type SnapshotClasses map[string]SnapshotClass
 
 // SnapshotClass is a single Snapshot Class
 type SnapshotClass struct {
+	Description      string   `json:"description" awsmClass:"Description"`
 	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
 	Retain           int      `json:"retain" awsmClass:"Retain"`
 	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
@@ -25,6 +26,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 	defaultSnapshots := make(SnapshotClasses)
 
 	defaultSnapshots["crusher"] = SnapshotClass{
+		Description:      "Crusher configuration management",
 		Propagate:        true,
 		Retain:           5,
 		Rotate:           true,
@@ -32,6 +34,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 	}
 
 	defaultSnapshots["git"] = SnapshotClass{
+		Description:      "Git repositories",
 		Propagate:        true,
 		Retain:           5,
 		Rotate:           true,
@@ -39,6 +42,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 	}
 
 	defaultSnapshots["mysql-data"] = SnapshotClass{
+		Description:      "MySQL data folder",
 		Propagate:        true,
 		Retain:           5,
 		Rotate:           true,
@@ -93,6 +97,9 @@ func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 			val := *attribute.Value
 
 			switch *attribute.Name {
+
+			case "Description":
+				cfg.Description = val
 
 			case "Propagate":
 				cfg.Propagate, _ = strconv.ParseBool(val)
