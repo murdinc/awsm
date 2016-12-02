@@ -192,7 +192,7 @@ func importKeyPair(region, name string, publicKey []byte, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Imported public key for [" + name + "] into [" + region + "]!")
+	terminal.Delta("Imported public key for [" + name + "] into [" + region + "]!")
 
 	return nil
 }
@@ -238,7 +238,7 @@ func DeleteKeyPairs(name string, dryRun bool) error {
 		if err != nil {
 			terminal.ErrorLine(err.Error())
 		} else {
-			terminal.Information("Deleted KeyPair [" + key.KeyName + "] in region [" + key.Region + "]!")
+			terminal.Delta("Deleted KeyPair [" + key.KeyName + "] in region [" + key.Region + "]!")
 		}
 
 	}
@@ -267,7 +267,7 @@ func InstallKeyPair(class string, dryRun bool) error {
 
 		// Private Key
 		if _, err := os.Stat(privateKeyPath); !os.IsNotExist(err) {
-			terminal.Information("Local private key named [" + class + "] already exists!")
+			terminal.ErrorLine("Local private key named [" + class + "] already exists!")
 
 		} else {
 
@@ -278,12 +278,12 @@ func InstallKeyPair(class string, dryRun bool) error {
 				return err
 			}
 
-			terminal.Information("Created private key at [" + privateKeyPath + "]")
+			terminal.Delta("Created private key at [" + privateKeyPath + "]")
 		}
 
 		// Public Key
 		if _, err := os.Stat(publicKeyPath); !os.IsNotExist(err) {
-			terminal.Information("Local public key named [" + class + "] already exists!")
+			terminal.ErrorLine("Local public key named [" + class + "] already exists!")
 
 		} else {
 
@@ -292,7 +292,7 @@ func InstallKeyPair(class string, dryRun bool) error {
 				return err
 			}
 
-			terminal.Information("Created public key at [" + publicKeyPath + "]")
+			terminal.Delta("Created public key at [" + publicKeyPath + "]")
 		}
 
 	}

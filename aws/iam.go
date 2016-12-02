@@ -141,7 +141,7 @@ func DeleteIAMUsers(username string) (err error) {
 			terminal.ErrorLine("Error while deleting IAM User [" + user.UserName + "], Aborting!")
 			return err
 		}
-		terminal.Information("Deleted IAM User [" + user.UserName + "]!")
+		terminal.Delta("Deleted IAM User [" + user.UserName + "]!")
 	}
 
 	terminal.Information("Done!")

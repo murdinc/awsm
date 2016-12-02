@@ -51,7 +51,7 @@ func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 	}
 
 	if len(snapList) == 0 {
-		return snapList, errors.New("No Snapshot found with tag [" + key + "] of [" + value + "] in [" + region + "].")
+		return snapList, nil //errors.New("No Snapshot found with tag [" + key + "] of [" + value + "] in [" + region + "].")
 	}
 
 	return snapList, err
@@ -200,7 +200,7 @@ func CopySnapshot(search, region string, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Created Snapshot [" + *copySnapResp.SnapshotId + "] named [" + snapshot.Name + "] to [" + region + "]!")
+	terminal.Delta("Created Snapshot [" + *copySnapResp.SnapshotId + "] named [" + snapshot.Name + "] to [" + region + "]!")
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(copySnapResp.SnapshotId, snapshot.Name, snapshot.Class, region)
@@ -221,17 +221,16 @@ func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnaps
 
 	// Copy snapshot to the destination region
 	params := &ec2.CopySnapshotInput{
-		SourceRegion:      aws.String(snapshot.Region),
-		SourceSnapshotId:  aws.String(snapshot.SnapshotID),
-		Description:       aws.String(snapshot.Description),
-		DestinationRegion: aws.String(region),
-		DryRun:            aws.Bool(dryRun),
-		//Encrypted:       aws.Bool(true),
-		//KmsKeyId:        aws.String("String"),
-		//PresignedUrl:    aws.String("String"),
-	}
+		SourceSnapshotId: aws.String(snapshot.SnapshotID),
+		Description:      aws.String(snapshot.Description),
+		SourceRegion:     aws.String(snapshot.Region),
+		DryRun:           aws.Bool(dryRun),
+		//Encrypted:         aws.Bool(true),
+		//KmsKeyId:          aws.String("String"),
+		//PresignedUrl:      aws.String("String"),
+		//DestinationRegion: aws.String(region), // only needed when using presigned url, bombs otherwise
 
-	fmt.Println(params)
+	}
 
 	copySnapResp, err := svc.CopySnapshot(params)
 
@@ -260,26 +259,30 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 
 	terminal.Information("Found Snapshot Class Configuration for [" + class + "]!")
 
+	if cfg.Volume == "" {
+		return errors.New("Snapshot Class [" + class + "] does not have a source Volume specified yet, Aborting!")
+	}
+
 	// Locate the Volume
 	volumes, _ := GetVolumes(cfg.Volume, false)
 	if len(*volumes) == 0 {
-		return errors.New("No volumes found matching: " + cfg.Volume)
+		return errors.New("No volumes found matching [" + cfg.Volume + "], Aborting!")
 	}
 	if len(*volumes) > 1 {
 		volumes.PrintTable()
-		return errors.New("Found more than one volume matching: " + cfg.Volume)
+		return errors.New("Found more than one volume matching [" + cfg.Volume + "], Aborting!")
 	}
 
 	volume := (*volumes)[0]
 	region := volume.Region
 
 	// Create the snapshot
-	createSnapshotResp, err := createSnapshot(volume.VolumeID, region, dryRun)
+	createSnapshotResp, err := createSnapshot(volume.VolumeID, cfg.Description, region, dryRun)
 	if err != nil {
 		return err
 	}
 
-	terminal.Information("Created Snapshot [" + *createSnapshotResp.SnapshotId + "] named [" + name + "] in [" + region + "]!")
+	terminal.Delta("Created Snapshot [" + *createSnapshotResp.SnapshotId + "] named [" + name + "] in [" + region + "]!")
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createSnapshotResp.SnapshotId, name, class, region)
@@ -288,7 +291,7 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 		return err
 	}
 
-	sourceSnapshot := Snapshot{Name: name, Class: class, SnapshotID: *createSnapshotResp.SnapshotId, Region: region}
+	sourceSnapshot := Snapshot{Name: name, Class: class, SnapshotID: *createSnapshotResp.SnapshotId, Region: region, Description: cfg.Description}
 
 	// Check for Propagate flag
 	if cfg.Propagate && cfg.PropagateRegions != nil {
@@ -296,7 +299,7 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 		var wg sync.WaitGroup
 		var errs []error
 
-		terminal.Information("Propagate flag is set, waiting for initial snapshot to complete.")
+		terminal.Notice("Propagate flag is set, waiting for initial snapshot to complete...")
 
 		// Wait for the snapshot to complete.
 		err = waitForSnapshot(*createSnapshotResp.SnapshotId, region, dryRun)
@@ -306,24 +309,27 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 
 		// Copy to other regions
 		for _, propRegion := range cfg.PropagateRegions {
-			wg.Add(1)
 
-			go func(propRegion string) {
-				defer wg.Done()
+			if propRegion != region {
 
-				// Copy snapshot to the destination region
-				copySnapResp, err := copySnapshot(sourceSnapshot, propRegion, dryRun)
+				wg.Add(1)
+				go func(propRegion string) {
+					defer wg.Done()
 
-				if err != nil {
-					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating snapshot [%s] to region [%s]", sourceSnapshot.SnapshotID, propRegion), err.Error())
-					errs = append(errs, err)
-				} else {
-					// Add Tags
-					SetEc2NameAndClassTags(copySnapResp.SnapshotId, name, class, propRegion)
-					terminal.Information(fmt.Sprintf("Copied snapshot [%s] to region [%s].", sourceSnapshot.SnapshotID, propRegion))
-				}
+					// Copy snapshot to the destination region
+					copySnapResp, err := copySnapshot(sourceSnapshot, propRegion, dryRun)
 
-			}(propRegion)
+					if err != nil {
+						terminal.ShowErrorMessage(fmt.Sprintf("Error propagating snapshot [%s] to region [%s]", sourceSnapshot.SnapshotID, propRegion), err.Error())
+						errs = append(errs, err)
+					} else {
+						// Add Tags
+						SetEc2NameAndClassTags(copySnapResp.SnapshotId, name, class, propRegion)
+						terminal.Delta(fmt.Sprintf("Copied snapshot [%s] to region [%s].", sourceSnapshot.SnapshotID, propRegion))
+					}
+
+				}(propRegion)
+			}
 		}
 
 		wg.Wait()
@@ -334,13 +340,16 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 	}
 
 	// Rotate out older snapshots
-	if cfg.Retain > 1 {
+	if cfg.Rotate && cfg.Retain > 1 {
+		terminal.Notice("Rotate flag is set, looking for snapshots to rotate...")
 		err := rotateSnapshots(class, cfg, dryRun)
 		if err != nil {
 			terminal.ShowErrorMessage(fmt.Sprintf("Error rotating [%s] snapshots!", sourceSnapshot.Class), err.Error())
 			return err
 		}
 	}
+
+	terminal.Information("Done!")
 
 	return nil
 }
@@ -374,7 +383,7 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 			// Exclude the snapshots being used in Launch Configurations
 			for i, snap := range snapshots {
 				if excludedSnaps[snap.SnapshotID] {
-					terminal.Information("Snapshot [" + snap.Name + " (" + snap.SnapshotID + ") ] is being used in a launch configuration, skipping!")
+					terminal.Notice("Snapshot [" + snap.Name + " (" + snap.SnapshotID + ") ] is being used in a launch configuration, skipping!")
 					snapshots = append(snapshots[:i], snapshots[i+1:]...)
 				}
 			}
@@ -417,13 +426,14 @@ func waitForSnapshot(snapshotID, region string, dryRun bool) error {
 }
 
 // private function without terminal prompts
-func createSnapshot(volumeID, region string, dryRun bool) (*ec2.Snapshot, error) {
+func createSnapshot(volumeID, description, region string, dryRun bool) (*ec2.Snapshot, error) {
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	// Create the Snapshot
 	snapshotParams := &ec2.CreateSnapshotInput{
-		VolumeId: aws.String(volumeID),
-		DryRun:   aws.Bool(dryRun),
+		VolumeId:    aws.String(volumeID),
+		DryRun:      aws.Bool(dryRun),
+		Description: aws.String(description),
 	}
 
 	createSnapshotResp, err := svc.CreateSnapshot(snapshotParams)
@@ -499,7 +509,7 @@ func deleteSnapshots(snapList *Snapshots, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted Snapshot [" + snapshot.Name + "] in [" + snapshot.Region + "]!")
+		terminal.Delta("Deleted Snapshot [" + snapshot.Name + "] in [" + snapshot.Region + "]!")
 	}
 
 	return nil

@@ -124,7 +124,7 @@ func CreateSimpleDBDomain(domain, region string) error {
 		DomainName: aws.String(domain),
 	}
 
-	terminal.Information("Creating SimpleDB Domain [" + domain + "] in [" + region + "]...")
+	terminal.Delta("Creating SimpleDB Domain [" + domain + "] in [" + region + "]...")
 
 	_, err := svc.CreateDomain(params)
 	if err == nil {
@@ -177,7 +177,7 @@ func DeleteSimpleDBDomains(search, region string) (err error) {
 			terminal.ErrorLine("Error while deleting SimpleDB Domain [" + domain.Name + "] in [" + domain.Region + "], Aborting!")
 			return
 		}
-		terminal.Information("Deleted SimpleDB Domain [" + domain.Name + "] in [" + domain.Region + "]!")
+		terminal.Delta("Deleted SimpleDB Domain [" + domain.Name + "] in [" + domain.Region + "]!")
 	}
 
 	terminal.Information("Done!")

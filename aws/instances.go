@@ -522,7 +522,7 @@ func terminateInstances(instList *Instances, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Terminated Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Delta("Terminated Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil
@@ -596,7 +596,7 @@ func stopInstances(instList *Instances, force, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Stopped Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Delta("Stopped Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil
@@ -670,7 +670,7 @@ func startInstances(instList *Instances, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Started Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Delta("Started Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil
@@ -742,7 +742,7 @@ func rebootInstances(instList *Instances, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Rebooted Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
+		terminal.Delta("Rebooted Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + instance.AvailabilityZone + "]!")
 	}
 
 	return nil

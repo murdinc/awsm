@@ -91,7 +91,7 @@ func DeleteWidget(widgetName string) error {
 		ItemName:   aws.String(itemName),
 	}
 
-	terminal.Information("Deleting [" + itemName + "] Configuration...")
+	terminal.Delta("Deleting [" + itemName + "] Configuration...")
 	_, err := svc.DeleteAttributes(params)
 	if err != nil {
 		return err

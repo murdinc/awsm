@@ -24,7 +24,7 @@ func DeleteClass(classType, className string) error {
 		ItemName:   aws.String(itemName),
 	}
 
-	terminal.Information("Deleting [" + itemName + "] Configuration...")
+	terminal.Delta("Deleting [" + itemName + "] Configuration...")
 	_, err := svc.DeleteAttributes(params)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func Insert(classType string, classInterface interface{}) error {
 
 	for item, attributes := range itemsMap {
 
-		terminal.Information("Building Configuration for [" + item + "]...")
+		terminal.Delta("Building Configuration for [" + item + "]...")
 
 		i := &simpledb.ReplaceableItem{
 			Attributes: attributes,
@@ -169,7 +169,7 @@ func Insert(classType string, classInterface interface{}) error {
 		DomainName: aws.String("awsm"),
 		Items:      items,
 	}
-	terminal.Information("Installing [" + classType + "] Configurations...")
+	terminal.Delta("Installing [" + classType + "] Configurations...")
 	_, err := svc.BatchPutAttributes(params)
 
 	if err != nil {

@@ -161,7 +161,8 @@ func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region s
 }
 
 // LockedSnapshotIds returns a map of locked EBS Snapshots (that are currently being used in Launch Configurations)
-func (l *LaunchConfigs) LockedSnapshotIds() (ids map[string]bool) {
+func (l *LaunchConfigs) LockedSnapshotIds() map[string]bool {
+	ids := make(map[string]bool)
 	for _, config := range *l {
 		for _, snap := range config.SnapshotIDs {
 			ids[snap] = true
@@ -200,7 +201,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 	// Increment the version
 	terminal.Information(fmt.Sprintf("Previous version of launch configuration is [%d]", cfg.Version))
 	cfg.Increment(class)
-	terminal.Information(fmt.Sprintf("New version of launch configuration is [%d]", cfg.Version))
+	terminal.Delta(fmt.Sprintf("New version of launch configuration is [%d]", cfg.Version))
 
 	params := &autoscaling.CreateLaunchConfigurationInput{
 		LaunchConfigurationName:  aws.String(fmt.Sprintf("%s-v%d", class, cfg.Version)),
@@ -333,7 +334,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			}
 
 		} else {
-			terminal.Information("No VPC and/or Subnet specified for instance Class [" + class + "]")
+			terminal.Notice("No VPC and/or Subnet specified for instance Class [" + class + "]")
 
 			// EC2-Classic security groups
 			secGroups, err := GetSecurityGroupByTagMulti(region, "Class", instanceCfg.SecurityGroups)
@@ -404,7 +405,7 @@ func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClas
 			// Exclude the launch configs being used in Autoscale Groups
 			for i, lc := range launchConfigs {
 				if excludedConfigs[lc.Name] {
-					terminal.Information("Launch Configuration [" + lc.Name + ") ] is being used in an autoscale group, skipping!")
+					terminal.Notice("Launch Configuration [" + lc.Name + ") ] is being used in an autoscale group, skipping!")
 					launchConfigs = append(launchConfigs[:i], launchConfigs[i+1:]...)
 				}
 			}
@@ -504,7 +505,7 @@ func deleteLaunchConfigurations(lcList *LaunchConfigs, dryRun bool) (err error) 
 				return err
 			}
 
-			terminal.Information("Deleted Launch Configuration [" + lc.Name + "] in [" + lc.Region + "]")
+			terminal.Delta("Deleted Launch Configuration [" + lc.Name + "] in [" + lc.Region + "]")
 		}
 	}
 

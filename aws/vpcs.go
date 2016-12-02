@@ -299,7 +299,7 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Created VPC [" + *createVpcResp.Vpc.VpcId + "] named [" + name + "] in [" + region + "]!")
+	terminal.Delta("Created VPC [" + *createVpcResp.Vpc.VpcId + "] named [" + name + "] in [" + region + "]!")
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createVpcResp.Vpc.VpcId, name, class, region)
@@ -374,7 +374,7 @@ func deleteVpcs(vpcList *Vpcs, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted VPC [" + vpc.Name + "] in [" + vpc.Region + "]!")
+		terminal.Delta("Deleted VPC [" + vpc.Name + "] in [" + vpc.Region + "]!")
 	}
 
 	return nil

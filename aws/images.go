@@ -207,7 +207,7 @@ func CopyImage(search, region string, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Created Image [" + *copyImageResp.ImageId + "] named [" + image.Name + "] to [" + region + "]!")
+	terminal.Delta("Created Image [" + *copyImageResp.ImageId + "] named [" + image.Name + "] to [" + region + "]!")
 
 	// Add Tags
 	return SetEc2NameAndClassTags(copyImageResp.ImageId, image.Name, image.Class, region)
@@ -279,7 +279,7 @@ func CreateImage(class, name string, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Created Image [" + *createImageResp.ImageId + "] named [" + name + "] in [" + region + "]!")
+	terminal.Delta("Created Image [" + *createImageResp.ImageId + "] named [" + name + "] in [" + region + "]!")
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createImageResp.ImageId, name, class, region)
@@ -296,7 +296,7 @@ func CreateImage(class, name string, dryRun bool) error {
 		var wg sync.WaitGroup
 		var errs []error
 
-		terminal.Information("Propagate flag is set, waiting for initial snapshot to complete...")
+		terminal.Notice("Propagate flag is set, waiting for initial image to complete...")
 
 		// Wait for the image to complete.
 		err = waitForImage(*createImageResp.ImageId, region, dryRun)
@@ -306,25 +306,27 @@ func CreateImage(class, name string, dryRun bool) error {
 
 		// Copy to other regions
 		for _, propRegion := range cfg.PropagateRegions {
-			wg.Add(1)
 
-			go func(region string) {
-				defer wg.Done()
+			if propRegion != region {
 
-				// Copy image to the destination region
-				copyImageResp, err := copyImage(sourceImage, propRegion, dryRun)
+				wg.Add(1)
+				go func(region string) {
+					defer wg.Done()
 
-				if err != nil {
-					terminal.ShowErrorMessage(fmt.Sprintf("Error propagating image [%s] to region [%s]", sourceImage.ImageID, propRegion), err.Error())
-					errs = append(errs, err)
-				}
+					// Copy image to the destination region
+					copyImageResp, err := copyImage(sourceImage, propRegion, dryRun)
 
-				// Add Tags
-				err = SetEc2NameAndClassTags(copyImageResp.ImageId, name, class, propRegion)
+					if err != nil {
+						terminal.ShowErrorMessage(fmt.Sprintf("Error propagating image [%s] to region [%s]", sourceImage.ImageID, propRegion), err.Error())
+						errs = append(errs, err)
+					} else {
+						// Add Tags
+						err = SetEc2NameAndClassTags(copyImageResp.ImageId, name, class, propRegion)
+						terminal.Delta(fmt.Sprintf("Copied image [%s] to region [%s].", sourceImage.ImageID, propRegion))
+					}
 
-				terminal.Information(fmt.Sprintf("Copied image [%s] to region [%s].", sourceImage.ImageID, propRegion))
-
-			}(propRegion)
+				}(propRegion)
+			}
 		}
 
 		wg.Wait()
@@ -335,7 +337,8 @@ func CreateImage(class, name string, dryRun bool) error {
 	}
 
 	// Rotate out older images
-	if cfg.Retain > 1 {
+	if cfg.Rotate && cfg.Retain > 1 {
+		terminal.Notice("Rotate flag is set, looking for images to rotate...")
 		err := rotateImages(class, cfg, dryRun)
 		if err != nil {
 			terminal.ShowErrorMessage(fmt.Sprintf("Error rotating [%s] images!", sourceImage.Class), err.Error())
@@ -549,7 +552,7 @@ func deleteImages(imgList *Images, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted Image [" + image.Name + "] in [" + image.Region + "]!")
+		terminal.Delta("Deleted Image [" + image.Name + "] in [" + image.Region + "]!")
 	}
 
 	return nil

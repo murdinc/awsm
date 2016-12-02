@@ -312,7 +312,7 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Created Volume [" + *createVolumeResp.VolumeId + "] named [" + name + "] in [" + region + "]!")
+	terminal.Delta("Created Volume [" + *createVolumeResp.VolumeId + "] named [" + name + "] in [" + region + "]!")
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createVolumeResp.VolumeId, name, class, region)
@@ -390,7 +390,7 @@ func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted Volume [" + volume.Name + "] in [" + volume.Region + "]!")
+		terminal.Delta("Deleted Volume [" + volume.Name + "] in [" + volume.Region + "]!")
 	}
 
 	return nil

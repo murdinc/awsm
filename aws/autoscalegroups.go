@@ -244,7 +244,7 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 				return err
 			}
 
-			terminal.Information("Created AutoScaling Group [" + aws.StringValue(params.AutoScalingGroupName) + "] in [" + region + "]!")
+			terminal.Delta("Created AutoScaling Group [" + aws.StringValue(params.AutoScalingGroupName) + "] in [" + region + "]!")
 
 			terminal.Information("Done!")
 		} else {
@@ -390,7 +390,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 					return err
 				}
 
-				terminal.Information("Updated AutoScaling Group [" + asg.Name + "] in [" + region + "]!")
+				terminal.Delta("Updated AutoScaling Group [" + asg.Name + "] in [" + region + "]!")
 
 			} else {
 				fmt.Println(params)
@@ -468,7 +468,7 @@ func deleteAutoScaleGroups(asgList *AutoScaleGroups, force, dryRun bool) (err er
 				return err
 			}
 
-			terminal.Information("Deleted AutoScaling Group [" + asg.Name + "] in [" + asg.Region + "]!")
+			terminal.Delta("Deleted AutoScaling Group [" + asg.Name + "] in [" + asg.Region + "]!")
 
 		} else {
 			fmt.Println(params)
@@ -541,7 +541,7 @@ func suspendProcesses(asgList *AutoScaleGroups) error {
 			return err
 		}
 
-		terminal.Information("Suspended processes on Autoscale Group [" + asg.Name + "] in [" + asg.Region + "]!")
+		terminal.Delta("Suspended processes on Autoscale Group [" + asg.Name + "] in [" + asg.Region + "]!")
 	}
 
 	return nil
@@ -609,7 +609,7 @@ func resumeProcesses(asgList *AutoScaleGroups) error {
 			return err
 		}
 
-		terminal.Information("Resumed processes on Autoscale Group [" + asg.Name + "] in [" + asg.Region + "]!")
+		terminal.Delta("Resumed processes on Autoscale Group [" + asg.Name + "] in [" + asg.Region + "]!")
 	}
 
 	return nil

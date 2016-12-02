@@ -102,7 +102,7 @@ func DeleteItemsByType(classType string) error {
 			Name: item.Name,
 		})
 
-		terminal.Information("Deleting [" + classType + "/" + itemName + "] Configuration...")
+		terminal.Delta("Deleting [" + classType + "/" + itemName + "] Configuration...")
 	}
 
 	_, err = svc.BatchDeleteAttributes(params)

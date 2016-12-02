@@ -212,7 +212,7 @@ func deleteAddresses(addrList *Addresses, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted Address [" + addr.AllocationID + "] in [" + addr.Region + "]!")
+		terminal.Delta("Deleted Address [" + addr.AllocationID + "] in [" + addr.Region + "]!")
 	}
 
 	return nil

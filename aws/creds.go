@@ -54,12 +54,12 @@ func (a *awsmCreds) addCredsDialog() {
 
 	err := a.SaveCreds()
 	if err != nil {
-		terminal.Information("There was a problem saving the config to [~/.aws/credentials]!")
+		terminal.ErrorLine("There was a problem saving the config to [~/.aws/credentials]!")
 	}
 
 	creds, err := testCreds()
 	if err != nil || len(creds.ProviderName) == 0 {
-		terminal.Information("There was a problem with auth, please try again.")
+		terminal.ErrorLine("There was a problem with auth, please try again.")
 		a.addCredsDialog()
 	}
 }

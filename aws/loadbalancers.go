@@ -277,7 +277,7 @@ func deleteLoadBalancers(elbList *LoadBalancers) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted Load Balancer [" + elb.Name + "] in [" + elb.Region + "]!")
+		terminal.Delta("Deleted Load Balancer [" + elb.Name + "] in [" + elb.Region + "]!")
 	}
 
 	return nil

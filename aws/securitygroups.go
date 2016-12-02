@@ -370,7 +370,7 @@ func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 		// Verify the security group class input
 		cfg, err := config.LoadSecurityGroupClass(secGrp.Class)
 		if err != nil {
-			terminal.Information("Skipping Security Group [" + secGrp.Name + "]")
+			terminal.Notice("Skipping Security Group [" + secGrp.Name + "]")
 			terminal.ErrorLine(err.Error())
 			continue
 		} else {
@@ -441,7 +441,7 @@ func deleteSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 			return err
 		}
 
-		terminal.Information("Deleted Security Group [" + secGrp.Name + "] in [" + secGrp.Region + "]!")
+		terminal.Delta("Deleted Security Group [" + secGrp.Name + "] in [" + secGrp.Region + "]!")
 	}
 	return nil
 

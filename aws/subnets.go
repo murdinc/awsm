@@ -277,7 +277,7 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Created Subnet [" + *createSubnetResp.Subnet.SubnetId + "] named [" + name + "] in [" + *createSubnetResp.Subnet.AvailabilityZone + "]!")
+	terminal.Delta("Created Subnet [" + *createSubnetResp.Subnet.SubnetId + "] named [" + name + "] in [" + *createSubnetResp.Subnet.AvailabilityZone + "]!")
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createSubnetResp.Subnet.SubnetId, name, class, region)
@@ -350,7 +350,7 @@ func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Deleted Subnet [" + subnet.Name + "] in [" + subnet.Region + "]!")
+		terminal.Delta("Deleted Subnet [" + subnet.Name + "] in [" + subnet.Region + "]!")
 	}
 
 	return nil
