@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"regexp"
@@ -346,7 +345,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	// Parse Userdata
 	tree, err := hil.Parse(instanceCfg.UserData)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	config := &hil.EvalConfig{
@@ -360,9 +359,9 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 					Type:  ast.TypeString,
 					Value: sequence,
 				},
-				"var.az": ast.Variable{
+				"var.locale": ast.Variable{
 					Type:  ast.TypeString,
-					Value: az,
+					Value: region,
 				},
 			},
 		},
@@ -370,7 +369,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	result, err := hil.Eval(tree, config)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	parsedUserData := result.Value.(string)

@@ -41,7 +41,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		PublicIPAddress:  false,
 		KeyName:          "awsm",
 		ShutdownBehavior: "stop",
-		UserData:         "#cloud-config\n# apt upgrade\npackage_upgrade: true\npackage_update: true\n\nmounts:\n  # mount the crusher-base volume\n  - [ /dev/xvdf1, /mnt/crusher, \"auto\", \"defaults\", \"0\", \"0\" ]\n\n# clone the example crusher repo and run the hello_world spec\nruncmd:\n  - parted -s -a optimal /dev/xvdf mklabel msdos\n  - parted -s -a optimal -- /dev/xvdf unit compact mkpart primary ext4 \"1\" \"-1\"\n  - mkfs -t ext4 -L crusher /dev/xvdf1 -F\n  - mount -a\n  - cd /mnt/crusher && git clone https://github.com/murdinc/crusher-config.git\n  - cd /mnt/crusher/crusher-config/ && ./crusher lc hello_world",
+		UserData:         "#cloud-config\n# apt upgrade\npackage_upgrade: true\npackage_update: true\n\nmounts:\n  # mount the crusher-base volume\n  - [ /dev/xvdf1, /mnt/crusher, \"auto\", \"defaults\", \"0\", \"0\" ]\n\n# clone the example crusher repo and run the hello_world spec\nruncmd:\n  - parted -s -a optimal /dev/xvdf mklabel msdos\n  - parted -s -a optimal -- /dev/xvdf unit compact mkpart primary ext4 \"1\" \"-1\"\n  - mkfs -t ext4 -L crusher /dev/xvdf1 -F\n  - mount -a\n  - cd /mnt/crusher && git clone https://github.com/murdinc/crusher-config.git\n  - /mnt/crusher/crusher-config/crusher lc hello_world --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}",
 		// No AMI Specified, will prompt user to provide one
 	}
 

@@ -16,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/dustin/go-humanize"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
@@ -210,7 +212,6 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			Enabled: aws.Bool(instanceCfg.Monitoring),
 		},
 		InstanceType: aws.String(instanceCfg.InstanceType),
-		UserData:     aws.String(instanceCfg.UserData),
 		//KernelId:         aws.String("XmlStringMaxLen255"),
 		//PlacementTenancy: aws.String("XmlStringMaxLen64"),
 		//RamdiskId:        aws.String("XmlStringMaxLen255"),
@@ -263,7 +264,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 					SnapshotId:          aws.String(latestSnapshot.SnapshotID),
 					VolumeSize:          aws.Int64(int64(volCfg.VolumeSize)),
 					VolumeType:          aws.String(volCfg.VolumeType),
-					//Encrypted:           aws.Bool(volCfg.Encrypted),
+					Encrypted:           aws.Bool(volCfg.Encrypted),
 				},
 				//NoDevice:    aws.String("String"),
 				//VirtualName: aws.String("String"),
@@ -349,6 +350,44 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 		}
 
+		// Parse Userdata
+		tree, err := hil.Parse(instanceCfg.UserData)
+		if err != nil {
+			return err
+		}
+
+		config := &hil.EvalConfig{
+			GlobalScope: &ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"var.class": ast.Variable{
+						Type:  ast.TypeString,
+						Value: class,
+					},
+					"var.sequence": ast.Variable{
+						Type:  ast.TypeString,
+						Value: cfg.Version,
+					},
+					"var.locale": ast.Variable{
+						Type:  ast.TypeString,
+						Value: region,
+					},
+				},
+			},
+		}
+
+		result, err := hil.Eval(tree, config)
+		if err != nil {
+			return err
+		}
+
+		parsedUserData := result.Value.(string)
+
+		if dryRun {
+			terminal.Information("User Data:")
+			terminal.Information(parsedUserData)
+		}
+
+		params.UserData = aws.String(parsedUserData)
 		params.SecurityGroups = secGroupIds
 
 		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
