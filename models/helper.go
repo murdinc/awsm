@@ -44,7 +44,7 @@ func ExtractAwsmTableLinks(index int, in interface{}, header *[]string, rows *[]
 			sVal = humanize.Time(tV.Field(k).Interface().(time.Time))
 
 		default:
-			println("ExtractAwsmTable does not have a switch for type:")
+			println("ExtractAwsmTableLinks does not have a switch for type:")
 			println(tV.Field(k).Type().String())
 
 			// TODO other types?
@@ -87,18 +87,21 @@ func ExtractAwsmTable(index int, in interface{}, header *[]string, rows *[][]str
 
 		var sVal string
 
-		switch tV.Field(k).Interface().(type) {
-		case int:
+		switch tV.Field(k).Type().String() {
+		case "int":
 			sVal = fmt.Sprint(tV.Field(k).Int())
-		case string:
+		case "string":
 			sVal = tV.Field(k).String()
-		case bool:
+		case "bool":
 			sVal = fmt.Sprint(tV.Field(k).Bool())
-		case []string:
+		case "[]string":
 			sVal = strings.Join(tV.Field(k).Interface().([]string), ", ")
 
-		case time.Time:
+		case "time.Time":
 			sVal = humanize.Time(tV.Field(k).Interface().(time.Time))
+
+		case "[]config.SecurityGroupGrant":
+			// nothing, yet
 
 		default:
 			println("ExtractAwsmTable does not have a switch for type:")

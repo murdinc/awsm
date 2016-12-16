@@ -296,6 +296,34 @@ func main() {
 			},
 		},
 		{
+			Name:  "createSecurityGroup",
+			Usage: "Create an AWS Security Groups",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "class",
+					Description: "The class of security group to create",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "region",
+					Description: "The region to create the security group in",
+					Optional:    false,
+				},
+				cli.Argument{
+					Name:        "vpc",
+					Description: "The vpc to create the security group in (optional)",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.CreateSecurityGroup(c.NamedArg("class"), c.NamedArg("region"), c.NamedArg("vpc"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "createSimpleDBDomain",
 			Usage: "Create an AWS SimpleDB Domain",
 			Arguments: []cli.Argument{

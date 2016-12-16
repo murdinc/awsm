@@ -227,16 +227,11 @@ func (s *SecurityGroups) PrintTable() {
 }
 
 // CreateSecurityGroup creates a new Security Group based on the provided class, region, and VPC ID
-func CreateSecurityGroup(class, region, vpcID string, dryRun bool) error {
+func CreateSecurityGroup(class, region, vpc string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
-	}
-
-	// Validate the region
-	if !regions.ValidRegion(region) {
-		return errors.New("Region [" + region + "] is Invalid!")
 	}
 
 	// Verify the security group class input
@@ -247,17 +242,40 @@ func CreateSecurityGroup(class, region, vpcID string, dryRun bool) error {
 
 	terminal.Information("Found Security Group class configuration for [" + class + "]")
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	// Validate the region
+	if !regions.ValidRegion(region) {
+		return errors.New("Region [" + region + "] is Invalid!")
+	}
 
-	// Create the security group
 	params := &ec2.CreateSecurityGroupInput{
 		Description: aws.String(cfg.Description),
 		GroupName:   aws.String(class),
 		DryRun:      aws.Bool(dryRun),
-		VpcId:       aws.String(vpcID),
 	}
 
-	_, err = svc.CreateSecurityGroup(params)
+	vpcList := new(Vpcs)
+	if vpc != "" {
+		GetRegionVpcs(region, vpcList, vpc)
+
+		count := len(*vpcList)
+		if count == 0 {
+			return errors.New("No VPC's found matching [" + vpc + "] in [" + region + "], Aborting!")
+		}
+
+		if count > 1 {
+			vpcList.PrintTable()
+			return errors.New("Please limit your Vpc search term to result in only one VPC, Aborting!")
+		}
+
+		vpc := (*vpcList)[0]
+		terminal.Information("Found VPC [" + vpc.VpcID + "] named [" + vpc.Name + "] in [" + region + "]")
+		params.VpcId = aws.String(vpc.VpcID)
+	}
+
+	// Create the security group
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	createSecGrpResponse, err := svc.CreateSecurityGroup(params)
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -265,6 +283,10 @@ func CreateSecurityGroup(class, region, vpcID string, dryRun bool) error {
 		}
 		return err
 	}
+
+	// Add Tags
+	SetEc2NameAndClassTags(createSecGrpResponse.GroupId, class, class, region)
+	terminal.Delta("Created Security Group [" + aws.StringValue(createSecGrpResponse.GroupId) + "] in region [" + region + "]")
 
 	return nil
 }
@@ -377,27 +399,62 @@ func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 			terminal.Information("Found Security Group class configuration for [" + secGrp.Class + "]")
 		}
 
-		// TODO
-		fmt.Println("\n\n")
-		fmt.Println("aws\n")
-		fmt.Println(secGrp.SecurityGroupGrants)
-		fmt.Println("awsm\n")
-		fmt.Println(cfg.SecurityGroupGrants)
-		fmt.Println("\n\n")
-
-		hash1, err := hashstructure.Hash(secGrp.SecurityGroupGrants, nil)
-		if err != nil {
-			panic(err)
+		// cycle through the config grants an generate hashes
+		cfgHashes := make(map[uint64]int)
+		for i, cGrant := range cfg.SecurityGroupGrants {
+			configGrantHash, err := hashstructure.Hash(cGrant, nil)
+			if err != nil {
+				return err
+			}
+			cfgHashes[configGrantHash] = i
 		}
 
-		fmt.Printf("\n\n%d\n\n", hash1)
+		var remove, add []config.SecurityGroupGrant
 
-		hash2, err := hashstructure.Hash(cfg.SecurityGroupGrants, nil)
-		if err != nil {
-			panic(err)
+		// cycle through existing grants and find ones to remove
+		for _, eGrant := range secGrp.SecurityGroupGrants {
+			existingGrantHash, err := hashstructure.Hash(eGrant, nil)
+			if err != nil {
+				return err
+			}
+			if _, ok := cfgHashes[existingGrantHash]; !ok {
+				fmt.Println("remove")
+				fmt.Println(existingGrantHash)
+				fmt.Println(eGrant)
+				fmt.Println("")
+
+				//cfgHashes[existingGrantHash] = -1
+
+				remove = append(remove, eGrant)
+			} else {
+				fmt.Println("keep")
+				fmt.Println(existingGrantHash)
+				fmt.Println(eGrant)
+				fmt.Println("")
+
+				delete(cfgHashes, existingGrantHash)
+			}
 		}
 
-		fmt.Printf("\n\n%d\n\n", hash2)
+		// cycle through hashes and find ones to add
+		for hash, i := range cfgHashes {
+			fmt.Println("add")
+			fmt.Println(hash)
+			fmt.Println(i)
+			fmt.Println(cfg.SecurityGroupGrants[i])
+			fmt.Println("")
+			add = append(add, cfg.SecurityGroupGrants[i])
+		}
+
+		fmt.Println("=======================================================")
+
+		fmt.Println("remove:")
+		fmt.Println(remove)
+		fmt.Println("")
+
+		fmt.Println("add:")
+		fmt.Println(add)
+		fmt.Println("")
 
 	}
 
@@ -431,7 +488,7 @@ func deleteSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 		svc := ec2.New(session.New(&aws.Config{Region: aws.String(secGrp.Region)}))
 
 		params := &ec2.DeleteSecurityGroupInput{
-			DryRun:  aws.Bool(true),
+			DryRun:  aws.Bool(dryRun),
 			GroupId: aws.String(secGrp.GroupID),
 		}
 

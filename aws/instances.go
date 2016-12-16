@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"regexp"
@@ -13,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
@@ -340,6 +343,43 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	}
 
+	// Parse Userdata
+	tree, err := hil.Parse(instanceCfg.UserData)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	config := &hil.EvalConfig{
+		GlobalScope: &ast.BasicScope{
+			VarMap: map[string]ast.Variable{
+				"var.class": ast.Variable{
+					Type:  ast.TypeString,
+					Value: class,
+				},
+				"var.sequence": ast.Variable{
+					Type:  ast.TypeString,
+					Value: sequence,
+				},
+				"var.az": ast.Variable{
+					Type:  ast.TypeString,
+					Value: az,
+				},
+			},
+		},
+	}
+
+	result, err := hil.Eval(tree, config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	parsedUserData := result.Value.(string)
+
+	if dryRun {
+		terminal.Information("User Data:")
+		terminal.Information(parsedUserData)
+	}
+
 	params := &ec2.RunInstancesInput{
 		ImageId:      aws.String(ami.ImageID),
 		MaxCount:     aws.Int64(1),
@@ -392,7 +432,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		// PrivateIpAddress: aws.String("String"),
 		SecurityGroupIds: secGroupIds,
 		SubnetId:         aws.String(subnetID),
-		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte(instanceCfg.UserData))),
+		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte(parsedUserData))),
 
 		//KernelId:         aws.String("String"),
 		//RamdiskId:        aws.String("String"),
