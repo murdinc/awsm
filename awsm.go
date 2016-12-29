@@ -522,6 +522,24 @@ func main() {
 			},
 		},
 		{
+			Name:  "deleteIAMRoles",
+			Usage: "Delete AWS IAM Roles",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The search term for iam role",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteIAMRoles(c.NamedArg("search"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "deleteIAMUsers",
 			Usage: "Delete AWS IAM Users",
 			Arguments: []cli.Argument{
@@ -532,7 +550,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.DeleteIAMUsers(c.NamedArg("search"))
+				err := aws.DeleteIAMUsers(c.NamedArg("search"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -949,6 +967,26 @@ func main() {
 					return cli.NewExitError("Error Listing Auto Scale Groups!", 1)
 				}
 				groups.PrintTable()
+
+				return nil
+			},
+		},
+		{
+			Name:  "listIAMRoles",
+			Usage: "Lists IAM Roles",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				iam, errs := aws.GetIAMRoles(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing IAM Roles!", 1)
+				}
+				iam.PrintTable()
 
 				return nil
 			},

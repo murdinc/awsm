@@ -12,3 +12,12 @@ type IAMUser struct {
 	PasswordLastUsed      time.Time `json:"passwordLastUsed"`
 	PasswordLastUsedHuman string    `json:"passwordLastUsedHuman" awsmTable:"Last Used"`
 }
+
+// IAMRole represents an Identity and Access Management (IAM) Role
+type IAMRole struct {
+	RoleName     string    `json:"roleName" awsmTable:"Role Name"`
+	RoleID       string    `json:"roleID" awsmTable:"Role ID"`
+	CreateDate   time.Time `json:"createDate"`
+	CreatedHuman string    `json:"createdHumand" awsmTable:"Created"`
+	Arn          string    `json:"arn" awsmTable:"ARN"`
+}
