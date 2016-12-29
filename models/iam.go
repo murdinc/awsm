@@ -7,7 +7,7 @@ type IAMUser struct {
 	UserName              string    `json:"userName" awsmTable:"User Name"`
 	UserID                string    `json:"userID" awsmTable:"User ID"`
 	CreateDate            time.Time `json:"createDate"`
-	CreatedHuman          string    `json:"createdHumand" awsmTable:"Created"`
+	CreatedHuman          string    `json:"createdHuman" awsmTable:"Created"`
 	Arn                   string    `json:"arn" awsmTable:"ARN"`
 	PasswordLastUsed      time.Time `json:"passwordLastUsed"`
 	PasswordLastUsedHuman string    `json:"passwordLastUsedHuman" awsmTable:"Last Used"`
@@ -18,6 +18,6 @@ type IAMRole struct {
 	RoleName     string    `json:"roleName" awsmTable:"Role Name"`
 	RoleID       string    `json:"roleID" awsmTable:"Role ID"`
 	CreateDate   time.Time `json:"createDate"`
-	CreatedHuman string    `json:"createdHumand" awsmTable:"Created"`
+	CreatedHuman string    `json:"createdHuman" awsmTable:"Created"`
 	Arn          string    `json:"arn" awsmTable:"ARN"`
 }
