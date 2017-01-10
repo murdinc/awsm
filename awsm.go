@@ -972,6 +972,26 @@ func main() {
 			},
 		},
 		{
+			Name:  "listIAMInstanceProfiles",
+			Usage: "Lists IAM Instance Profiles",
+			Arguments: []cli.Argument{
+				cli.Argument{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				iam, errs := aws.GetIAMInstanceProfiles(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing IAM Instance Profiles!", 1)
+				}
+				iam.PrintTable()
+
+				return nil
+			},
+		},
+		{
 			Name:  "listIAMRoles",
 			Usage: "Lists IAM Roles",
 			Arguments: []cli.Argument{

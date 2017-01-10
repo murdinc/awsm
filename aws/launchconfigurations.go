@@ -222,14 +222,14 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		//},
 	}
 
-	// IAM Profile
-	if len(instanceCfg.IAMUser) > 0 {
-		iam, err := GetIAMUser(instanceCfg.IAMUser)
+	// IAM Instance Profile
+	if len(instanceCfg.IAMInstanceProfile) > 0 {
+		iam, err := GetIAMInstanceProfile(instanceCfg.IAMInstanceProfile)
 		if err != nil {
 			return err
 		}
 
-		terminal.Information("Found IAM User [" + iam.UserName + "]")
+		terminal.Information("Found IAM Instance Profile [" + iam.ProfileName + "]")
 		params.IamInstanceProfile = aws.String(iam.Arn)
 
 	}

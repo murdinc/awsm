@@ -257,16 +257,15 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		terminal.Information("Launching as EBS Optimized")
 	}
 
-	// IAM Profile
+	// IAM Instance Profile
 	var iam IAMUser
-	if len(instanceCfg.IAMUser) > 0 {
-		iam, err := GetIAMUser(instanceCfg.IAMUser)
+	if len(instanceCfg.IAMInstanceProfile) > 0 {
+		iam, err := GetIAMInstanceProfile(instanceCfg.IAMInstanceProfile)
 		if err != nil {
 			return err
 		}
 
-		terminal.Information("Found IAM User [" + iam.UserName + "]!")
-
+		terminal.Information("Found IAM Instance Profile [" + iam.ProfileName + "]!")
 	}
 
 	// KeyPair
@@ -386,8 +385,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		DryRun:       aws.Bool(dryRun),
 		EbsOptimized: aws.Bool(instanceCfg.EbsOptimized),
 		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-			Arn:  aws.String(iam.Arn),
-			Name: aws.String(iam.UserName),
+			Arn: aws.String(iam.Arn),
 		},
 		InstanceInitiatedShutdownBehavior: aws.String(instanceCfg.ShutdownBehavior),
 		InstanceType:                      aws.String(instanceCfg.InstanceType),

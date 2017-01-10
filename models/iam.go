@@ -21,3 +21,12 @@ type IAMRole struct {
 	CreatedHuman string    `json:"createdHuman" awsmTable:"Created"`
 	Arn          string    `json:"arn" awsmTable:"ARN"`
 }
+
+// IAMInstanceProfile represents an Identity and Access Management (IAM) Profile
+type IAMInstanceProfile struct {
+	ProfileName  string    `json:"profileName" awsmTable:"Profile Name"`
+	ProfileID    string    `json:"profileID" awsmTable:"Profile ID"`
+	CreateDate   time.Time `json:"createDate"`
+	CreatedHuman string    `json:"createdHuman" awsmTable:"Created"`
+	Arn          string    `json:"arn" awsmTable:"ARN"`
+}

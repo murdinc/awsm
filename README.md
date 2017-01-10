@@ -61,6 +61,7 @@ Also, check out [awsmDashboard](https://github.com/murdinc/awsmDashboard) which 
 * listAddresses - "Lists AWS Elastic IP Addresses"
 * listAlarms - "Lists CloudWatch Alarms"
 * listAutoScaleGroups - "Lists AutoScale Groups"
+* listIAMInstanceProfiles = "List IAM Instance Profiles"
 * listIAMRoles - "Lists IAM Roles"
 * listIAMUsers - "Lists IAM Users"
 * listImages - "Lists AWS Machine Images owned by us"

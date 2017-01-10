@@ -28,6 +28,9 @@ func getAssets(w http.ResponseWriter, r *http.Request) {
 	case "autoscalegroups":
 		resp, errs = aws.GetAutoScaleGroups("")
 
+	case "iaminstanceprofiles":
+		resp, err = aws.GetIAMInstanceProfiles("")
+
 	case "iamroles":
 		resp, err = aws.GetIAMRoles("")
 

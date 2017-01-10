@@ -26,6 +26,12 @@ type IAMRoles []IAMRole
 // IAMRole represents a single IAM Role
 type IAMRole models.IAMRole
 
+// IAMProfile represents a slice of AWS IAM Profiles
+type IAMInstanceProfiles []IAMInstanceProfile
+
+// IAMRole represents a single IAM Profile
+type IAMInstanceProfile models.IAMInstanceProfile
+
 // GetIAMUser returns a single IAM User that matches the provided username
 func GetIAMUser(username string) (IAMUser, error) {
 	svc := iam.New(session.New())
@@ -142,6 +148,64 @@ func GetIAMRoles(search string) (iamRoleList *IAMRoles, err error) {
 	return iamRoleList, nil
 }
 
+// GetIAMProfile returns a single IAM Profile that matches the provided name
+func GetIAMInstanceProfile(name string) (IAMInstanceProfile, error) {
+	svc := iam.New(session.New())
+
+	params := &iam.GetInstanceProfileInput{
+		InstanceProfileName: aws.String(name),
+	}
+
+	resp, err := svc.GetInstanceProfile(params)
+	if err != nil {
+		return IAMInstanceProfile{}, err
+	}
+
+	profile := new(IAMInstanceProfile)
+	profile.Marshal(resp.InstanceProfile)
+
+	return *profile, nil
+}
+
+// GetIAMInstanceProfiles returns a list of IAM Profiles that matches the provided name
+func GetIAMInstanceProfiles(search string) (iamProfileList *IAMInstanceProfiles, err error) {
+	svc := iam.New(session.New())
+	result, err := svc.ListInstanceProfiles(&iam.ListInstanceProfilesInput{})
+
+	if err != nil {
+		terminal.ShowErrorMessage("Error gathering IAM Instance Profile list", err.Error())
+		return &IAMInstanceProfiles{}, err
+	}
+
+	iam := make(IAMInstanceProfiles, len(result.InstanceProfiles))
+	for i, profile := range result.InstanceProfiles {
+		iam[i].Marshal(profile)
+	}
+
+	iamProfileList = new(IAMInstanceProfiles)
+
+	if search != "" {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, ia := range iam {
+			rIam := reflect.ValueOf(ia)
+
+			for k := 0; k < rIam.NumField(); k++ {
+				sVal := rIam.Field(k).String()
+
+				if term.MatchString(sVal) {
+					*iamProfileList = append(*iamProfileList, iam[i])
+					continue Loop
+				}
+			}
+		}
+	} else {
+		*iamProfileList = append(*iamProfileList, iam[:]...)
+	}
+
+	return iamProfileList, nil
+}
+
 // Marshal parses the response from the aws sdk into an awsm IAM User
 func (i *IAMUser) Marshal(user *iam.User) {
 	i.UserName = aws.StringValue(user.UserName)
@@ -160,6 +224,15 @@ func (i *IAMRole) Marshal(user *iam.Role) {
 	i.CreateDate = aws.TimeValue(user.CreateDate) // robots
 	i.CreatedHuman = humanize.Time(i.CreateDate)  // humans
 	i.Arn = aws.StringValue(user.Arn)
+}
+
+// Marshal parses the response from the aws sdk into an awsm IAM Role
+func (i *IAMInstanceProfile) Marshal(profile *iam.InstanceProfile) {
+	i.ProfileName = aws.StringValue(profile.InstanceProfileName)
+	i.ProfileID = aws.StringValue(profile.InstanceProfileId)
+	i.CreateDate = aws.TimeValue(profile.CreateDate) // robots
+	i.CreatedHuman = humanize.Time(i.CreateDate)     // humans
+	i.Arn = aws.StringValue(profile.Arn)
 }
 
 // PrintTable Prints an ascii table of the list of IAM Users
@@ -186,6 +259,26 @@ func (i *IAMUsers) PrintTable() {
 func (i *IAMRoles) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No IAM Roles Found!")
+		return
+	}
+
+	var header []string
+	rows := make([][]string, len(*i))
+
+	for index, user := range *i {
+		models.ExtractAwsmTable(index, user, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
+	table.AppendBulk(rows)
+	table.Render()
+}
+
+// PrintTable Prints an ascii table of the list of IAM Instance Profiles
+func (i *IAMInstanceProfiles) PrintTable() {
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No IAM Instance Profiles Found!")
 		return
 	}
 
