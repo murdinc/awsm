@@ -90,6 +90,12 @@ func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subne
 	i.Subnet = subnet
 	i.Region = region
 
+	if instance.IamInstanceProfile != nil && instance.IamInstanceProfile.Arn != nil {
+		i.IamInstanceProfileArn = aws.StringValue(instance.IamInstanceProfile.Arn)
+		iamInstanceProfileName, _ := ParseArn(i.IamInstanceProfileArn)
+		i.IamInstanceProfileName = iamInstanceProfileName.ProfileName
+	}
+
 	// TODO
 	//instance.SecurityGroups
 }
@@ -258,9 +264,9 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	}
 
 	// IAM Instance Profile
-	var iam IAMUser
+	var iam IAMInstanceProfile
 	if len(instanceCfg.IAMInstanceProfile) > 0 {
-		iam, err := GetIAMInstanceProfile(instanceCfg.IAMInstanceProfile)
+		iam, err = GetIAMInstanceProfile(instanceCfg.IAMInstanceProfile)
 		if err != nil {
 			return err
 		}
@@ -350,15 +356,15 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	config := &hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
 			VarMap: map[string]ast.Variable{
-				"var.class": ast.Variable{
+				"var.class": {
 					Type:  ast.TypeString,
 					Value: class,
 				},
-				"var.sequence": ast.Variable{
+				"var.sequence": {
 					Type:  ast.TypeString,
 					Value: sequence,
 				},
-				"var.locale": ast.Variable{
+				"var.locale": {
 					Type:  ast.TypeString,
 					Value: region,
 				},
@@ -374,8 +380,8 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	parsedUserData := result.Value.(string)
 
 	if dryRun {
-		terminal.Information("User Data:")
-		terminal.Information(parsedUserData)
+		terminal.Notice("User Data:")
+		fmt.Println(parsedUserData)
 	}
 
 	params := &ec2.RunInstancesInput{
@@ -440,6 +446,11 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	}
 
 	svc := ec2.New(session.New(&aws.Config{Region: &region}))
+
+	if dryRun {
+		terminal.Notice("Params:")
+		fmt.Println(params.String())
+	}
 
 	launchInstanceResp, err := svc.RunInstances(params)
 

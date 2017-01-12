@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"html/template"
+	"io/ioutil"
 	"os"
 
 	"github.com/murdinc/awsm/api"
@@ -14,24 +18,11 @@ import (
 ////////////////..........
 func main() {
 
-	// Check for Creds
-	found := aws.CheckCreds()
-	if !found {
+	// Setup Check
+	err := setupCheck()
+	if err != nil {
+		terminal.ErrorLine(err.Error())
 		return
-	}
-
-	// Check for the awsm db
-	if !config.CheckDB() {
-		create := terminal.BoxPromptBool("No awsm database found!", "Do you want to create one now?")
-		if !create {
-			terminal.Information("Ok then, maybe next time.. ")
-			return
-		}
-		err := config.CreateAwsmDatabase()
-		if err != nil {
-			terminal.ErrorLine(err.Error())
-			return
-		}
 	}
 
 	var dryRun bool
@@ -81,15 +72,38 @@ func main() {
 			},
 		*/
 		{
+			Name:  "attachIAMRolePolicy",
+			Usage: "Attach an AWS IAM Policy to a IAM Role",
+			Arguments: []cli.Argument{
+				{
+					Name:        "role",
+					Description: "The name of the role to attach the policy to",
+					Optional:    false,
+				},
+				{
+					Name:        "policy",
+					Description: "The name of the policy to attach to the role",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.AttachIAMRolePolicy(c.NamedArg("role"), c.NamedArg("policy"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "attachVolume",
 			Usage: "Attach an AWS EBS Volume to an EC2 Instance",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "volume",
 					Description: "The volume to attach",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "instance",
 					Description: "The instance to attach the volume to",
 					Optional:    false,
@@ -107,7 +121,7 @@ func main() {
 			Name:  "installKeyPair",
 			Usage: "Installs a Key Pair locally",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the key pair",
 					Optional:    false,
@@ -125,12 +139,12 @@ func main() {
 			Name:  "copyImage",
 			Usage: "Copy an AWS Machine Image to another region",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The image to copy",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to copy the image to",
 					Optional:    false,
@@ -148,12 +162,12 @@ func main() {
 			Name:  "copySnapshot",
 			Usage: "Copy an AWS EBS Snapshot to another region",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The snapshot to copy",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to copy the snapshot to",
 					Optional:    false,
@@ -171,12 +185,12 @@ func main() {
 			Name:  "createAddress",
 			Usage: "Create an AWS Elastic IP Address",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to create the elastic ip in",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "domain",
 					Description: "The domain to create the elastic ip in (classic or vpc)",
 					Optional:    false,
@@ -194,7 +208,7 @@ func main() {
 			Name:  "createAutoScaleGroups",
 			Usage: "Create an AWS AutoScaling Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the autoscaling groups to create",
 					Optional:    false,
@@ -212,12 +226,12 @@ func main() {
 			Name:  "createIAMUser",
 			Usage: "Create an IAM User",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "username",
 					Description: "The username for this IAM user",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "path",
 					Description: "The optional path for the user",
 					Optional:    true,
@@ -232,15 +246,55 @@ func main() {
 			},
 		},
 		{
+			Name:  "createIAMPolicy",
+			Usage: "Create an IAM Policy",
+			Arguments: []cli.Argument{
+				{
+					Name:        "name",
+					Description: "The name for this IAM policy",
+					Optional:    false,
+				},
+				{
+					Name:        "document",
+					Description: "The document file for this IAM policy",
+					Optional:    false,
+				},
+				{
+					Name:        "path",
+					Description: "The optional path for this IAM policy",
+					Optional:    true,
+				},
+				{
+					Name:        "description",
+					Description: "The optional description for this IAM policy",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+
+				doc, err := ioutil.ReadFile(c.NamedArg("document"))
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+					return err
+				}
+
+				_, err = aws.CreateIAMPolicy(c.NamedArg("name"), string(doc), c.NamedArg("path"), c.NamedArg("description"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "createImage",
 			Usage: "Create an AWS Machine Image from a running instance",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the new image",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "name",
 					Description: "The name of the new image",
 					Optional:    false,
@@ -258,7 +312,7 @@ func main() {
 			Name:  "createLaunchConfigurations",
 			Usage: "Create an AWS AutoScaling Launch Configurations",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the launch configuration groups to create",
 					Optional:    false,
@@ -276,12 +330,12 @@ func main() {
 			Name:  "createKeyPair",
 			Usage: "Create an AWS Key Pair in the specified region",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the key pair",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to create the keypair in",
 					Optional:    false,
@@ -299,17 +353,17 @@ func main() {
 			Name:  "createSecurityGroup",
 			Usage: "Create an AWS Security Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of security group to create",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to create the security group in",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "vpc",
 					Description: "The vpc to create the security group in (optional)",
 					Optional:    true,
@@ -327,12 +381,12 @@ func main() {
 			Name:  "createSimpleDBDomain",
 			Usage: "Create an AWS SimpleDB Domain",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "domain",
 					Description: "The domain of the db",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the db",
 					Optional:    false,
@@ -350,12 +404,12 @@ func main() {
 			Name:  "createSnapshot",
 			Usage: "Create an AWS EBS snapshot of a volume",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the new snapshot",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "name",
 					Description: "The name of the new snapshot",
 					Optional:    false,
@@ -373,17 +427,17 @@ func main() {
 			Name:  "createVolume",
 			Usage: "Create an AWS EBS volume",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the new volume",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "name",
 					Description: "The name of the new volume",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "az",
 					Description: "The Availability Zone to create the volume in",
 					Optional:    false,
@@ -401,22 +455,22 @@ func main() {
 			Name:  "createVpc",
 			Usage: "Create an AWS VPC",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of VPC to create",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "name",
 					Description: "The name of the VPC",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "ip",
 					Description: "The IP address of this VPC (not including CIDR)",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to create the VPC in",
 					Optional:    false,
@@ -434,27 +488,27 @@ func main() {
 			Name:  "createSubnet",
 			Usage: "Create an AWS VPC Subnet",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of Subnet to create",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "name",
 					Description: "The name of the Subnet",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "vpc",
 					Description: "The VPC to create the Subnet in",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "ip",
 					Description: "The IP address of this Subnet (not including CIDR)",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "az",
 					Description: "The Availability Zone to create the Subnet in",
 					Optional:    true,
@@ -472,12 +526,12 @@ func main() {
 			Name:  "deleteAddresses",
 			Usage: "Delete AWS Elastic IP Addresses",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for the elastic ip to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to delete the elastic ip from",
 					Optional:    true,
@@ -495,12 +549,12 @@ func main() {
 			Name:  "deleteAutoScaleGroups",
 			Usage: "Delete AWS AutoScaling Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for the autoscaling group to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to delete the autoscaling group from",
 					Optional:    true,
@@ -522,10 +576,46 @@ func main() {
 			},
 		},
 		{
+			Name:  "deleteIAMInstanceProfiles",
+			Usage: "Delete AWS IAM Instance Profiles",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for iam instance profiles",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteIAMInstanceProfiles(c.NamedArg("search"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "deleteIAMPolicies",
+			Usage: "Delete AWS IAM Policies",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for iam policy",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteIAMPolicies(c.NamedArg("search"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "deleteIAMRoles",
 			Usage: "Delete AWS IAM Roles",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for iam role",
 					Optional:    false,
@@ -543,7 +633,7 @@ func main() {
 			Name:  "deleteIAMUsers",
 			Usage: "Delete AWS IAM Users",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for iam username",
 					Optional:    false,
@@ -561,12 +651,12 @@ func main() {
 			Name:  "deleteImages",
 			Usage: "Delete AWS Machine Images",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for images to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the images (optional)",
 					Optional:    true,
@@ -584,7 +674,7 @@ func main() {
 			Name:  "deleteKeyPairs",
 			Usage: "Delete AWS KeyPairs",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "name",
 					Description: "The name of the AWS KeyPair to delete",
 					Optional:    false,
@@ -603,12 +693,12 @@ func main() {
 			Name:  "deleteLaunchConfigurations",
 			Usage: "Delete AWS AutoScaling Launch Configurations",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for the launch configuration to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to delete the launch configuration from",
 					Optional:    true,
@@ -626,12 +716,12 @@ func main() {
 			Name:  "deleteSecurityGroups",
 			Usage: "Delete AWS Security Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for the security group to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to delete the security group from",
 					Optional:    true,
@@ -649,12 +739,12 @@ func main() {
 			Name:  "deleteSnapshots",
 			Usage: "Delete AWS EBS Snapshots",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for snapshots to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the snapshots (optional)",
 					Optional:    true,
@@ -672,12 +762,12 @@ func main() {
 			Name:  "deleteSimpleDBDomains",
 			Usage: "Delete AWS SimpleDB Domains",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for simpleDB domain to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the DBs (optional)",
 					Optional:    true,
@@ -695,12 +785,12 @@ func main() {
 			Name:  "deleteVolumes",
 			Usage: "Delete AWS EBS Volumes",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "volume",
 					Description: "The volume to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the volumes (optional)",
 					Optional:    true,
@@ -719,12 +809,12 @@ func main() {
 			Name:  "deleteSubnets",
 			Usage: "Delete AWS VPC Subnets",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for Subnets to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the subnets (optional)",
 					Optional:    true,
@@ -742,12 +832,12 @@ func main() {
 			Name:  "deleteVpcs",
 			Usage: "Delete AWS VPCs",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for VPCs to delete",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the VPCs (optional)",
 					Optional:    true,
@@ -765,12 +855,12 @@ func main() {
 			Name:  "detachVolume",
 			Usage: "Detach an AWS EBS Volume",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "volume",
 					Description: "The volume to detach",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "instance",
 					Description: "The instance to detach the volume from",
 					Optional:    false,
@@ -793,15 +883,89 @@ func main() {
 			},
 		},
 		{
+			Name:  "getIAMInstanceProfile",
+			Usage: "Get an IAM Instance Profile",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for the iam instance profile",
+					Optional:    false,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				instanceProfile, err := aws.GetIAMInstanceProfile(c.NamedArg("search"))
+
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+
+				instProfilesSlice := aws.IAMInstanceProfiles{instanceProfile}
+				instProfilesSlice.PrintTable()
+
+				return nil
+			},
+		},
+		{
+			Name:  "getIAMPolicy",
+			Usage: "Get an IAM Policy",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for the iam policy document",
+					Optional:    false,
+				},
+				{
+					Name:        "version",
+					Description: "The version of the iam policy document to retrieve",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				policyDocument, err := aws.GetIAMPolicyDocument(c.NamedArg("search"), c.NamedArg("version"))
+
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+
+				// TODO specify output file and write to that instead?
+				fmt.Println(policyDocument.Document)
+
+				return nil
+			},
+		},
+		{
+			Name:  "getIAMUser",
+			Usage: "Get an IAM User",
+			Arguments: []cli.Argument{
+				{
+					Name:        "username",
+					Description: "The username to search for",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				iam, err := aws.GetIAMUser(c.NamedArg("username"))
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+					return err
+				}
+
+				userSlice := aws.IAMUsers{iam}
+				userSlice.PrintTable()
+
+				return nil
+			},
+		},
+		{
 			Name:  "stopInstances",
 			Usage: "Stop AWS instances",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for instance to stop",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the instance (optional)",
 					Optional:    true,
@@ -826,12 +990,12 @@ func main() {
 			Name:  "startInstances",
 			Usage: "Start AWS instances",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for Instance to start",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the instance (optional)",
 					Optional:    true,
@@ -849,12 +1013,12 @@ func main() {
 			Name:  "rebootInstances",
 			Usage: "Reboot AWS instances",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for instance to reboot",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the instance (optional)",
 					Optional:    true,
@@ -872,12 +1036,12 @@ func main() {
 			Name:  "terminateInstances",
 			Usage: "Terminate AWS instances",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "name",
 					Description: "The search term for instance to terminate",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region of the instance (optional)",
 					Optional:    true,
@@ -895,17 +1059,17 @@ func main() {
 			Name:  "launchInstance",
 			Usage: "Launch an EC2 instance",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "class",
 					Description: "The class of the instance (dev, stage, etc)",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "sequence",
 					Description: "The sequence of the instance (1...100)",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "az",
 					Description: "The availability zone to launch the instance in (us-west-2a, us-east-1a, etc)",
 					Optional:    false,
@@ -923,7 +1087,7 @@ func main() {
 			Name:  "listAddresses",
 			Usage: "Lists AWS Elastic IP Addresses",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -955,7 +1119,7 @@ func main() {
 			Name:  "listAutoScaleGroups",
 			Usage: "Lists AutoScale Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -975,7 +1139,7 @@ func main() {
 			Name:  "listIAMInstanceProfiles",
 			Usage: "Lists IAM Instance Profiles",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -992,10 +1156,30 @@ func main() {
 			},
 		},
 		{
+			Name:  "listIAMPolicies",
+			Usage: "Lists IAM Policies",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				iam, errs := aws.GetIAMPolicies(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing IAM Policies!", 1)
+				}
+				iam.PrintTable()
+
+				return nil
+			},
+		},
+		{
 			Name:  "listIAMRoles",
 			Usage: "Lists IAM Roles",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1015,7 +1199,7 @@ func main() {
 			Name:  "listIAMUsers",
 			Usage: "Lists IAM Users",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1035,7 +1219,7 @@ func main() {
 			Name:  "listImages",
 			Usage: "Lists AWS Machine Images owned by us",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1055,7 +1239,7 @@ func main() {
 			Name:  "listInstances",
 			Usage: "Lists AWS EC2 Instances",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1075,7 +1259,7 @@ func main() {
 			Name:  "listKeyPairs",
 			Usage: "Lists AWS Key Pairs",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1095,7 +1279,7 @@ func main() {
 			Name:  "listLaunchConfigurations",
 			Usage: "Lists Launch Configurations",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1141,7 +1325,7 @@ func main() {
 			Name:  "listSecurityGroups",
 			Usage: "Lists Security Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1161,7 +1345,7 @@ func main() {
 			Name:  "listSnapshots",
 			Usage: "Lists AWS EBS Snapshots",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1181,7 +1365,7 @@ func main() {
 			Name:  "listSubnets",
 			Usage: "Lists AWS Subnets",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1201,7 +1385,7 @@ func main() {
 			Name:  "listSimpleDBDomains",
 			Usage: "Lists AWS SimpleDB Domains",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1221,7 +1405,7 @@ func main() {
 			Name:  "listVolumes",
 			Usage: "Lists AWS EBS Volumes",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1241,7 +1425,7 @@ func main() {
 			Name:  "listVpcs",
 			Usage: "Lists AWS Vpcs",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The keyword to search for",
 					Optional:    true,
@@ -1261,12 +1445,12 @@ func main() {
 			Name:  "resumeProcesses",
 			Usage: "Resume scaling processes on autoscaling groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for the autoscaling group to resume",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to resume the processes in",
 					Optional:    true,
@@ -1292,12 +1476,12 @@ func main() {
 			Name:  "suspendProcesses",
 			Usage: "Suspend scaling processes on autoscaling groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term for the autoscaling group to suspend",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to suspend the processes in",
 					Optional:    true,
@@ -1315,12 +1499,12 @@ func main() {
 			Name:  "updateAutoScaleGroups",
 			Usage: "Update AutoScaling Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term autoscaling group to update",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "version",
 					Description: "The version of the launch configuration group to use (defaults to the most recent)",
 					Optional:    true,
@@ -1345,12 +1529,12 @@ func main() {
 			Name:  "updateSecurityGroups",
 			Usage: "Update Security Groups",
 			Arguments: []cli.Argument{
-				cli.Argument{
+				{
 					Name:        "search",
 					Description: "The search term autoscaling group to update",
 					Optional:    false,
 				},
-				cli.Argument{
+				{
 					Name:        "region",
 					Description: "The region to update the security groups in (optional)",
 					Optional:    true,
@@ -1368,3 +1552,104 @@ func main() {
 
 	app.Run(os.Args)
 }
+
+func setupCheck() error {
+	if !config.CheckDB() {
+		create := terminal.BoxPromptBool("No awsm database found!", "Do you want to create one now?")
+		if !create {
+			terminal.Information("Ok then, maybe next time.. ")
+			os.Exit(0)
+		}
+
+		// Get the current user
+		iamUser, err := aws.GetIAMUser("")
+		if err != nil {
+			return err
+		}
+
+		// Parse the ARN to get the account ID
+		parsedArn, err := aws.ParseArn(iamUser.Arn)
+		if err != nil {
+			return err
+		}
+
+		// Create the SimpleDB Domain
+		err = config.CreateAwsmDatabase()
+		if err != nil {
+			return err
+		}
+
+		var policyDocument string
+		region := "us-east-1" // TODO handle default region preference
+		accountId := parsedArn.AccountID
+		dbArn := "arn:aws:sdb:" + region + ":" + accountId + ":domain/awsm"
+
+		t := template.New("")
+		t, err = t.Parse(awsmDBPolicy)
+		if err == nil {
+			buff := bytes.NewBufferString("")
+			t.Execute(buff, dbArn)
+			policyDocument = buff.String()
+		}
+
+		// Create the awsm-db IAM Policy granting access to the newly created awsm simpledb domain
+		policyARN, err := aws.CreateIAMPolicy("awsm-db", policyDocument, "", "", false)
+		if err != nil {
+			return err
+		}
+
+		// Create the awsm IAM Role
+		_, err = aws.CreateIAMRole("awsm", awsmRolePolicyDocument, "", false)
+		if err != nil {
+			return err
+		}
+
+		// Create the awsm IAM Instance Profile Role
+		_, err = aws.CreateIAMInstanceProfile("awsm", "", false)
+		if err != nil {
+			return err
+		}
+
+		// Attach the awsm IAM Role to the awsm IAM Instance Profile
+		err = aws.AddIAMRoleToInstanceProfile("awsm", "awsm", false)
+		if err != nil {
+			return err
+		}
+
+		// Attach the awsm-db IAM Policy to the awsm IAM Instance Profile Role
+		err = aws.AttachIAMRolePolicyByARN("awsm", policyARN, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+var awsmDBPolicy = `{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sdb:*"
+            ],
+            "Resource": [
+                "{{.}}"
+            ]
+        }
+    ]
+}`
+
+var awsmRolePolicyDocument = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}`

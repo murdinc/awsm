@@ -155,7 +155,7 @@ func Insert(classType string, classInterface interface{}) error {
 
 	for item, attributes := range itemsMap {
 
-		terminal.Delta("Building Configuration for [" + item + "]...")
+		//terminal.Delta("Building Configuration for [" + item + "]...")
 
 		i := &simpledb.ReplaceableItem{
 			Attributes: attributes,

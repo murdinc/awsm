@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"errors"
+	"net/url"
 	"os"
 	"reflect"
 	"regexp"
@@ -8,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -23,8 +24,17 @@ type IAMUser models.IAMUser
 // IAMRoles represents a slice of AWS IAM Roles
 type IAMRoles []IAMRole
 
+// IAMPolicies represents a slice of AWS IAM Policy
+type IAMPolicies []IAMPolicy
+
 // IAMRole represents a single IAM Role
 type IAMRole models.IAMRole
+
+// IAMPolicy represents a single IAM Policy
+type IAMPolicy models.IAMPolicy
+
+// IAMPolicyDocument represents a single IAM Policy
+type IAMPolicyDocument models.IAMPolicyDocument
 
 // IAMProfile represents a slice of AWS IAM Profiles
 type IAMInstanceProfiles []IAMInstanceProfile
@@ -36,8 +46,10 @@ type IAMInstanceProfile models.IAMInstanceProfile
 func GetIAMUser(username string) (IAMUser, error) {
 	svc := iam.New(session.New())
 
-	params := &iam.GetUserInput{
-		UserName: aws.String(username),
+	params := &iam.GetUserInput{}
+
+	if username != "" {
+		params.UserName = aws.String(username)
 	}
 
 	resp, err := svc.GetUser(params)
@@ -109,6 +121,44 @@ func GetIAMRole(name string) (IAMRole, error) {
 	return *role, nil
 }
 
+// GetIAMRolePolicyNames returns the names of IAM Role Policies that are embedded in the provided IAM Role
+func GetIAMRolePolicyNames(roleName string) ([]string, error) {
+	svc := iam.New(session.New())
+
+	params := &iam.ListRolePoliciesInput{
+		RoleName: aws.String(roleName),
+	}
+
+	resp, err := svc.ListRolePolicies(params)
+	if err != nil {
+		return []string{}, err
+	}
+
+	return aws.StringValueSlice(resp.PolicyNames), nil
+}
+
+// GetIAMAttachedRolePolicyNames returns the names of IAM Role Policies that are attached to the provided IAM Role
+func GetIAMAttachedRolePolicyARNs(roleName string) ([]string, error) {
+	svc := iam.New(session.New())
+
+	params := &iam.ListAttachedRolePoliciesInput{
+		RoleName: aws.String(roleName),
+	}
+
+	resp, err := svc.ListAttachedRolePolicies(params)
+	if err != nil {
+		return []string{}, err
+	}
+
+	policyArns := make([]string, len(resp.AttachedPolicies))
+
+	for i, policy := range resp.AttachedPolicies {
+		policyArns[i] = aws.StringValue(policy.PolicyArn)
+	}
+
+	return policyArns, nil
+}
+
 // GetIAMRoles returns a list of IAM Roles that matches the provided name
 func GetIAMRoles(search string) (iamRoleList *IAMRoles, err error) {
 	svc := iam.New(session.New())
@@ -146,6 +196,85 @@ func GetIAMRoles(search string) (iamRoleList *IAMRoles, err error) {
 	}
 
 	return iamRoleList, nil
+}
+
+// GetIAMPolicy returns a single IAM Policy given a provided search term
+func GetIAMPolicyDocument(search string, version string) (IAMPolicyDocument, error) {
+
+	policies, err := GetIAMPolicies(search)
+	if err != nil {
+		return IAMPolicyDocument{}, err
+	}
+
+	policyCount := len(*policies)
+
+	if policyCount == 0 {
+		return IAMPolicyDocument{}, errors.New("No IAM Policies found for the search term provided")
+	} else if policyCount > 1 {
+		policies.PrintTable()
+		return IAMPolicyDocument{}, errors.New("Please limit your search term to just one Policy")
+	}
+
+	policy := (*policies)[0]
+
+	if version == "" {
+		version = policy.DefaultVersionId
+	}
+
+	svc := iam.New(session.New())
+	params := &iam.GetPolicyVersionInput{
+		PolicyArn: aws.String(policy.Arn),
+		VersionId: aws.String(version),
+	}
+
+	resp, err := svc.GetPolicyVersion(params)
+	if err != nil {
+		return IAMPolicyDocument{}, err
+	}
+
+	policyDocument := new(IAMPolicyDocument)
+	policyDocument.Marshal(resp.PolicyVersion)
+
+	return *policyDocument, nil
+}
+
+// GetIAMPolicies returns a list of IAM Policies that matches the provided name
+func GetIAMPolicies(search string) (iamPolicyList *IAMPolicies, err error) {
+	svc := iam.New(session.New())
+	result, err := svc.ListPolicies(&iam.ListPoliciesInput{})
+
+	if err != nil {
+		terminal.ShowErrorMessage("Error gathering IAM Policy list", err.Error())
+		return &IAMPolicies{}, err
+	}
+
+	iam := make(IAMPolicies, len(result.Policies))
+	for i, policy := range result.Policies {
+		iam[i].Marshal(policy)
+	}
+
+	iamPolicyList = new(IAMPolicies)
+
+	if search != "" {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, ia := range iam {
+			rIam := reflect.ValueOf(ia)
+
+			for k := 0; k < rIam.NumField(); k++ {
+				sVal := rIam.Field(k).String()
+
+				if term.MatchString(sVal) {
+					*iamPolicyList = append(*iamPolicyList, iam[i])
+					continue Loop
+				}
+			}
+		}
+	} else {
+		*iamPolicyList = append(*iamPolicyList, iam[:]...)
+	}
+
+	return iamPolicyList, nil
 }
 
 // GetIAMProfile returns a single IAM Profile that matches the provided name
@@ -206,32 +335,224 @@ func GetIAMInstanceProfiles(search string) (iamProfileList *IAMInstanceProfiles,
 	return iamProfileList, nil
 }
 
+// GetIAMInstanceProfiles returns a list of IAM Profiles that matches the provided name
+func GetIAMInstanceProfilesForRole(roleName string) (iamInstanceProfileList IAMInstanceProfiles, err error) {
+	svc := iam.New(session.New())
+
+	params := &iam.ListInstanceProfilesForRoleInput{
+		RoleName: aws.String(roleName),
+	}
+
+	result, err := svc.ListInstanceProfilesForRole(params)
+
+	if err != nil {
+		terminal.ShowErrorMessage("Error gathering IAM Instance Profiles list for Role ["+roleName+"]", err.Error())
+		return IAMInstanceProfiles{}, err
+	}
+
+	iamInstanceProfileList = make(IAMInstanceProfiles, len(result.InstanceProfiles))
+	for i, profile := range result.InstanceProfiles {
+		iamInstanceProfileList[i].Marshal(profile)
+	}
+
+	return iamInstanceProfileList, nil
+}
+
+// RemoveIAMRoleFromInstanceProfile removes an IAM Role from an Instance Profile
+func RemoveIAMRoleFromInstanceProfile(roleName, instanceProfileName string) error {
+	svc := iam.New(session.New())
+
+	params := &iam.RemoveRoleFromInstanceProfileInput{
+		InstanceProfileName: aws.String(instanceProfileName),
+		RoleName:            aws.String(roleName),
+	}
+
+	_, err := svc.RemoveRoleFromInstanceProfile(params)
+	if err != nil {
+		terminal.ShowErrorMessage("Error removing IAM Role ["+roleName+"] from Instance Profile ["+instanceProfileName+"]", err.Error())
+		return err
+	}
+
+	terminal.Delta("Removed IAM Role [" + roleName + "] from Instance Profile [" + instanceProfileName + "]!")
+
+	return nil
+}
+
+// DetachIAMRolePolicy detaches an IAM Role from a policy
+func DetachIAMRolePolicy(roleName, policyArn string) error {
+	svc := iam.New(session.New())
+
+	params := &iam.DetachRolePolicyInput{
+		RoleName:  aws.String(roleName),
+		PolicyArn: aws.String(policyArn),
+	}
+
+	_, err := svc.DetachRolePolicy(params)
+	if err != nil {
+		terminal.ShowErrorMessage("Error detaching IAM Policy ["+policyArn+"] from Role ["+roleName+"]", err.Error())
+		return err
+	}
+
+	terminal.Delta("Detached IAM Role [" + roleName + "] from Policy [" + policyArn + "]!")
+
+	return nil
+}
+
+// AttachIAMRolePolicy attaches an IAM Role to a policy
+func AttachIAMRolePolicy(roleName, policy string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Check that we have a role with this name
+	roleList, err := GetIAMRoles(roleName)
+	if err != nil {
+		return err
+	}
+
+	roleCount := len(*roleList)
+
+	if roleCount < 1 {
+		return errors.New("No IAM Roles found matching [" + roleName + "]")
+	} else if roleCount > 1 {
+		roleList.PrintTable()
+		return errors.New("Please limit your search term to just one IAM Role")
+	}
+
+	policies, err := GetIAMPolicies(policy)
+	if err != nil {
+		return err
+	}
+	if len(*policies) < 1 {
+		return errors.New("No IAM Policies found matching [" + policy + "]")
+	}
+
+	terminal.Notice("Role:")
+	roleList.PrintTable()
+	terminal.Notice("Policies:")
+	policies.PrintTable()
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to these policies to this IAM Role?") {
+		terminal.ErrorLine("Aborting!")
+		return nil
+	}
+
+	svc := iam.New(session.New())
+
+	if !dryRun {
+		// Attach 'Em
+		for _, policy := range *policies {
+			params := &iam.AttachRolePolicyInput{
+				RoleName:  aws.String(roleName),
+				PolicyArn: aws.String(policy.Arn),
+			}
+
+			_, err := svc.AttachRolePolicy(params)
+			if err != nil {
+				terminal.ShowErrorMessage("Error attaching IAM Policy ["+policy.PolicyName+"] to Role ["+roleName+"]", err.Error())
+				return err
+			}
+
+			terminal.Delta("Attached IAM Policy [" + policy.PolicyName + "] to Role [" + roleName + "]!")
+		}
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+func AttachIAMRolePolicyByARN(roleName, policyARN string, dryRun bool) error {
+	svc := iam.New(session.New())
+
+	params := &iam.AttachRolePolicyInput{
+		RoleName:  aws.String(roleName),
+		PolicyArn: aws.String(policyARN),
+	}
+
+	_, err := svc.AttachRolePolicy(params)
+	if err != nil {
+		terminal.ShowErrorMessage("Error attaching IAM Policy ["+policyARN+"] to Role ["+roleName+"]", err.Error())
+		return err
+	}
+
+	terminal.Delta("Attached IAM Policy [" + policyARN + "] to Role [" + roleName + "]!")
+	terminal.Information("Done!")
+
+	return nil
+}
+
+func AddIAMRoleToInstanceProfile(roleName, instanceProfileName string, dryRun bool) error {
+	svc := iam.New(session.New())
+
+	params := &iam.AddRoleToInstanceProfileInput{
+		InstanceProfileName: aws.String(instanceProfileName),
+		RoleName:            aws.String(roleName),
+	}
+
+	_, err := svc.AddRoleToInstanceProfile(params)
+	if err != nil {
+		terminal.ShowErrorMessage("Error adding IAM Role ["+roleName+"] to Instance Profile ["+instanceProfileName+"]", err.Error())
+		return err
+	}
+
+	terminal.Delta("Attached IAM Role [" + roleName + "] to Instance Profile [" + instanceProfileName + "]!")
+
+	return nil
+}
+
 // Marshal parses the response from the aws sdk into an awsm IAM User
 func (i *IAMUser) Marshal(user *iam.User) {
 	i.UserName = aws.StringValue(user.UserName)
 	i.UserID = aws.StringValue(user.UserId)
-	i.CreateDate = aws.TimeValue(user.CreateDate) // robots
-	i.CreatedHuman = humanize.Time(i.CreateDate)  // humans
+	i.CreateDate = aws.TimeValue(user.CreateDate)
 	i.Arn = aws.StringValue(user.Arn)
-	i.PasswordLastUsed = aws.TimeValue(user.PasswordLastUsed)   // robots
-	i.PasswordLastUsedHuman = humanize.Time(i.PasswordLastUsed) // humans
+	i.PasswordLastUsed = aws.TimeValue(user.PasswordLastUsed)
 }
 
 // Marshal parses the response from the aws sdk into an awsm IAM Role
 func (i *IAMRole) Marshal(user *iam.Role) {
+	doc, _ := url.Parse(aws.StringValue(user.AssumeRolePolicyDocument))
+	docStr := doc.Path
+
 	i.RoleName = aws.StringValue(user.RoleName)
 	i.RoleID = aws.StringValue(user.RoleId)
-	i.CreateDate = aws.TimeValue(user.CreateDate) // robots
-	i.CreatedHuman = humanize.Time(i.CreateDate)  // humans
+	i.CreateDate = aws.TimeValue(user.CreateDate)
 	i.Arn = aws.StringValue(user.Arn)
+	i.AssumeRolePolicyDocument = docStr
+}
+
+// Marshal parses the response from the aws sdk into an awsm IAM Policy
+func (i *IAMPolicy) Marshal(policy *iam.Policy) {
+	i.PolicyName = aws.StringValue(policy.PolicyName)
+	i.PolicyID = aws.StringValue(policy.PolicyId)
+	i.Description = aws.StringValue(policy.Description)
+	i.IsAttachable = aws.BoolValue(policy.IsAttachable)
+	i.CreateDate = aws.TimeValue(policy.CreateDate)
+	i.AttachmentCount = int(aws.Int64Value(policy.AttachmentCount))
+	i.DefaultVersionId = aws.StringValue(policy.DefaultVersionId)
+	i.Arn = aws.StringValue(policy.Arn)
+}
+
+// Marshal parses the response from the aws sdk into an awsm IAM Policy Document
+func (i *IAMPolicyDocument) Marshal(policyVersion *iam.PolicyVersion) {
+	doc, _ := url.Parse(aws.StringValue(policyVersion.Document))
+	docStr := doc.Path
+
+	i.Document = docStr
+	i.CreateDate = aws.TimeValue(policyVersion.CreateDate)
+	i.IsDefaultVersion = aws.BoolValue(policyVersion.IsDefaultVersion)
+	i.VersionId = aws.StringValue(policyVersion.VersionId)
 }
 
 // Marshal parses the response from the aws sdk into an awsm IAM Role
 func (i *IAMInstanceProfile) Marshal(profile *iam.InstanceProfile) {
 	i.ProfileName = aws.StringValue(profile.InstanceProfileName)
 	i.ProfileID = aws.StringValue(profile.InstanceProfileId)
-	i.CreateDate = aws.TimeValue(profile.CreateDate) // robots
-	i.CreatedHuman = humanize.Time(i.CreateDate)     // humans
+	i.CreateDate = aws.TimeValue(profile.CreateDate)
 	i.Arn = aws.StringValue(profile.Arn)
 }
 
@@ -259,6 +580,26 @@ func (i *IAMUsers) PrintTable() {
 func (i *IAMRoles) PrintTable() {
 	if len(*i) == 0 {
 		terminal.ShowErrorMessage("Warning", "No IAM Roles Found!")
+		return
+	}
+
+	var header []string
+	rows := make([][]string, len(*i))
+
+	for index, user := range *i {
+		models.ExtractAwsmTable(index, user, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
+	table.AppendBulk(rows)
+	table.Render()
+}
+
+// PrintTable Prints an ascii table of the list of IAM Policies
+func (i *IAMPolicies) PrintTable() {
+	if len(*i) == 0 {
+		terminal.ShowErrorMessage("Warning", "No IAM Policies Found!")
 		return
 	}
 
@@ -315,6 +656,122 @@ func CreateIAMUser(username, path string) error {
 	return err
 }
 
+// CreateIAMUser creates a new IAM User with the provided username and path
+func CreateIAMPolicy(policyName, policyDocument, path, description string, dryRun bool) (string, error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	svc := iam.New(session.New())
+
+	params := &iam.CreatePolicyInput{
+		PolicyName:     aws.String(policyName),
+		PolicyDocument: aws.String(policyDocument),
+	}
+
+	if path != "" {
+		params.Path = aws.String(path)
+	}
+	if description != "" {
+		params.Description = aws.String(description)
+	}
+
+	if !dryRun {
+		resp, err := svc.CreatePolicy(params)
+		if err != nil {
+			return "", err
+		}
+
+		policyName := aws.StringValue(resp.Policy.PolicyName)
+		policyArn := aws.StringValue(resp.Policy.Arn)
+
+		terminal.Delta("Created IAM Policy named [" + policyName + "] with ARN [" + policyArn + "]")
+
+		return policyArn, err
+	}
+
+	terminal.Information("Done!")
+
+	return "", nil
+}
+
+// CreateIAMRole creates a new IAM Role with the provided name, policyDocument, and optional path
+func CreateIAMRole(roleName, rolePolicyDocument, path string, dryRun bool) (string, error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	svc := iam.New(session.New())
+
+	params := &iam.CreateRoleInput{
+		AssumeRolePolicyDocument: aws.String(rolePolicyDocument),
+		RoleName:                 aws.String(roleName),
+	}
+
+	if path != "" {
+		params.Path = aws.String(path)
+	}
+
+	if !dryRun {
+		resp, err := svc.CreateRole(params)
+		if err != nil {
+			return "", err
+		}
+
+		roleName := aws.StringValue(resp.Role.RoleName)
+		roleArn := aws.StringValue(resp.Role.Arn)
+
+		terminal.Delta("Created IAM Role named [" + roleName + "] with ARN [" + roleArn + "]")
+
+		return roleArn, err
+	}
+
+	terminal.Information("Done!")
+
+	return "", nil
+}
+
+// CreateIAMInstanceProfile creates a new IAM Instance Profile with the provided name, and optional path
+func CreateIAMInstanceProfile(instanceProfileName, path string, dryRun bool) (string, error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	svc := iam.New(session.New())
+
+	params := &iam.CreateInstanceProfileInput{
+		InstanceProfileName: aws.String(instanceProfileName),
+	}
+
+	if path != "" {
+		params.Path = aws.String(path)
+	}
+
+	if !dryRun {
+		resp, err := svc.CreateInstanceProfile(params)
+		if err != nil {
+			return "", err
+		}
+
+		ipName := aws.StringValue(resp.InstanceProfile.InstanceProfileName)
+		ipArn := aws.StringValue(resp.InstanceProfile.Arn)
+
+		terminal.Delta("Created IAM Instance Profile named [" + ipName + "] with ARN [" + ipArn + "]")
+
+		return ipArn, err
+	}
+
+	terminal.Information("Done!")
+
+	return "", nil
+}
+
 // DeleteIAMUsers deletes one or more IAM Users that match the provided username
 func DeleteIAMUsers(username string, dryRun bool) (err error) {
 
@@ -358,16 +815,15 @@ func DeleteIAMUsers(username string, dryRun bool) (err error) {
 			}
 			terminal.Delta("Deleted IAM User [" + user.UserName + "]!")
 		}
-
-		terminal.Information("Done!")
-
 	}
+
+	terminal.Information("Done!")
 
 	return
 }
 
 // DeleteIAMRoles deletes one or more IAM Roles that match the provided name
-func DeleteIAMRoles(name string, dryRun bool) (err error) {
+func DeleteIAMRoles(name string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -377,7 +833,7 @@ func DeleteIAMRoles(name string, dryRun bool) (err error) {
 	roleList, err := GetIAMRoles(name)
 	if err != nil {
 		terminal.ErrorLine("Error gathering IAM Role list")
-		return
+		return err
 	}
 
 	if len(*roleList) > 0 {
@@ -385,13 +841,13 @@ func DeleteIAMRoles(name string, dryRun bool) (err error) {
 		roleList.PrintTable()
 	} else {
 		terminal.ErrorLine("No IAM Users found, Aborting!")
-		return
+		return nil
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to delete these IAM Users?") {
+	if !terminal.PromptBool("Are you sure you want to delete these IAM Roles?") {
 		terminal.ErrorLine("Aborting!")
-		return
+		return nil
 	}
 
 	if !dryRun {
@@ -399,19 +855,139 @@ func DeleteIAMRoles(name string, dryRun bool) (err error) {
 		for _, role := range *roleList {
 			svc := iam.New(session.New())
 
+			// Get the instance profiles for this role
+			instProfiles, err := GetIAMInstanceProfilesForRole(role.RoleName)
+			// Remove the role from these instance profiles
+			for _, instProfile := range instProfiles {
+				err = RemoveIAMRoleFromInstanceProfile(role.RoleName, instProfile.ProfileName)
+				if err != nil {
+					return err
+				}
+			}
+
+			// Get the attached role Policies for this role
+			rolePolicyARNS, err := GetIAMAttachedRolePolicyARNs(role.RoleName)
+			// Detach the role from these role policies
+			for _, rolePolicyARN := range rolePolicyARNS {
+				err = DetachIAMRolePolicy(role.RoleName, rolePolicyARN)
+				if err != nil {
+					return err
+				}
+			}
+
 			params := &iam.DeleteRoleInput{
 				RoleName: aws.String(role.RoleName),
 			}
-			_, err := svc.DeleteRole(params)
+			_, err = svc.DeleteRole(params)
 			if err != nil {
 				terminal.ErrorLine("Error while deleting IAM Role [" + role.RoleName + "], Aborting!")
 				return err
 			}
 			terminal.Delta("Deleted IAM Role [" + role.RoleName + "]!")
 		}
-
-		terminal.Information("Done!")
 	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// DeleteIAMInstanceProfiles deletes one or more IAM Instance Profiles that match the provided search term
+func DeleteIAMInstanceProfiles(search string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	instProfileList, err := GetIAMInstanceProfiles(search)
+	if err != nil {
+		terminal.ErrorLine("Error gathering IAM Instance Profiles list")
+		return err
+	}
+
+	if len(*instProfileList) > 0 {
+		// Print the table
+		instProfileList.PrintTable()
+	} else {
+		terminal.ErrorLine("No IAM Instance Profiles found, Aborting!")
+		return nil
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these IAM Instance Profiles?") {
+		terminal.ErrorLine("Aborting!")
+		return nil
+	}
+
+	if !dryRun {
+		// Delete 'Em
+		for _, instProfile := range *instProfileList {
+			svc := iam.New(session.New())
+
+			params := &iam.DeleteInstanceProfileInput{
+				InstanceProfileName: aws.String(instProfile.ProfileName),
+			}
+			_, err = svc.DeleteInstanceProfile(params)
+			if err != nil {
+				terminal.ErrorLine("Error while deleting IAM Instance Profile [" + instProfile.ProfileName + "], Aborting!")
+				return err
+			}
+			terminal.Delta("Deleted IAM Instance Profile [" + instProfile.ProfileName + "]!")
+		}
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// DeleteIAMPolicies deletes one or more IAM Policies that match the provided name
+func DeleteIAMPolicies(name string, dryRun bool) (err error) {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	policyList, err := GetIAMPolicies(name)
+	if err != nil {
+		terminal.ErrorLine("Error gathering IAM Policy list")
+		return
+	}
+
+	if len(*policyList) > 0 {
+		// Print the table
+		policyList.PrintTable()
+	} else {
+		terminal.ErrorLine("No IAM Policies found, Aborting!")
+		return
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to delete these IAM Policies?") {
+		terminal.ErrorLine("Aborting!")
+		return
+	}
+
+	if !dryRun {
+		// Delete 'Em
+		for _, policy := range *policyList {
+			svc := iam.New(session.New())
+
+			params := &iam.DeletePolicyInput{
+				PolicyArn: aws.String(policy.Arn),
+			}
+			_, err := svc.DeletePolicy(params)
+			if err != nil {
+				terminal.ErrorLine("Error while deleting IAM Policy [" + policy.PolicyName + "], Aborting!")
+				return err
+			}
+			terminal.Delta("Deleted IAM Policy [" + policy.PolicyName + "]!")
+		}
+	}
+
+	terminal.Information("Done!")
 
 	return
 }

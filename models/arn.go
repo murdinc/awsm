@@ -11,6 +11,7 @@ type ARN struct {
 	GroupID              string `json:"groupID"`
 	AutoScalingGroupName string `json:"autoScalingGroupName"`
 	PolicyName           string `json:"policyName"`
+	ProfileName          string `json:"profileName"`
 	ResourceType         string `json:"resourceType"`
 	Resource             string `json:"resource"`
 }

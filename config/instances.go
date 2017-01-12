@@ -48,7 +48,7 @@ func DefaultInstanceClasses() InstanceClasses {
 	defaultInstances["dev"] = InstanceClass{
 		InstanceType:     "r3.large",
 		SecurityGroups:   []string{"all", "dev"},
-		EBSVolumes:       []string{"git-standard", "mysql-data-standard"},
+		EBSVolumes:       []string{"git-standard", "mysql-data-standard", "crusher"},
 		Vpc:              "awsm",
 		Subnet:           "private",
 		PublicIPAddress:  false,
@@ -59,7 +59,7 @@ func DefaultInstanceClasses() InstanceClasses {
 
 	defaultInstances["prod"] = InstanceClass{
 		InstanceType:     "r3.large",
-		SecurityGroups:   []string{"dev"},
+		SecurityGroups:   []string{"dev", "crusher"},
 		EBSVolumes:       []string{},
 		Vpc:              "awsm",
 		Subnet:           "private",

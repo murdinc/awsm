@@ -38,12 +38,15 @@ func ParseArn(arnStr string) (*ARN, error) {
 		switch arn.ResourceType {
 		case "scalingPolicy":
 			arn.PolicyID = split[6]
-			arn.AutoScalingGroupName = strings.TrimLeft(split[7], "autoScalingGroupName/")
-			arn.PolicyName = strings.TrimLeft(split[8], "policyName/")
+			arn.AutoScalingGroupName = strings.TrimPrefix(split[7], "autoScalingGroupName/")
+			arn.PolicyName = strings.TrimPrefix(split[8], "policyName/")
 		case "autoScalingGroup":
 			arn.GroupID = split[6]
 			arn.AutoScalingGroupName = split[7]
 		}
+
+	case "iam":
+		arn.ProfileName = strings.TrimPrefix(split[5], "instance-profile/")
 
 	default:
 		if len(split) == 6 {
