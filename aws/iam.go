@@ -198,6 +198,57 @@ func GetIAMRoles(search string) (iamRoleList *IAMRoles, err error) {
 	return iamRoleList, nil
 }
 
+// GetIAMRoleByName returns an IAM Role that matches the provided name
+func GetIAMRoleByName(roleName string) (iamRole IAMRole, err error) {
+
+	iamRoles, err := GetIAMRoles("")
+	if err != nil {
+		return iamRole, nil
+	}
+
+	for _, role := range *iamRoles {
+		if role.RoleName == roleName {
+			return role, nil
+		}
+	}
+
+	return iamRole, errors.New("No IAM Role found matching [" + roleName + "]!")
+}
+
+// GetIAMPolicyByName returns an IAM Policy that matches the provided name
+func GetIAMPolicyByName(policyName string) (iamPolicy IAMPolicy, err error) {
+
+	iamPolicies, err := GetIAMPolicies("")
+	if err != nil {
+		return iamPolicy, nil
+	}
+
+	for _, policy := range *iamPolicies {
+		if policy.PolicyName == policyName {
+			return policy, nil
+		}
+	}
+
+	return iamPolicy, errors.New("No IAM Policy found matching [" + policyName + "]!")
+}
+
+// GetIAMInstanceProfileByName returns an IAM Instance Profile that matches the provided name
+func GetIAMInstanceProfileByName(instanceProfileName string) (iamInstanceProfile IAMInstanceProfile, err error) {
+
+	iamInstanceProfiles, err := GetIAMInstanceProfiles("")
+	if err != nil {
+		return iamInstanceProfile, nil
+	}
+
+	for _, profile := range *iamInstanceProfiles {
+		if profile.ProfileName == instanceProfileName {
+			return profile, nil
+		}
+	}
+
+	return iamInstanceProfile, errors.New("No IAM Instance Profile found matching [" + instanceProfileName + "]!")
+}
+
 // GetIAMPolicy returns a single IAM Policy given a provided search term
 func GetIAMPolicyDocument(search string, version string) (IAMPolicyDocument, error) {
 
@@ -236,6 +287,27 @@ func GetIAMPolicyDocument(search string, version string) (IAMPolicyDocument, err
 	policyDocument.Marshal(resp.PolicyVersion)
 
 	return *policyDocument, nil
+}
+
+// GetIAMPolicyByARN returns a single IAM Policy that matches the provided ARN
+func GetIAMPolicyByARN(policyARN string) (iamPolicy *IAMPolicy, err error) {
+	svc := iam.New(session.New())
+
+	params := &iam.GetPolicyInput{
+		PolicyArn: aws.String(policyARN),
+	}
+
+	result, err := svc.GetPolicy(params)
+
+	if err != nil {
+		terminal.ShowErrorMessage("Error fetching IAM Policy", err.Error())
+		return &IAMPolicy{}, err
+	}
+
+	iamPolicy = new(IAMPolicy)
+	iamPolicy.Marshal(result.Policy)
+
+	return iamPolicy, nil
 }
 
 // GetIAMPolicies returns a list of IAM Policies that matches the provided name
@@ -440,23 +512,13 @@ func AttachIAMRolePolicy(roleName, policy string, dryRun bool) error {
 		return nil
 	}
 
-	svc := iam.New(session.New())
-
 	if !dryRun {
 		// Attach 'Em
 		for _, policy := range *policies {
-			params := &iam.AttachRolePolicyInput{
-				RoleName:  aws.String(roleName),
-				PolicyArn: aws.String(policy.Arn),
-			}
-
-			_, err := svc.AttachRolePolicy(params)
+			err := AttachIAMRolePolicyByARN(roleName, policy.Arn, dryRun)
 			if err != nil {
-				terminal.ShowErrorMessage("Error attaching IAM Policy ["+policy.PolicyName+"] to Role ["+roleName+"]", err.Error())
 				return err
 			}
-
-			terminal.Delta("Attached IAM Policy [" + policy.PolicyName + "] to Role [" + roleName + "]!")
 		}
 	}
 
@@ -466,41 +528,76 @@ func AttachIAMRolePolicy(roleName, policy string, dryRun bool) error {
 }
 
 func AttachIAMRolePolicyByARN(roleName, policyARN string, dryRun bool) error {
-	svc := iam.New(session.New())
 
-	params := &iam.AttachRolePolicyInput{
-		RoleName:  aws.String(roleName),
-		PolicyArn: aws.String(policyARN),
-	}
-
-	_, err := svc.AttachRolePolicy(params)
+	attachedPolicyARNs, err := GetIAMAttachedRolePolicyARNs(roleName)
 	if err != nil {
 		terminal.ShowErrorMessage("Error attaching IAM Policy ["+policyARN+"] to Role ["+roleName+"]", err.Error())
 		return err
 	}
 
-	terminal.Delta("Attached IAM Policy [" + policyARN + "] to Role [" + roleName + "]!")
+	for _, attachedPolicyARN := range attachedPolicyARNs {
+		if attachedPolicyARN == policyARN {
+			terminal.Notice("IAM Policy [" + policyARN + "] is already attached to to Role [" + roleName + "], skipping")
+			return nil
+		}
+	}
+
+	if !dryRun {
+		svc := iam.New(session.New())
+
+		params := &iam.AttachRolePolicyInput{
+			RoleName:  aws.String(roleName),
+			PolicyArn: aws.String(policyARN),
+		}
+
+		_, err = svc.AttachRolePolicy(params)
+		if err != nil {
+			terminal.ShowErrorMessage("Error attaching IAM Policy ["+policyARN+"] to Role ["+roleName+"]", err.Error())
+			return err
+		}
+
+		terminal.Delta("Attached IAM Policy [" + policyARN + "] to Role [" + roleName + "]!")
+	}
 	terminal.Information("Done!")
 
 	return nil
 }
 
 func AddIAMRoleToInstanceProfile(roleName, instanceProfileName string, dryRun bool) error {
-	svc := iam.New(session.New())
 
-	params := &iam.AddRoleToInstanceProfileInput{
-		InstanceProfileName: aws.String(instanceProfileName),
-		RoleName:            aws.String(roleName),
-	}
-
-	_, err := svc.AddRoleToInstanceProfile(params)
+	instProfiles, err := GetIAMInstanceProfilesForRole(roleName)
 	if err != nil {
 		terminal.ShowErrorMessage("Error adding IAM Role ["+roleName+"] to Instance Profile ["+instanceProfileName+"]", err.Error())
 		return err
 	}
+	for _, instProfile := range instProfiles {
+		if instProfile.ProfileName == instanceProfileName {
+			terminal.Notice("IAM Role [" + roleName + "] has already been added to to Instance Profile [" + instanceProfileName + "], skipping.")
+			return nil
+		}
+	}
 
-	terminal.Delta("Attached IAM Role [" + roleName + "] to Instance Profile [" + instanceProfileName + "]!")
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
 
+	if !dryRun {
+		svc := iam.New(session.New())
+
+		params := &iam.AddRoleToInstanceProfileInput{
+			InstanceProfileName: aws.String(instanceProfileName),
+			RoleName:            aws.String(roleName),
+		}
+
+		_, err := svc.AddRoleToInstanceProfile(params)
+		if err != nil {
+			terminal.ShowErrorMessage("Error adding IAM Role ["+roleName+"] to Instance Profile ["+instanceProfileName+"]", err.Error())
+			return err
+		}
+
+		terminal.Delta("Attached IAM Role [" + roleName + "] to Instance Profile [" + instanceProfileName + "]!")
+	}
 	return nil
 }
 
@@ -659,6 +756,12 @@ func CreateIAMUser(username, path string) error {
 // CreateIAMUser creates a new IAM User with the provided username and path
 func CreateIAMPolicy(policyName, policyDocument, path, description string, dryRun bool) (string, error) {
 
+	policy, _ := GetIAMPolicyByName(policyName)
+	if policy.Arn != "" {
+		terminal.Notice("IAM Policy named [" + policyName + "] already exists, skipping.")
+		return policy.Arn, nil
+	}
+
 	// --dry-run flag
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
@@ -700,6 +803,12 @@ func CreateIAMPolicy(policyName, policyDocument, path, description string, dryRu
 // CreateIAMRole creates a new IAM Role with the provided name, policyDocument, and optional path
 func CreateIAMRole(roleName, rolePolicyDocument, path string, dryRun bool) (string, error) {
 
+	role, _ := GetIAMRoleByName(roleName)
+	if role.Arn != "" {
+		terminal.Notice("IAM Role named [" + roleName + "] already exists, skipping.")
+		return role.Arn, nil
+	}
+
 	// --dry-run flag
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
@@ -737,6 +846,12 @@ func CreateIAMRole(roleName, rolePolicyDocument, path string, dryRun bool) (stri
 
 // CreateIAMInstanceProfile creates a new IAM Instance Profile with the provided name, and optional path
 func CreateIAMInstanceProfile(instanceProfileName, path string, dryRun bool) (string, error) {
+
+	instanceProfile, _ := GetIAMInstanceProfileByName(instanceProfileName)
+	if instanceProfile.Arn != "" {
+		terminal.Notice("IAM Instance Profile named [" + instanceProfileName + "] already exists, skipping.")
+		return instanceProfile.Arn, nil
+	}
 
 	// --dry-run flag
 	if dryRun {
