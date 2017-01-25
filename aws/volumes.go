@@ -218,7 +218,7 @@ func AttachVolume(volume, instance string, dryRun bool) error {
 
 	volCount := len(*volList)
 	if volCount == 0 {
-		return errors.New("No volumes found in the same region as instance with your search term.")
+		return errors.New("No currently unattached volumes found in the same region as instance with your search term.")
 	} else if volCount > 1 {
 		return errors.New("Please limit your search terms to return only one volume.")
 	}
@@ -250,6 +250,8 @@ func AttachVolume(volume, instance string, dryRun bool) error {
 		}
 		return err
 	}
+
+	terminal.Information("Done!")
 
 	return nil
 }

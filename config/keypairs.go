@@ -24,6 +24,7 @@ type KeyPairClass struct {
 	PrivateKey2 string `json:"-"`
 	PrivateKey3 string `json:"-"`
 	PrivateKey4 string `json:"-"`
+	PrivateKey  string `json:"privateKey" awsm:"ignore"`
 }
 
 // DefaultKeyPairClasses returns the default Image classes
@@ -56,9 +57,8 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 	}
 
 	// Generate the keys if needed.
-	if class.PrivateKey1 == "" {
+	if class.PrivateKey == "" && class.PublicKey == "" {
 		var publicKey, privateKey string
-
 		publicKey, privateKey, err = GenerateKeyPair()
 		if err != nil {
 			terminal.ErrorLine("Error while generating keypair class: " + className)
@@ -71,7 +71,14 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 		class.PrivateKey2 = privateKey[privateKeyLen : privateKeyLen*2]
 		class.PrivateKey3 = privateKey[privateKeyLen*2 : privateKeyLen*3]
 		class.PrivateKey4 = privateKey[privateKeyLen*3:]
+	} else {
+		privateKey := class.PrivateKey
+		privateKeyLen := len(privateKey) / 4
 
+		class.PrivateKey1 = privateKey[:privateKeyLen]
+		class.PrivateKey2 = privateKey[privateKeyLen : privateKeyLen*2]
+		class.PrivateKey3 = privateKey[privateKeyLen*2 : privateKeyLen*3]
+		class.PrivateKey4 = privateKey[privateKeyLen*3:]
 	}
 
 	err = Insert("keypairs", KeyPairClasses{className: class})

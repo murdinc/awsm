@@ -472,7 +472,6 @@ func DetachIAMRolePolicy(roleName, policyArn string) error {
 
 // AttachIAMRolePolicy attaches an IAM Role to a policy
 func AttachIAMRolePolicy(roleName, policy string, dryRun bool) error {
-
 	// --dry-run flag
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
@@ -528,7 +527,6 @@ func AttachIAMRolePolicy(roleName, policy string, dryRun bool) error {
 }
 
 func AttachIAMRolePolicyByARN(roleName, policyARN string, dryRun bool) error {
-
 	attachedPolicyARNs, err := GetIAMAttachedRolePolicyARNs(roleName)
 	if err != nil {
 		terminal.ShowErrorMessage("Error attaching IAM Policy ["+policyARN+"] to Role ["+roleName+"]", err.Error())
