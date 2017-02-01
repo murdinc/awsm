@@ -14,8 +14,7 @@ type Volume struct {
 	Iops             string    `json:"iops" awsmTable:"IOPS"`
 	InstanceID       string    `json:"instanceID" awsmTable:"Instance ID"`
 	Attachment       string    `json:"attachment" awsmTable:"Attachment"`
-	CreationTime     time.Time `json:"creationTime"`
-	CreatedHuman     string    `json:"createdHuman" awsmTable:"Created"`
+	CreationTime     time.Time `json:"creationTime" awsmTable:"Created"`
 	VolumeType       string    `json:"volumeType" awsmTable:"Volume Type"`
 	SnapshoID        string    `json:"snapshotID"`
 	DeleteOnTerm     bool      `json:"deleteOnTerm" awsmTable:"Delete On Term."`

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/murdinc/awsm/aws/regions"
@@ -200,7 +201,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 			return err
 		}
 
-		terminal.Information("Found AMI [" + ami.ImageID + "] with name [" + ami.AmiName + "] created [" + ami.CreatedHuman + "]!")
+		terminal.Information("Found AMI [" + ami.ImageID + "] with name [" + ami.AmiName + "] created [" + humanize.Time(ami.CreationDate) + "]!")
 
 	} else {
 		ami, err = GetLatestImageByTag(region, "Class", instanceCfg.AMI)
@@ -208,7 +209,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 			return err
 		}
 
-		terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]!")
+		terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + humanize.Time(ami.CreationDate) + "]!")
 	}
 
 	// EBS
@@ -231,7 +232,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 				terminal.Information("No snapshot found for [" + ebsClass + "]! Creating a fresh volume instead.")
 
 			} else {
-				terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
+				terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + humanize.Time(latestSnapshot.StartTime) + "]!")
 				snapshotId = latestSnapshot.SnapshotID
 			}
 		}

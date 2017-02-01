@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/murdinc/awsm/aws/regions"
@@ -151,8 +151,7 @@ func (l *LaunchConfig) Marshal(config *autoscaling.LaunchConfiguration, region s
 	l.ImageName = imgList.GetImageName(l.ImageID)
 	l.InstanceType = aws.StringValue(config.InstanceType)
 	l.KeyName = aws.StringValue(config.KeyName)
-	l.CreationTime = aws.TimeValue(config.CreatedTime) // robots
-	l.CreatedHuman = humanize.Time(l.CreationTime)     // humans
+	l.CreationTime = aws.TimeValue(config.CreatedTime)
 	l.EbsOptimized = aws.BoolValue(config.EbsOptimized)
 	l.SecurityGroups = strings.Join(secGroupNamesSorted, ", ")
 	l.Region = region
@@ -174,7 +173,8 @@ func (l *LaunchConfigs) LockedSnapshotIds() map[string]bool {
 }
 
 // LockedImageIds returns a list of locked AMI's (that are currently being used in Launch Configurations)
-func (l *LaunchConfigs) LockedImageIds() (ids map[string]bool) {
+func (l *LaunchConfigs) LockedImageIds() map[string]bool {
+	ids := make(map[string]bool)
 	for _, config := range *l {
 		ids[config.ImageID] = true
 	}
@@ -255,7 +255,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 				return err
 			}
 
-			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]")
+			terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + humanize.Time(latestSnapshot.StartTime) + "]")
 
 			ebsVolumes[i] = &autoscaling.BlockDeviceMapping{
 				DeviceName: aws.String(volCfg.DeviceName),
@@ -290,7 +290,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 			return err
 		}
 
-		terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + ami.CreatedHuman + "]")
+		terminal.Information("Found AMI [" + ami.ImageID + "] with class [" + ami.Class + "] created [" + humanize.Time(ami.CreationDate) + "]")
 		params.ImageId = aws.String(ami.ImageID)
 
 		// KeyPair

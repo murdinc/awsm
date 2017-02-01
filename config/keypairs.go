@@ -28,28 +28,36 @@ type KeyPairClass struct {
 }
 
 // DefaultKeyPairClasses returns the default Image classes
-func DefaultKeyPairClasses() KeyPairClasses {
+func DefaultKeyPairClasses(generateAwsmKeyPair bool) KeyPairClasses {
 	defaultKeyPairs := make(KeyPairClasses)
 
-	publicKey, privateKey, err := GenerateKeyPair()
-	if err != nil {
-		terminal.ErrorLine("Error while generating awsm keypair")
-	}
-	privateKeyLen := len(privateKey) / 4
+	if generateAwsmKeyPair {
+		publicKey, privateKey, err := GenerateKeyPair()
+		if err != nil {
+			terminal.ErrorLine("Error while generating awsm keypair")
+		}
+		privateKeyLen := len(privateKey) / 4
 
-	defaultKeyPairs["awsm"] = KeyPairClass{
-		Description: "Default awsm Key Pair",
-		PublicKey:   publicKey,
-		PrivateKey1: privateKey[:privateKeyLen],
-		PrivateKey2: privateKey[privateKeyLen : privateKeyLen*2],
-		PrivateKey3: privateKey[privateKeyLen*2 : privateKeyLen*3],
-		PrivateKey4: privateKey[privateKeyLen*3:],
+		defaultKeyPairs["awsm"] = KeyPairClass{
+			Description: "Default awsm Key Pair",
+			PublicKey:   publicKey,
+			PrivateKey1: privateKey[:privateKeyLen],
+			PrivateKey2: privateKey[privateKeyLen : privateKeyLen*2],
+			PrivateKey3: privateKey[privateKeyLen*2 : privateKeyLen*3],
+			PrivateKey4: privateKey[privateKeyLen*3:],
+		}
+
+	} else {
+
+		defaultKeyPairs["awsm"] = KeyPairClass{
+			Description: "Default awsm Key Pair",
+		}
 	}
 
 	return defaultKeyPairs
 }
 
-// SaveKeyPairClass reads unmarshals a byte slice and inserts it into the db
+// SaveKeyPairClass unmarshals a byte slice and inserts it into the db
 func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err error) {
 	err = json.Unmarshal(data, &class)
 	if err != nil {
@@ -89,7 +97,7 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 	return
 }
 
-// LoadKeyPairClass returns a single Image class by its name
+// LoadKeyPairClass returns a single KeyPair class by its name
 func LoadKeyPairClass(name string) (KeyPairClass, error) {
 	cfgs := make(KeyPairClasses)
 	item, err := GetItemByName("keypairs", name)

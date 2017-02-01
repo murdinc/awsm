@@ -11,7 +11,6 @@ type LoadBalancerV2 struct {
 	Region                string    `json:"region"`
 	AvailabilityZones     string    `json:"availabilityZone"`
 	CreatedTime           time.Time `json:"createdTime"`
-	CreatedHuman          string    `json:"createdHuman"`
 	SecurityGroups        string    `json:"securityGroups"`
 	Scheme                string    `json:"scheme"`
 	CanonicalHostedZoneID string    `json:"canonicalHostedZoneID"`

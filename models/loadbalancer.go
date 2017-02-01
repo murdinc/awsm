@@ -8,8 +8,7 @@ type LoadBalancer struct {
 	DNSName             string    `json:"dnsName"`
 	Region              string    `json:"region" awsmTable:"Region"`
 	AvailabilityZones   string    `json:"availabilityZone" awsmTable:"Availability Zones"`
-	CreatedTime         time.Time `json:"createdTime"`
-	CreatedHuman        string    `json:"createdHuman" awsmTable:"Created"`
+	CreatedTime         time.Time `json:"createdTime" awsmTable:"Created"`
 	SecurityGroups      string    `json:"securityGroups" awsmTable:"Security Groups"`
 	Scheme              string    `json:"scheme" awsmTable:"Scheme"`
 	VpcID               string    `json:"vpcID" awsmTable:"VPC ID"`

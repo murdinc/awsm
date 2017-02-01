@@ -142,8 +142,7 @@ func (f FeedItems) Marshal(items []*simpledb.Item) {
 				cfg.Link = val
 
 			case "Date":
-				cfg.Date, _ = time.Parse("2006-01-02 15:04:05 +0000 UTC", val) // robots
-				//i.CreatedHuman = humanize.Time(i.CreationDate)                                                  // humans
+				cfg.Date, _ = time.Parse("2006-01-02 15:04:05 +0000 UTC", val)
 
 			case "Title":
 				cfg.Title = val

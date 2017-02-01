@@ -6,8 +6,7 @@ import "time"
 type Image struct {
 	Name         string    `json:"name" awsmTable:"Name"`
 	Class        string    `json:"class" awsmTable:"Class"`
-	CreationDate time.Time `json:"creationDate"`
-	CreatedHuman string    `json:"createdHuman" awsmTable:"Created"`
+	CreationDate time.Time `json:"creationDate" awsmTable:"Created"`
 	ImageID      string    `json:"imageID" awsmTable:"Image ID"`
 	State        string    `json:"state" awsmTable:"State"`
 	Root         string    `json:"root" awsmTable:"Root"`

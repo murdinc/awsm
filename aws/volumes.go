@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
@@ -291,7 +291,7 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 		return err
 	}
 
-	terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + latestSnapshot.CreatedHuman + "]!")
+	terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + humanize.Time(latestSnapshot.StartTime) + "]!")
 
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
@@ -408,8 +408,7 @@ func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances)
 	v.State = aws.StringValue(volume.State)
 	v.Encrypted = aws.BoolValue(volume.Encrypted)
 	v.Iops = fmt.Sprint(aws.Int64Value(volume.Iops))
-	v.CreationTime = *volume.CreateTime                              // robots
-	v.CreatedHuman = humanize.Time(aws.TimeValue(volume.CreateTime)) // humans
+	v.CreationTime = *volume.CreateTime
 	v.VolumeType = aws.StringValue(volume.VolumeType)
 	v.SnapshoID = aws.StringValue(volume.SnapshotId)
 	v.AvailabilityZone = aws.StringValue(volume.AvailabilityZone)

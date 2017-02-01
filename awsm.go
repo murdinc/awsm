@@ -1573,8 +1573,15 @@ func setupCheck() error {
 			return err
 		}
 
+		// Check if we already have an awsm KeyPair on aws already or not
+		generateAwsmKeyPair := true
+		keyPairs, _ := aws.GetKeyPairs("awsm")
+		if len(*keyPairs) > 0 {
+			generateAwsmKeyPair = false
+		}
+
 		// Create the SimpleDB Domain
-		err = config.CreateAwsmDatabase()
+		err = config.CreateAwsmDatabase(generateAwsmKeyPair)
 		if err != nil {
 			return err
 		}

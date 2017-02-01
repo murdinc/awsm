@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
@@ -90,8 +89,7 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 
 	l.Name = aws.StringValue(balancer.LoadBalancerName)
 	l.DNSName = aws.StringValue(balancer.DNSName)
-	l.CreatedTime = aws.TimeValue(balancer.CreatedTime) // robots
-	l.CreatedHuman = humanize.Time(l.CreatedTime)       // humans
+	l.CreatedTime = aws.TimeValue(balancer.CreatedTime)
 	l.VpcID = aws.StringValue(balancer.VPCId)
 	l.Vpc = vpcList.GetVpcName(l.VpcID)
 	l.SubnetIDs = aws.StringValueSlice(balancer.Subnets)

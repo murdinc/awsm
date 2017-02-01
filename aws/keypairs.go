@@ -266,13 +266,15 @@ func InstallKeyPair(class string, dryRun bool) error {
 		publicKeyPath := sshLocation + class + ".pub"
 
 		// Private Key
+		privateKey := []byte(keypairCfg.PrivateKey1 + keypairCfg.PrivateKey2 + keypairCfg.PrivateKey3 + keypairCfg.PrivateKey4)
+
 		if _, err := os.Stat(privateKeyPath); !os.IsNotExist(err) {
 			terminal.ErrorLine("Local private key named [" + class + "] already exists!")
 
+		} else if len(privateKey) < 1 {
+			terminal.ErrorLine("Private key length is 0, not writing file!")
+
 		} else {
-
-			privateKey := []byte(keypairCfg.PrivateKey1 + keypairCfg.PrivateKey2 + keypairCfg.PrivateKey3 + keypairCfg.PrivateKey4)
-
 			err = ioutil.WriteFile(privateKeyPath, privateKey, 0600)
 			if err != nil {
 				return err
@@ -285,8 +287,10 @@ func InstallKeyPair(class string, dryRun bool) error {
 		if _, err := os.Stat(publicKeyPath); !os.IsNotExist(err) {
 			terminal.ErrorLine("Local public key named [" + class + "] already exists!")
 
-		} else {
+		} else if len(keypairCfg.PublicKey) < 1 {
+			terminal.ErrorLine("Public key length is 0, not writing file!")
 
+		} else {
 			err = ioutil.WriteFile(publicKeyPath, []byte(keypairCfg.PublicKey), 0600)
 			if err != nil {
 				return err

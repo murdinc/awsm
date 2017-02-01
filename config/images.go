@@ -24,14 +24,7 @@ type ImageClass struct {
 func DefaultImageClasses() ImageClasses {
 	defaultImages := make(ImageClasses)
 
-	defaultImages["base"] = ImageClass{
-		Rotate:           true,
-		Retain:           5,
-		Propagate:        true,
-		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
-		Instance:         "",
-	}
-	defaultImages["hvm-base"] = ImageClass{
+	defaultImages["awsm-base"] = ImageClass{
 		Rotate:           true,
 		Retain:           5,
 		Propagate:        true,

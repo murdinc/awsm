@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
@@ -61,10 +60,6 @@ func GetImagesByTag(region, key, value string) (Images, error) {
 	imgList := make(Images, len(result.Images))
 	for i, image := range result.Images {
 		imgList[i].Marshal(image, region)
-	}
-
-	if len(imgList) == 0 {
-		return imgList, errors.New("No Images found with tag [" + key + "] of [" + value + "] in [" + region + "].")
 	}
 
 	return imgList, err
@@ -147,12 +142,6 @@ func GetRegionImages(region string, imgList *Images, search string, available bo
 	}
 
 	if search != "" {
-		for i, in := range img {
-			if in.Class == search {
-				*imgList = append(*imgList, img[i])
-			}
-		}
-
 		term := regexp.MustCompile(search)
 	Loop:
 		for i, in := range img {
@@ -310,7 +299,7 @@ func CreateImage(class, name string, dryRun bool) error {
 			if propRegion != region {
 
 				wg.Add(1)
-				go func(region string) {
+				go func(propRegion string) {
 					defer wg.Done()
 
 					// Copy image to the destination region
@@ -479,8 +468,7 @@ func (i *Image) Marshal(image *ec2.Image, region string) {
 
 	i.Name = GetTagValue("Name", image.Tags)
 	i.Class = GetTagValue("Class", image.Tags)
-	i.CreationDate, _ = time.Parse("2006-01-02T15:04:05.000Z", aws.StringValue(image.CreationDate)) // robots
-	i.CreatedHuman = humanize.Time(i.CreationDate)                                                  // humans
+	i.CreationDate, _ = time.Parse("2006-01-02T15:04:05.000Z", aws.StringValue(image.CreationDate))
 	i.ImageID = aws.StringValue(image.ImageId)
 	i.State = aws.StringValue(image.State)
 	i.Root = root

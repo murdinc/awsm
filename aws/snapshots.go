@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/dustin/go-humanize"
 	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
@@ -117,8 +116,7 @@ func (s *Snapshot) Marshal(snapshot *ec2.Snapshot, region string) {
 	s.SnapshotID = aws.StringValue(snapshot.SnapshotId)
 	s.VolumeID = aws.StringValue(snapshot.VolumeId)
 	s.State = aws.StringValue(snapshot.State)
-	s.StartTime = *snapshot.StartTime                                 // robots
-	s.CreatedHuman = humanize.Time(aws.TimeValue(snapshot.StartTime)) // humans
+	s.StartTime = *snapshot.StartTime
 	s.Progress = aws.StringValue(snapshot.Progress)
 	s.VolumeSize = fmt.Sprint(aws.Int64Value(snapshot.VolumeSize))
 	s.Region = region
