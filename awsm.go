@@ -17,6 +17,11 @@ import (
 // Main Function
 ////////////////..........
 func main() {
+	// Creds Check
+	found := aws.CheckCreds()
+	if !found {
+		return
+	}
 
 	// Setup Check
 	err := setupCheck()

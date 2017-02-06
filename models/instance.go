@@ -8,7 +8,7 @@ type Instance struct {
 	PublicIP               string `json:"publicIP" awsmTable:"Public IP"`
 	InstanceID             string `json:"instanceID" awsmTable:"Instance ID"`
 	AMIID                  string `json:"amiID"`
-	AMIName                string `json:"amiName" awsmTable:"AMI Name"`
+	AMIName                string `json:"amiName" awsmTable:"AMI"`
 	Root                   string `json:"root" awsmTable:"Root"`
 	Size                   string `json:"size" awsmTable:"Size"`
 	Virtualization         string `json:"virtualization"`

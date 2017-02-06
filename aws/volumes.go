@@ -134,7 +134,15 @@ func GetRegionVolumes(region string, volList *Volumes, search string, available 
 			}
 		}
 	} else {
-		*volList = append(*volList, vol[:]...)
+		if available {
+			for i, _ := range vol {
+				if vol[i].State == "available" {
+					*volList = append(*volList, vol[i])
+				}
+			}
+		} else {
+			*volList = append(*volList, vol[:]...)
+		}
 	}
 
 	return nil

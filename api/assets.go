@@ -40,6 +40,9 @@ func getAssets(w http.ResponseWriter, r *http.Request) {
 	case "images":
 		resp, errs = aws.GetImages("", false)
 
+	case "instances-running":
+		resp, errs = aws.GetInstances("", true)
+
 	case "instances":
 		resp, errs = aws.GetInstances("", false)
 

@@ -156,9 +156,16 @@ func GetRegionImages(region string, imgList *Images, search string, available bo
 				}
 			}
 		}
-
 	} else {
-		*imgList = append(*imgList, img[:]...)
+		if available {
+			for i, _ := range img {
+				if img[i].State == "available" {
+					*imgList = append(*imgList, img[i])
+				}
+			}
+		} else {
+			*imgList = append(*imgList, img[:]...)
+		}
 	}
 
 	return nil
@@ -437,8 +444,8 @@ func createImage(instanceID, name, region string, dryRun bool) (*ec2.CreateImage
 			},
 		*/
 		//Description: aws.String("String"),
-		DryRun: aws.Bool(dryRun),
-		//NoReboot:    aws.Bool(true),
+		DryRun:   aws.Bool(dryRun),
+		NoReboot: aws.Bool(false), // force a reboot
 	}
 	createImageResp, err := svc.CreateImage(params)
 
@@ -476,6 +483,12 @@ func (i *Image) Marshal(image *ec2.Image, region string) {
 	i.VolumeSize = volSize
 	i.Region = region
 	i.AmiName = aws.StringValue(image.Name)
+
+	// Fall back to AMI Name
+	if i.Name == "" {
+		i.Name = i.AmiName
+	}
+
 }
 
 // DeleteImages deletes one or more AMI images based on the search and optional region input
@@ -503,7 +516,7 @@ func DeleteImages(search, region string, dryRun bool) (err error) {
 		// Print the table
 		imgList.PrintTable()
 	} else {
-		return errors.New("No available Images found, Aborting!")
+		return errors.New("No Images found!")
 	}
 
 	// Confirm
@@ -537,10 +550,14 @@ func deleteImages(imgList *Images, dryRun bool) (err error) {
 
 		_, err := svc.DeregisterImage(params)
 		if err != nil {
-			return err
+			if awsErr, ok := err.(awserr.Error); ok {
+				terminal.ErrorLine(awsErr.Message())
+			} else {
+				terminal.ErrorLine(err.Error())
+			}
+		} else {
+			terminal.Delta("Deleted Image [" + image.Name + "] in [" + image.Region + "]!")
 		}
-
-		terminal.Delta("Deleted Image [" + image.Name + "] in [" + image.Region + "]!")
 	}
 
 	return nil

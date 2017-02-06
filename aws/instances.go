@@ -138,9 +138,16 @@ func GetRegionInstances(region string, instList *Instances, search string, runni
 				}
 			}
 		} else {
-			*instList = append(*instList, inst[:]...)
+			if running {
+				for i, _ := range inst {
+					if inst[i].State == "running" {
+						*instList = append(*instList, inst[i])
+					}
+				}
+			} else {
+				*instList = append(*instList, inst[:]...)
+			}
 		}
-
 	}
 	return nil
 }
@@ -255,6 +262,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 		if snapshotId != "" {
 			ebsVolumes[i].Ebs.SnapshotId = aws.String(snapshotId)
+			ebsVolumes[i].Ebs.Encrypted = nil // You cannot specify the encrypted flag if specifying a snapshot id in a block device mapping
 		}
 
 	}
@@ -460,6 +468,19 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 			return errors.New(awsErr.Message())
 		}
 		return err
+	}
+
+	// Wait to tag it
+	err = svc.WaitUntilInstanceExists(&ec2.DescribeInstancesInput{
+		DryRun: aws.Bool(dryRun),
+		InstanceIds: []*string{
+			launchInstanceResp.Instances[0].InstanceId,
+		},
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
 	}
 
 	// Add Instance Tags

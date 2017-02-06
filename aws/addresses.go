@@ -106,7 +106,15 @@ func GetRegionAddresses(region string, adrList *Addresses, search string, availa
 			}
 		}
 	} else {
-		*adrList = append(*adrList, adr[:]...)
+		if available {
+			for i, _ := range adr {
+				if adr[i].Status == "available" {
+					*adrList = append(*adrList, adr[i])
+				}
+			}
+		} else {
+			*adrList = append(*adrList, adr[:]...)
+		}
 	}
 
 	return nil

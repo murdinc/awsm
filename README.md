@@ -20,6 +20,9 @@ Also, check out [awsmDashboard](https://github.com/murdinc/awsmDashboard) which 
 
 
 ## Installation
+```
+curl -s http://dl.sudoba.sh/get/awsm | sh
+```
 
 
 ## Configuration

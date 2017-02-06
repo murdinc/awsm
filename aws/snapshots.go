@@ -27,9 +27,10 @@ type Snapshots []Snapshot
 type Snapshot models.Snapshot
 
 // GetSnapshotsByTag returns a slice of EBS Snapshots that match the provided region and Tag key/value
-func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+func GetSnapshotsByTag(region, key, value string, completed bool) (Snapshots, error) {
+	snapList := new(Snapshots)
 
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 	params := &ec2.DescribeSnapshotsInput{
 		OwnerIds: []*string{aws.String("self")},
 		Filters: []*ec2.Filter{
@@ -44,27 +45,36 @@ func GetSnapshotsByTag(region, key, value string) (Snapshots, error) {
 
 	result, err := svc.DescribeSnapshots(params)
 
-	snapList := make(Snapshots, len(result.Snapshots))
+	snap := make(Snapshots, len(result.Snapshots))
 	for i, snapshot := range result.Snapshots {
-		snapList[i].Marshal(snapshot, region)
+		snap[i].Marshal(snapshot, region)
 	}
 
-	if len(snapList) == 0 {
-		return snapList, nil //errors.New("No Snapshot found with tag [" + key + "] of [" + value + "] in [" + region + "].")
+	if len(snap) == 0 {
+		return *snapList, nil
 	}
 
-	return snapList, err
+	if completed {
+		for i, _ := range snap {
+			if snap[i].State == "completed" {
+				*snapList = append(*snapList, snap[i])
+			}
+		}
+	} else {
+		*snapList = append(*snapList, snap[:]...)
+	}
+
+	return *snapList, err
 }
 
 // GetLatestSnapshotByTag returns the newest EBS Snapshot that matches the provided region and Tag key/value
 func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
-	snapshots, err := GetSnapshotsByTag(region, key, value)
-	if err != nil {
+	snapshots, err := GetSnapshotsByTag(region, key, value, true)
+	if err != nil || len(snapshots) == 0 {
 		return Snapshot{}, err
 	}
 
 	sort.Sort(snapshots)
-
 	return snapshots[0], err
 }
 
@@ -161,7 +171,15 @@ func GetRegionSnapshots(region string, snapList *Snapshots, search string, compl
 			}
 		}
 	} else {
-		*snapList = append(*snapList, snap[:]...)
+		if completed {
+			for i, _ := range snap {
+				if snap[i].State == "completed" {
+					*snapList = append(*snapList, snap[i])
+				}
+			}
+		} else {
+			*snapList = append(*snapList, snap[:]...)
+		}
 	}
 
 	return nil
@@ -354,6 +372,11 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 
 // rotateSnapshots rotates out older Snapshots
 func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error {
+	// Bail early
+	if cfg.Retain <= 0 {
+		return nil
+	}
+
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -372,7 +395,7 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 			defer wg.Done()
 
 			// Get all the snapshots of this class in this region
-			snapshots, err := GetSnapshotsByTag(*region.RegionName, "Class", class)
+			snapshots, err := GetSnapshotsByTag(*region.RegionName, "Class", class, true)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering snapshot list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
