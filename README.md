@@ -1,6 +1,8 @@
 # awsm
 > AWS Interface
 
+[![Build Status](https://travis-ci.org/murdinc/awsm.svg)](https://travis-ci.org/murdinc/awsm)
+
 #### Note: This tool is not yet complete, it is being heavily developed currently.
 
 Also, check out [awsmDashboard](https://github.com/murdinc/awsmDashboard) which feeds into this project.
