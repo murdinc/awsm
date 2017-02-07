@@ -300,13 +300,13 @@ func main() {
 					Optional:    false,
 				},
 				{
-					Name:        "name",
-					Description: "The name of the new image",
-					Optional:    false,
+					Name:        "search",
+					Description: "The instance to create the image from (optional, defaults setting in class configuration)",
+					Optional:    true,
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.CreateImage(c.NamedArg("class"), c.NamedArg("name"), dryRun)
+				err := aws.CreateImage(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}

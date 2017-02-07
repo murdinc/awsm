@@ -237,7 +237,7 @@ func copyImage(image Image, region string, dryRun bool) (*ec2.CopyImageOutput, e
 }
 
 // CreateImage creates a new Amazon Machine Image from an instance matching the provided search term. It assigns the Image the class and name that was provided
-func CreateImage(class, name string, dryRun bool) error {
+func CreateImage(class, search string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -252,23 +252,43 @@ func CreateImage(class, name string, dryRun bool) error {
 
 	terminal.Information("Found Image Class Configuration for [" + class + "]!")
 
-	if cfg.Instance == "" {
-		return errors.New("Image class " + class + " does not have an instance set!")
+	sourceInstance := cfg.Instance
+	if search != "" {
+		sourceInstance = search
+	}
+	if sourceInstance == "" {
+		return errors.New("No instance specified in command arguments or Image class config. Please provide the instance argument or set one in the config.")
 	}
 
 	// Locate the Instance
-	instances, _ := GetInstances(cfg.Instance, true)
+	instances, _ := GetInstances(sourceInstance, true)
 	instCount := len(*instances)
 	if instCount == 0 {
-		return errors.New("No running instances found matching: " + cfg.Instance)
+		return errors.New("No running instances found matching: " + sourceInstance)
 	}
 	if instCount > 1 {
 		instances.PrintTable()
-		return errors.New("Found more than one instances found matching: " + cfg.Instance)
+		return errors.New("Found more than one instances found matching: " + sourceInstance)
 	}
 
 	instance := (*instances)[0]
 	region := instance.Region
+
+	// Save the new instance id if we were searching for one
+	if search != "" && !dryRun {
+		cfg.SetInstance(class, instance.InstanceID)
+	}
+
+	// Increment the version
+	terminal.Information(fmt.Sprintf("Previous version of image is [%d]", cfg.Version))
+	if !dryRun {
+		cfg.Increment(class)
+	} else {
+		cfg.Version++
+	}
+	terminal.Delta(fmt.Sprintf("New version of image is [%d]", cfg.Version))
+
+	name := fmt.Sprintf("%s-v%d", class, cfg.Version)
 
 	createImageResp, err := createImage(instance.InstanceID, name, region, dryRun)
 	if err != nil {

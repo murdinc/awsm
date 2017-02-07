@@ -108,7 +108,7 @@ func (c *LaunchConfigurationClass) SetVersion(name string, version int) error {
 	updateCfgs := make(LaunchConfigurationClasses)
 	updateCfgs[name] = *c
 
-	return Insert("launchconfig", updateCfgs)
+	return Insert("launchconfigurations", updateCfgs)
 }
 
 // Increment increments the version of a Launch Configuration

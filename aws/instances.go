@@ -520,6 +520,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	inst[0].Name = class + sequence
 	inst[0].Class = class
+	inst[0].AMIName = ami.ImageID
 
 	inst.PrintTable()
 

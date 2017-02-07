@@ -41,7 +41,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		PublicIPAddress:    false,
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
-		UserData:           "#cloud-config\n# apt upgrade\npackage_upgrade: true\npackage_update: true\n\nmounts:\n  # mount the crusher-base volume\n  - [ /dev/xvdf1, /media/crusher, \"auto\", \"defaults\", \"0\", \"0\" ]\n\n# clone the example crusher repo and run the test spec\nruncmd:\n  - parted -s -a optimal /dev/xvdf mklabel msdos\n  - parted -s -a optimal -- /dev/xvdf unit compact mkpart primary ext4 \"1\" \"-1\"\n  - mkfs -t ext4 -L crusher /dev/xvdf1 -F\n  - mount -a\n  - cd /media/crusher && git clone https://github.com/murdinc/crusher-config.git\n  - cd /media/crusher/crusher-config\n  - /media/crusher/crusher-config/crusher lc test --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}",
+		UserData:           "#cloud-config\n\nruncmd:\n  - curl -s http://dl.sudoba.sh/get/awsm | sh\n  - curl -s http://dl.sudoba.sh/get/crusher | sh\n  - su - ubuntu -c \"awsm installKeyPair awsm\"\n  - mv /home/ubuntu/.ssh/awsm.pem /home/ubuntu/.ssh/id_rsa\n  - su - ubuntu -c \"ssh-keyscan github.com >> ~/.ssh/known_hosts\"\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc base --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
 		IAMInstanceProfile: "awsm",
 		// No AMI Specified, will prompt user to provide one
 	}
@@ -56,7 +56,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		AMI:                "awsm-base",
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
-		UserData:           "#cloud-config\n# apt upgrade\npackage_upgrade: true\npackage_update: true\n\nmounts:\n  # mount the crusher-base volume\n  - [ /dev/xvdf1, /media/crusher, \"auto\", \"defaults\", \"0\", \"0\" ]\n\n# clone the example crusher repo and run the hello_world spec\nruncmd:\n  - mount -a\n  - cd /media/crusher/crusher-config\n  - git pull\n  - /media/crusher/crusher-config/crusher lc hello_world --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}",
+		UserData:           "#cloud-config\n\nruncmd:\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc dev --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
 		IAMInstanceProfile: "awsm",
 	}
 
@@ -70,6 +70,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		AMI:                "awsm-base",
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
+		UserData:           "#cloud-config\n\nruncmd:\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc prod --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
 		IAMInstanceProfile: "awsm",
 	}
 

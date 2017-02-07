@@ -13,6 +13,7 @@ type ImageClasses map[string]ImageClass
 
 // ImageClass is a single Image class
 type ImageClass struct {
+	Version          int      `json:"version" awsmClass:"Version"`
 	Instance         string   `json:"instance" awsmClass:"Instance"`
 	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
 	Retain           int      `json:"retain" awsmClass:"Retain"`
@@ -25,6 +26,7 @@ func DefaultImageClasses() ImageClasses {
 	defaultImages := make(ImageClasses)
 
 	defaultImages["awsm-base"] = ImageClass{
+		Version:          0,
 		Rotate:           true,
 		Retain:           5,
 		Propagate:        true,
@@ -81,6 +83,9 @@ func (c ImageClasses) Marshal(items []*simpledb.Item) {
 
 			switch *attribute.Name {
 
+			case "Version":
+				cfg.Version, _ = strconv.Atoi(val)
+
 			case "Propagate":
 				cfg.Propagate, _ = strconv.ParseBool(val)
 
@@ -100,4 +105,36 @@ func (c ImageClasses) Marshal(items []*simpledb.Item) {
 		}
 		c[name] = *cfg
 	}
+}
+
+// SetInstance updates the source instance of an Image
+func (c *ImageClass) SetInstance(name string, instance string) error {
+	c.Instance = instance
+
+	updateCfgs := make(ImageClasses)
+	updateCfgs[name] = *c
+
+	return Insert("images", updateCfgs)
+}
+
+// SetVersion updates the version of an Image
+func (c *ImageClass) SetVersion(name string, version int) error {
+	c.Version = version
+
+	updateCfgs := make(ImageClasses)
+	updateCfgs[name] = *c
+
+	return Insert("images", updateCfgs)
+}
+
+// Increment increments the version of an Image
+func (c *ImageClass) Increment(name string) error {
+	c.Version++
+	return c.SetVersion(name, c.Version)
+}
+
+// Decrement decrements the version of an Image
+func (c *ImageClass) Decrement(name string) error {
+	c.Version--
+	return c.SetVersion(name, c.Version)
 }

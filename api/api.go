@@ -20,6 +20,7 @@ func StartAPI() {
 
 	r.Use(cors.Handler)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.StripSlashes)
 	//r.Use(middleware.Logger)
 
 	r.Route("/api", func(r chi.Router) {

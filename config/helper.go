@@ -35,7 +35,7 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 			case "bool":
 				sVal = fmt.Sprint(inValue.Field(k).Bool())
 			case "[]string":
-				if !inValue.Field(k).IsNil() {
+				if !inValue.Field(k).CanInterface() {
 					strSlice, ok := inValue.Field(k).Interface().([]string)
 					if ok {
 						sVal = strings.Join(strSlice, ", ")
@@ -43,21 +43,25 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 				}
 
 			case "[]config.SecurityGroupGrant":
-				grants := inValue.Field(k).Interface().([]SecurityGroupGrant)
-				for _, grant := range grants {
+				if !inValue.Field(k).CanInterface() {
+					grants := inValue.Field(k).Interface().([]SecurityGroupGrant)
+					for _, grant := range grants {
 
-					direction := ">"
-					if grant.Type == "egress" {
-						direction = "<"
+						direction := ">"
+						if grant.Type == "egress" {
+							direction = "<"
+						}
+
+						sVal += fmt.Sprintf("%s:%d%s:%d\n\n", grant.IPProtocol, grant.FromPort, direction, grant.ToPort)
 					}
-
-					sVal += fmt.Sprintf("%s:%d%s:%d\n\n", grant.IPProtocol, grant.FromPort, direction, grant.ToPort)
 				}
 
 			case "[]config.LoadBalancerListener":
-				listeners := inValue.Field(k).Interface().([]LoadBalancerListener)
-				for _, listener := range listeners {
-					sVal += fmt.Sprintf("%s:%d>%s:%d\n\n", listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort)
+				if !inValue.Field(k).CanInterface() {
+					listeners := inValue.Field(k).Interface().([]LoadBalancerListener)
+					for _, listener := range listeners {
+						sVal += fmt.Sprintf("%s:%d>%s:%d\n\n", listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort)
+					}
 				}
 
 			default:
