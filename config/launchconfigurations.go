@@ -16,7 +16,7 @@ type LaunchConfigurationClass struct {
 	Version       int      `json:"version" awsmClass:"Version"`
 	InstanceClass string   `json:"instanceClass" awsmClass:"Instance Class"`
 	Retain        int      `json:"retain" awsmClass:"Retain"`
-	Rotate        bool     `json:"rotate"`
+	Rotate        bool     `json:"rotate" awsmClass:"Rotate"`
 	Regions       []string `json:"regions" awsmClass:"Regions"`
 }
 

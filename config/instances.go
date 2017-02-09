@@ -32,16 +32,16 @@ type InstanceClass struct {
 func DefaultInstanceClasses() InstanceClasses {
 	defaultInstances := make(InstanceClasses)
 
-	defaultInstances["base"] = InstanceClass{
+	defaultInstances["init"] = InstanceClass{
 		InstanceType:       "t2.nano",
 		SecurityGroups:     []string{"dev"},
-		EBSVolumes:         []string{"crusher-base"},
+		EBSVolumes:         []string{"code-init"},
 		Vpc:                "awsm",
 		Subnet:             "private",
 		PublicIPAddress:    false,
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
-		UserData:           "#cloud-config\n\nruncmd:\n  - curl -s http://dl.sudoba.sh/get/awsm | sh\n  - curl -s http://dl.sudoba.sh/get/crusher | sh\n  - su - ubuntu -c \"awsm installKeyPair awsm\"\n  - mv /home/ubuntu/.ssh/awsm.pem /home/ubuntu/.ssh/id_rsa\n  - su - ubuntu -c \"ssh-keyscan github.com >> ~/.ssh/known_hosts\"\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc base --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
+		UserData:           "#cloud-config\n\nruncmd:\n  - curl -s http://dl.sudoba.sh/get/awsm | sh\n  - curl -s http://dl.sudoba.sh/get/crusher | sh\n  - su - ubuntu -c \"awsm installKeyPair awsm\"\n  - mv /home/ubuntu/.ssh/awsm.pem /home/ubuntu/.ssh/id_rsa\n  - su - ubuntu -c \"ssh-keyscan github.com >> ~/.ssh/known_hosts\"\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc init --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
 		IAMInstanceProfile: "awsm",
 		// No AMI Specified, will prompt user to provide one
 	}
@@ -53,7 +53,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		Vpc:                "awsm",
 		Subnet:             "private",
 		PublicIPAddress:    false,
-		AMI:                "awsm-base",
+		AMI:                "awsm-init",
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
 		UserData:           "#cloud-config\n\nruncmd:\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc dev --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
@@ -67,7 +67,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		Vpc:                "awsm",
 		Subnet:             "private",
 		PublicIPAddress:    false,
-		AMI:                "awsm-base",
+		AMI:                "awsm-init",
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
 		UserData:           "#cloud-config\n\nruncmd:\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc prod --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",

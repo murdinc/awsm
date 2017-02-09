@@ -40,7 +40,10 @@ func (i *Images) GetImageName(id string) string {
 }
 
 // GetImagesByTag returns a slice of Amazon Machine Images given the provided region, and tag key/values
-func GetImagesByTag(region, key, value string) (Images, error) {
+func GetImagesByTag(region, key, value string, available bool) (Images, error) {
+
+	imgList := new(Images)
+
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeImagesInput{
@@ -57,12 +60,22 @@ func GetImagesByTag(region, key, value string) (Images, error) {
 
 	result, err := svc.DescribeImages(params)
 
-	imgList := make(Images, len(result.Images))
+	img := make(Images, len(result.Images))
 	for i, image := range result.Images {
-		imgList[i].Marshal(image, region)
+		img[i].Marshal(image, region)
 	}
 
-	return imgList, err
+	if available {
+		for i, _ := range img {
+			if img[i].State == "available" {
+				*imgList = append(*imgList, img[i])
+			}
+		}
+	} else {
+		*imgList = append(*imgList, img[:]...)
+	}
+
+	return *imgList, err
 }
 
 // GetImageById returns an Amazon Machine Image via its ID
@@ -92,7 +105,7 @@ func GetImageById(region, id string) (Image, error) {
 
 // GetLatestImageByTag returns the newest Amazon Machine Image in the provided region that matches the key/value tag provided
 func GetLatestImageByTag(region, key, value string) (Image, error) {
-	images, err := GetImagesByTag(region, key, value)
+	images, err := GetImagesByTag(region, key, value, true)
 	if err != nil {
 		return Image{}, err
 	}
@@ -257,14 +270,14 @@ func CreateImage(class, search string, dryRun bool) error {
 		sourceInstance = search
 	}
 	if sourceInstance == "" {
-		return errors.New("No instance specified in command arguments or Image class config. Please provide the instance argument or set one in the config.")
+		return errors.New("No instance specified in command arguments or Image class config. Please provide the instance search argument or set one in the config.")
 	}
 
 	// Locate the Instance
 	instances, _ := GetInstances(sourceInstance, true)
 	instCount := len(*instances)
 	if instCount == 0 {
-		return errors.New("No running instances found matching: " + sourceInstance)
+		return errors.New("No running instances found matching [" + sourceInstance + "], Aborting!")
 	}
 	if instCount > 1 {
 		instances.PrintTable()
@@ -276,6 +289,14 @@ func CreateImage(class, search string, dryRun bool) error {
 
 	// Save the new instance id if we were searching for one
 	if search != "" && !dryRun {
+		instTable := &Instances{instance}
+		instTable.PrintTable()
+
+		// Confirm
+		if !terminal.PromptBool("Are you sure you want to create an image from this instance and set it as the default for the " + class + " class?") {
+			return errors.New("Aborting!")
+		}
+
 		cfg.SetInstance(class, instance.InstanceID)
 	}
 
@@ -385,7 +406,7 @@ func rotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 			defer wg.Done()
 
 			// Get the images of this class in this region
-			images, err := GetImagesByTag(*region.RegionName, "Class", class)
+			images, err := GetImagesByTag(*region.RegionName, "Class", class, false)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering image list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)

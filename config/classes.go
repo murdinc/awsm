@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/murdinc/awsm/aws/regions"
-	"github.com/murdinc/terminal"
 	"github.com/satori/go.uuid"
 )
 
@@ -24,13 +23,13 @@ func DeleteClass(classType, className string) error {
 		ItemName:   aws.String(itemName),
 	}
 
-	terminal.Delta("Deleting [" + itemName + "] Configuration...")
+	//terminal.Delta("Deleting [" + itemName + "] Configuration...")
 	_, err := svc.DeleteAttributes(params)
 	if err != nil {
 		return err
 	}
 
-	terminal.Information("Done!")
+	//terminal.Information("Done!")
 
 	return nil
 }
@@ -169,14 +168,14 @@ func Insert(classType string, classInterface interface{}) error {
 		DomainName: aws.String("awsm"),
 		Items:      items,
 	}
-	terminal.Delta("Installing [" + classType + "] Configurations...")
+	//terminal.Delta("Installing [" + classType + "] Configurations...")
 	_, err := svc.BatchPutAttributes(params)
 
 	if err != nil {
 		return err
 	}
 
-	terminal.Information("Done!")
+	//terminal.Information("Done!")
 
 	return nil
 

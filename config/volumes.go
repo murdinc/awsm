@@ -27,33 +27,23 @@ type VolumeClass struct {
 func DefaultVolumeClasses() VolumeClasses {
 	defaultVolumes := make(VolumeClasses)
 
-	defaultVolumes["crusher-base"] = VolumeClass{
-		DeviceName:          "/dev/xvdf",
-		VolumeSize:          30,
-		DeleteOnTermination: false,
-		MountPoint:          "/media/crusher",
-		Encrypted:           true,
-		Snapshot:            "", // none, created/partitioned on base launch
-		VolumeType:          "standard",
-	}
-
-	defaultVolumes["crusher"] = VolumeClass{
+	defaultVolumes["code-init"] = VolumeClass{
 		DeviceName:          "/dev/xvdf",
 		VolumeSize:          30,
 		DeleteOnTermination: true,
-		MountPoint:          "/media/crusher",
+		MountPoint:          "/media/code",
 		Encrypted:           true,
-		Snapshot:            "crusher",
+		Snapshot:            "", // none, created/partitioned on awsm-init launch
 		VolumeType:          "standard",
 	}
 
-	defaultVolumes["git-standard"] = VolumeClass{
-		DeviceName:          "/dev/xvdg",
+	defaultVolumes["code"] = VolumeClass{
+		DeviceName:          "/dev/xvdf",
 		VolumeSize:          30,
 		DeleteOnTermination: true,
-		MountPoint:          "/media/git",
-		Encrypted:           false,
-		Snapshot:            "git",
+		MountPoint:          "/media/code",
+		Encrypted:           true,
+		Snapshot:            "code",
 		VolumeType:          "standard",
 	}
 

@@ -13,19 +13,19 @@ type ImageClasses map[string]ImageClass
 
 // ImageClass is a single Image class
 type ImageClass struct {
-	Version          int      `json:"version" awsmClass:"Version"`
 	Instance         string   `json:"instance" awsmClass:"Instance"`
 	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
 	Retain           int      `json:"retain" awsmClass:"Retain"`
 	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
 	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
+	Version          int      `json:"version" awsmClass:"Version"`
 }
 
 // DefaultImageClasses returns the default Image classes
 func DefaultImageClasses() ImageClasses {
 	defaultImages := make(ImageClasses)
 
-	defaultImages["awsm-base"] = ImageClass{
+	defaultImages["awsm-init"] = ImageClass{
 		Version:          0,
 		Rotate:           true,
 		Retain:           5,

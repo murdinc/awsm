@@ -19,5 +19,6 @@ type Volume struct {
 	SnapshoID        string    `json:"snapshotID"`
 	DeleteOnTerm     bool      `json:"deleteOnTerm" awsmTable:"Delete On Term."`
 	AvailabilityZone string    `json:"availabilityZone" awsmTable:"Availability Zone"`
+	Device           string    `json:"device"`
 	Region           string    `json:"region" awsmTable:"Region"`
 }

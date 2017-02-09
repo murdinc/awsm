@@ -415,13 +415,13 @@ func main() {
 					Optional:    false,
 				},
 				{
-					Name:        "name",
-					Description: "The name of the new snapshot",
-					Optional:    false,
+					Name:        "search",
+					Description: "The volume to create the snapshot from (optional, defaults setting in class configuration)",
+					Optional:    true,
 				},
 			},
 			Action: func(c *cli.Context) error {
-				err := aws.CreateSnapshot(c.NamedArg("class"), c.NamedArg("name"), dryRun)
+				err := aws.CreateSnapshot(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -1633,6 +1633,8 @@ func setupCheck() error {
 		if err != nil {
 			return err
 		}
+
+		// TODO attach admin policy to awsm also?
 	}
 
 	return nil

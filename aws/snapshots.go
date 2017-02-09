@@ -70,8 +70,12 @@ func GetSnapshotsByTag(region, key, value string, completed bool) (Snapshots, er
 // GetLatestSnapshotByTag returns the newest EBS Snapshot that matches the provided region and Tag key/value
 func GetLatestSnapshotByTag(region, key, value string) (Snapshot, error) {
 	snapshots, err := GetSnapshotsByTag(region, key, value, true)
-	if err != nil || len(snapshots) == 0 {
+	if err != nil {
 		return Snapshot{}, err
+	}
+
+	if len(snapshots) == 0 {
+		return Snapshot{}, errors.New("No snapshots found in " + region + " with " + key + " of " + value + "!")
 	}
 
 	sort.Sort(snapshots)
@@ -260,7 +264,7 @@ func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnaps
 }
 
 // CreateSnapshot creates a new EBS Snapshot
-func CreateSnapshot(class, name string, dryRun bool) error {
+func CreateSnapshot(class, search string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -275,22 +279,50 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 
 	terminal.Information("Found Snapshot Class Configuration for [" + class + "]!")
 
-	if cfg.Volume == "" {
-		return errors.New("Snapshot Class [" + class + "] does not have a source Volume specified yet, Aborting!")
+	sourceVolume := cfg.Volume
+	if search != "" {
+		sourceVolume = search
+	}
+	if sourceVolume == "" {
+		return errors.New("No volume specified in command arguments or Snapshot class config. Please provide the volume search argument or set one in the config.")
 	}
 
 	// Locate the Volume
-	volumes, _ := GetVolumes(cfg.Volume, false)
+	volumes, _ := GetVolumes(sourceVolume, true)
 	if len(*volumes) == 0 {
-		return errors.New("No volumes found matching [" + cfg.Volume + "], Aborting!")
+		return errors.New("No volumes found matching [" + sourceVolume + "], Aborting!")
 	}
 	if len(*volumes) > 1 {
 		volumes.PrintTable()
-		return errors.New("Found more than one volume matching [" + cfg.Volume + "], Aborting!")
+		return errors.New("Found more than one volume matching [" + sourceVolume + "], Aborting!")
 	}
 
 	volume := (*volumes)[0]
 	region := volume.Region
+
+	// Save the new volume id if we were searching for one
+	if search != "" && !dryRun {
+		volTable := &Volumes{volume}
+		volTable.PrintTable()
+
+		// Confirm
+		if !terminal.PromptBool("Are you sure you want to create a snapshot from this volume and set it as the default for the " + class + " class?") {
+			return errors.New("Aborting!")
+		}
+
+		cfg.SetVolume(class, volume.VolumeID)
+	}
+
+	// Increment the version
+	terminal.Information(fmt.Sprintf("Previous version of snapshot is [%d]", cfg.Version))
+	if !dryRun {
+		cfg.Increment(class)
+	} else {
+		cfg.Version++
+	}
+	terminal.Delta(fmt.Sprintf("New version of snapshot is [%d]", cfg.Version))
+
+	name := fmt.Sprintf("%s-v%d", class, cfg.Version)
 
 	// Create the snapshot
 	createSnapshotResp, err := createSnapshot(volume.VolumeID, cfg.Description, region, dryRun)
@@ -302,7 +334,6 @@ func CreateSnapshot(class, name string, dryRun bool) error {
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createSnapshotResp.SnapshotId, name, class, region)
-
 	if err != nil {
 		return err
 	}

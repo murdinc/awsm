@@ -221,6 +221,8 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 
 	// EBS
 	ebsVolumes := make([]*ec2.BlockDeviceMapping, len(instanceCfg.EBSVolumes))
+	ebsVolumeNames := make(map[string]string)
+	ebsVolumeClasses := make(map[string]string)
 	for i, ebsClass := range instanceCfg.EBSVolumes {
 		volCfg, err := config.LoadVolumeClass(ebsClass)
 		if err != nil {
@@ -236,8 +238,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		} else {
 			latestSnapshot, err := GetLatestSnapshotByTag(region, "Class", volCfg.Snapshot)
 			if err != nil {
-				terminal.Information("No snapshot found for [" + ebsClass + "]! Creating a fresh volume instead.")
-
+				return err
 			} else {
 				terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + humanize.Time(latestSnapshot.StartTime) + "]!")
 				snapshotId = latestSnapshot.SnapshotID
@@ -264,6 +265,9 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 			ebsVolumes[i].Ebs.SnapshotId = aws.String(snapshotId)
 			ebsVolumes[i].Ebs.Encrypted = nil // You cannot specify the encrypted flag if specifying a snapshot id in a block device mapping
 		}
+
+		ebsVolumeNames[volCfg.DeviceName] = class + sequence + "-" + ebsClass
+		ebsVolumeClasses[volCfg.DeviceName] = ebsClass
 
 	}
 
@@ -505,12 +509,33 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		DryRun: aws.Bool(dryRun),
 	}
 	_, err = svc.CreateTags(instanceTagsParams)
-
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return errors.New(awsErr.Message())
 		}
 		return err
+	}
+
+	// Add EBS Volume Tags
+	ebsVols, err := GetVolumesByInstanceID(region, aws.StringValue(launchInstanceResp.Instances[0].InstanceId))
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	for _, ebsVol := range ebsVols {
+		if ebsVolumeNames[ebsVol.Device] != "" || ebsVolumeClasses[ebsVol.Device] != "" {
+			// Add Tags
+			err = SetEc2NameAndClassTags(aws.String(ebsVol.VolumeID), ebsVolumeNames[ebsVol.Device], ebsVolumeClasses[ebsVol.Device], region)
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					return errors.New(awsErr.Message())
+				}
+				return err
+			}
+		}
 	}
 
 	terminal.Information("Finished Launching Instance!")

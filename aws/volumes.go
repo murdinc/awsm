@@ -28,9 +28,40 @@ type Volumes []Volume
 // Volume represents a single EBS Volume
 type Volume models.Volume
 
+// GetVolumesByInstanceID returns a list of EBS Volumes given an instance Id
+func GetVolumesByInstanceID(region, instanceId string) (Volumes, error) {
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	params := &ec2.DescribeVolumesInput{
+
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("attachment.instance-id"),
+				Values: []*string{
+					aws.String(instanceId),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeVolumes(params)
+	if err != nil {
+		return Volumes{}, err
+	}
+
+	instList := new(Instances)
+	GetRegionInstances(region, instList, "", false)
+
+	volList := make(Volumes, len(result.Volumes))
+	for i, volume := range result.Volumes {
+		volList[i].Marshal(volume, region, instList)
+	}
+
+	return volList, nil
+}
+
 // GetVolumeByTag returns a single EBS Volume given a region and Tag key/value
 func GetVolumeByTag(region, key, value string) (Volume, error) {
-
 	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
 
 	params := &ec2.DescribeVolumesInput{
@@ -70,7 +101,6 @@ func GetVolumeByTag(region, key, value string) (Volume, error) {
 	}
 
 	sort.Sort(volList)
-
 	volList.PrintTable()
 
 	return Volume{}, errors.New("Please limit your search to return only one volume.")
@@ -326,7 +356,6 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createVolumeResp.VolumeId, name, class, region)
-
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return errors.New(awsErr.Message())
@@ -427,9 +456,8 @@ func (v *Volume) Marshal(volume *ec2.Volume, region string, instList *Instances)
 		instance := instList.GetInstanceName(v.InstanceID)
 		v.Attachment = instance
 		v.DeleteOnTerm = aws.BoolValue(volume.Attachments[0].DeleteOnTermination)
-
+		v.Device = aws.StringValue(volume.Attachments[0].Device)
 	}
-
 }
 
 // Len returns the number of EBS Volumes

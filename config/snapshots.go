@@ -19,23 +19,16 @@ type SnapshotClass struct {
 	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
 	Description      string   `json:"description" awsmClass:"Description"`
 	Volume           string   `json:"volume" awsmClass:"Volume"`
+	Version          int      `json:"version" awsmClass:"Version"`
 }
 
 // DefaultSnapshotClasses returns the default Snapshot Classes
 func DefaultSnapshotClasses() SnapshotClasses {
 	defaultSnapshots := make(SnapshotClasses)
 
-	defaultSnapshots["crusher"] = SnapshotClass{
-		Description:      "Crusher configuration management",
-		Propagate:        true,
-		Retain:           5,
-		Rotate:           true,
-		PropagateRegions: []string{"us-west-2", "us-east-1", "eu-west-1"},
-		Volume:           "",
-	}
-
-	defaultSnapshots["git"] = SnapshotClass{
-		Description:      "Git repositories",
+	defaultSnapshots["code"] = SnapshotClass{
+		Version:          0,
+		Description:      "Code Volume",
 		Propagate:        true,
 		Retain:           5,
 		Rotate:           true,
@@ -44,6 +37,7 @@ func DefaultSnapshotClasses() SnapshotClasses {
 	}
 
 	defaultSnapshots["mysql-data"] = SnapshotClass{
+		Version:          0,
 		Description:      "MySQL data folder",
 		Propagate:        true,
 		Retain:           5,
@@ -101,6 +95,9 @@ func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 
 			switch *attribute.Name {
 
+			case "Version":
+				cfg.Version, _ = strconv.Atoi(val)
+
 			case "Description":
 				cfg.Description = val
 
@@ -123,4 +120,36 @@ func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 		}
 		c[name] = *cfg
 	}
+}
+
+// SetVolume updates the source volume of an Snapshot
+func (c *SnapshotClass) SetVolume(name string, volume string) error {
+	c.Volume = volume
+
+	updateCfgs := make(SnapshotClasses)
+	updateCfgs[name] = *c
+
+	return Insert("snapshots", updateCfgs)
+}
+
+// SetVersion updates the version of a Snapshot
+func (c *SnapshotClass) SetVersion(name string, version int) error {
+	c.Version = version
+
+	updateCfgs := make(SnapshotClasses)
+	updateCfgs[name] = *c
+
+	return Insert("snapshots", updateCfgs)
+}
+
+// Increment increments the version of a Snapshot
+func (c *SnapshotClass) Increment(name string) error {
+	c.Version++
+	return c.SetVersion(name, c.Version)
+}
+
+// Decrement decrements the version of a Snapshot
+func (c *SnapshotClass) Decrement(name string) error {
+	c.Version--
+	return c.SetVersion(name, c.Version)
 }
