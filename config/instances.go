@@ -41,7 +41,7 @@ func DefaultInstanceClasses() InstanceClasses {
 		PublicIPAddress:    false,
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
-		UserData:           "#cloud-config\n\nruncmd:\n  - curl -s http://dl.sudoba.sh/get/awsm | sh\n  - curl -s http://dl.sudoba.sh/get/crusher | sh\n  - su - ubuntu -c \"awsm installKeyPair awsm\"\n  - mv /home/ubuntu/.ssh/awsm.pem /home/ubuntu/.ssh/id_rsa\n  - su - ubuntu -c \"ssh-keyscan github.com >> ~/.ssh/known_hosts\"\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc init --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
+		UserData:           "#cloud-config\npackage_update: false\npackage_upgrade: true\nruncmd:\n  - curl -s http://dl.sudoba.sh/get/awsm | sh\n  - curl -s http://dl.sudoba.sh/get/crusher | sh\n  - su - ubuntu -c \"awsm installKeyPair awsm\"\n  - mv /home/ubuntu/.ssh/awsm.pem /home/ubuntu/.ssh/id_rsa\n  - su - ubuntu -c \"ssh-keyscan github.com >> ~/.ssh/known_hosts\"\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc init --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
 		IAMInstanceProfile: "awsm",
 		// No AMI Specified, will prompt user to provide one
 	}
@@ -49,20 +49,20 @@ func DefaultInstanceClasses() InstanceClasses {
 	defaultInstances["dev"] = InstanceClass{
 		InstanceType:       "r3.large",
 		SecurityGroups:     []string{"dev"},
-		EBSVolumes:         []string{"git-standard", "mysql-data-standard", "crusher"},
+		EBSVolumes:         []string{"code", "mysql-data"},
 		Vpc:                "awsm",
 		Subnet:             "private",
 		PublicIPAddress:    false,
 		AMI:                "awsm-init",
 		KeyName:            "awsm",
 		ShutdownBehavior:   "stop",
-		UserData:           "#cloud-config\n\nruncmd:\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && crusher lc dev --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
+		UserData:           "#cloud-config\n\nruncmd:\n  - curl -s http://dl.sudoba.sh/get/awsm | sh\n  - curl -s http://dl.sudoba.sh/get/crusher | sh\n  - su - ubuntu -c \"rm -rf /home/ubuntu/crusher-salon\"\n  - su - ubuntu -c \"git clone git@github.com:SalonMedia/crusher-salon.git\"\n  - su - ubuntu -c \"cd crusher-salon/ && git pull && crusher lc dev --class=${var.class} --sequence=${var.sequence} --locale=${var.locale}\"",
 		IAMInstanceProfile: "awsm",
 	}
 
 	defaultInstances["prod"] = InstanceClass{
 		InstanceType:       "r3.large",
-		SecurityGroups:     []string{"dev", "crusher"},
+		SecurityGroups:     []string{"dev"},
 		EBSVolumes:         []string{},
 		Vpc:                "awsm",
 		Subnet:             "private",

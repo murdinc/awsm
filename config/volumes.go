@@ -47,7 +47,7 @@ func DefaultVolumeClasses() VolumeClasses {
 		VolumeType:          "standard",
 	}
 
-	defaultVolumes["mysql-data-standard"] = VolumeClass{
+	defaultVolumes["mysql-data"] = VolumeClass{
 		DeviceName:          "/dev/xvdh",
 		VolumeSize:          100,
 		DeleteOnTermination: true,

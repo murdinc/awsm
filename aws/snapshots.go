@@ -288,7 +288,7 @@ func CreateSnapshot(class, search string, dryRun bool) error {
 	}
 
 	// Locate the Volume
-	volumes, _ := GetVolumes(sourceVolume, true)
+	volumes, _ := GetVolumes(sourceVolume, false)
 	if len(*volumes) == 0 {
 		return errors.New("No volumes found matching [" + sourceVolume + "], Aborting!")
 	}
