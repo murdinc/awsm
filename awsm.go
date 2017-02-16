@@ -59,23 +59,16 @@ func main() {
 				return nil
 			},
 		},
-		/*
-			{
-				Name:  "dashboard",
-				Usage: "Launch the awsm Dashboard GUI",
-				Flags: []cli.Flag{
-					cli.BoolFlag{
-						Name:        "dev-mode",
-						Destination: &dryRun,
-						Usage:       "dev-mode (Don't reopen dashboard on each restart)",
-					},
-				},
-				Action: func(c *cli.Context) error {
-					aws.RunDashboard(c.Bool("dev-mode"))
-					return nil
-				},
+
+		{
+			Name:  "dashboard",
+			Usage: "Launch the awsm Dashboard GUI",
+			Action: func(c *cli.Context) error {
+				api.StartDashboard()
+				return nil
 			},
-		*/
+		},
+
 		{
 			Name:  "attachIAMRolePolicy",
 			Usage: "Attach an AWS IAM Policy to a IAM Role",

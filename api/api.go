@@ -2,11 +2,19 @@ package api
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/goware/cors"
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
+	"github.com/skratchdot/open-golang/open"
 )
+
+// StartDashboard Starts the Dashboard port 8081
+func StartDashboard() {
+	open.Start("http://localhost:8081")
+	StartAPI()
+}
 
 // StartAPI Starts the API listener on port 8081
 func StartAPI() {
@@ -53,6 +61,23 @@ func StartAPI() {
 				r.Delete("/name/:className", deleteClass)
 			})
 		})
+	})
+
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		uri := r.URL.RequestURI()
+		src := "/usr/local/awsmDashboard"
+
+		if uri == "/" {
+			src += "/index.html"
+		} else if _, err := os.Stat(src + uri); os.IsNotExist(err) {
+			src += "/index.html"
+		} else {
+			src += uri
+		}
+
+		// return file
+		http.ServeFile(w, r, src)
+
 	})
 
 	http.ListenAndServe(":8081", r)
