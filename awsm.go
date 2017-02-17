@@ -55,20 +55,18 @@ func main() {
 			Name:  "api",
 			Usage: "Start the awsm api server",
 			Action: func(c *cli.Context) error {
-				api.StartAPI()
+				api.StartAPI(false)
 				return nil
 			},
 		},
-
 		{
 			Name:  "dashboard",
 			Usage: "Launch the awsm Dashboard GUI",
 			Action: func(c *cli.Context) error {
-				api.StartDashboard()
+				api.StartAPI(true)
 				return nil
 			},
 		},
-
 		{
 			Name:  "attachIAMRolePolicy",
 			Usage: "Attach an AWS IAM Policy to a IAM Role",

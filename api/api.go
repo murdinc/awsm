@@ -5,19 +5,14 @@ import (
 	"os"
 
 	"github.com/goware/cors"
+	"github.com/murdinc/terminal"
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
 	"github.com/skratchdot/open-golang/open"
 )
 
-// StartDashboard Starts the Dashboard port 8081
-func StartDashboard() {
-	open.Start("http://localhost:8081")
-	StartAPI()
-}
-
 // StartAPI Starts the API listener on port 8081
-func StartAPI() {
+func StartAPI(withDashboard bool) {
 	r := chi.NewRouter()
 
 	cors := cors.New(cors.Options{
@@ -63,22 +58,36 @@ func StartAPI() {
 		})
 	})
 
-	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-		uri := r.URL.RequestURI()
+	if withDashboard {
 		src := "/usr/local/awsmDashboard"
 
-		if uri == "/" {
-			src += "/index.html"
-		} else if _, err := os.Stat(src + uri); os.IsNotExist(err) {
-			src += "/index.html"
-		} else {
-			src += uri
+		_, err := os.Stat(src)
+		if os.IsNotExist(err) {
+			// TODO install the dashboard automatically
+			terminal.Notice("No awsm dashboard found!")
+			terminal.Notice("Please install the dashboard by running the following command:")
+			terminal.Notice("curl -s http://dl.sudoba.sh/get/awsmDashboard | sh")
+			return
 		}
 
-		// return file
-		http.ServeFile(w, r, src)
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			uri := r.URL.RequestURI()
 
-	})
+			if uri == "/" {
+				uri = "/index.html"
+			} else if _, err := os.Stat(src + uri); os.IsNotExist(err) {
+				uri = "/index.html"
+			}
+
+			terminal.Information("Serving file: " + src + uri)
+
+			// return file
+			http.ServeFile(w, r, src+uri)
+
+		})
+
+		open.Start("http://localhost:8081")
+	}
 
 	http.ListenAndServe(":8081", r)
 }
