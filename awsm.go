@@ -40,6 +40,15 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
+			Name:   "check",
+			Usage:  "Check / repair the awsm config",
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				terminal.Information("The awsm config looks good!")
+				return nil
+			},
+		},
+		{
 			Name:   "api",
 			Usage:  "Start the awsm api server",
 			Before: setupCheck,
