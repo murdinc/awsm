@@ -17,18 +17,6 @@ import (
 // Main Function
 ////////////////..........
 func main() {
-	// Creds Check
-	found := aws.CheckCreds()
-	if !found {
-		return
-	}
-
-	// Setup Check
-	err := setupCheck()
-	if err != nil {
-		terminal.ErrorLine(err.Error())
-		return
-	}
 
 	var dryRun bool
 	var force bool
@@ -36,7 +24,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "awsm"
-	app.Usage = "AWSM Interface"
+	app.Usage = "AWS Interface"
 	app.Version = "1.0"
 	app.Author = "Ahmad A"
 	app.Email = "send@ahmad.pizza"
@@ -52,16 +40,18 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:  "api",
-			Usage: "Start the awsm api server",
+			Name:   "api",
+			Usage:  "Start the awsm api server",
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				api.StartAPI(false)
 				return nil
 			},
 		},
 		{
-			Name:  "dashboard",
-			Usage: "Launch the awsm Dashboard GUI",
+			Name:   "dashboard",
+			Usage:  "Launch the awsm Dashboard GUI",
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				api.StartAPI(true)
 				return nil
@@ -82,6 +72,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.AttachIAMRolePolicy(c.NamedArg("role"), c.NamedArg("policy"), dryRun)
 				if err != nil {
@@ -105,6 +96,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.AttachVolume(c.NamedArg("volume"), c.NamedArg("instance"), dryRun)
 				if err != nil {
@@ -123,6 +115,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.InstallKeyPair(c.NamedArg("class"), dryRun)
 				if err != nil {
@@ -146,6 +139,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CopyImage(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -169,6 +163,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CopySnapshot(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -192,6 +187,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateAddress(c.NamedArg("region"), c.NamedArg("domain"), dryRun)
 				if err != nil {
@@ -210,6 +206,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateAutoScaleGroups(c.NamedArg("class"), dryRun)
 				if err != nil {
@@ -233,6 +230,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateIAMUser(c.NamedArg("username"), c.NamedArg("path"))
 				if err != nil {
@@ -266,6 +264,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 
 				doc, err := ioutil.ReadFile(c.NamedArg("document"))
@@ -296,6 +295,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateImage(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
@@ -314,6 +314,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateLaunchConfigurations(c.NamedArg("class"), dryRun)
 				if err != nil {
@@ -337,6 +338,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateKeyPair(c.NamedArg("class"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -365,6 +367,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSecurityGroup(c.NamedArg("class"), c.NamedArg("region"), c.NamedArg("vpc"), dryRun)
 				if err != nil {
@@ -388,6 +391,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSimpleDBDomain(c.NamedArg("domain"), c.NamedArg("region"))
 				if err != nil {
@@ -411,6 +415,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSnapshot(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
@@ -439,6 +444,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateVolume(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("az"), dryRun)
 				if err != nil {
@@ -472,6 +478,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateVpc(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("ip"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -510,6 +517,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSubnet(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("vpc"), c.NamedArg("ip"), c.NamedArg("az"), dryRun)
 				if err != nil {
@@ -533,6 +541,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteAddresses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -563,6 +572,7 @@ func main() {
 					Usage:       "force (Force deletes all instances and lifecycle actions)",
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteAutoScaleGroups(c.NamedArg("search"), c.NamedArg("region"), force, dryRun)
 				if err != nil {
@@ -581,6 +591,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMInstanceProfiles(c.NamedArg("search"), dryRun)
 				if err != nil {
@@ -599,6 +610,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMPolicies(c.NamedArg("search"), dryRun)
 				if err != nil {
@@ -617,6 +629,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMRoles(c.NamedArg("search"), dryRun)
 				if err != nil {
@@ -635,6 +648,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMUsers(c.NamedArg("search"), dryRun)
 				if err != nil {
@@ -658,6 +672,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteImages(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -676,6 +691,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				errs := aws.DeleteKeyPairs(c.NamedArg("name"), dryRun)
 				if errs != nil {
@@ -700,6 +716,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteLaunchConfigurations(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -723,6 +740,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSecurityGroups(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -746,6 +764,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSnapshots(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -769,6 +788,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSimpleDBDomains(c.NamedArg("search"), c.NamedArg("region"))
 				if err != nil {
@@ -792,6 +812,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 
 				err := aws.DeleteVolumes(c.NamedArg("volume"), c.NamedArg("region"), dryRun)
@@ -816,6 +837,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSubnets(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -839,6 +861,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteVpcs(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -869,6 +892,7 @@ func main() {
 					Usage:       "force detach",
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 
 				err := aws.DetachVolume(c.NamedArg("volume"), c.NamedArg("instance"), force, dryRun)
@@ -888,6 +912,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				instanceProfile, err := aws.GetIAMInstanceProfile(c.NamedArg("search"))
 
@@ -916,6 +941,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				policyDocument, err := aws.GetIAMPolicyDocument(c.NamedArg("search"), c.NamedArg("version"))
 
@@ -939,6 +965,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				iam, err := aws.GetIAMUser(c.NamedArg("username"))
 				if err != nil {
@@ -974,6 +1001,7 @@ func main() {
 					Usage:       "force (Force deletes all instances and lifecycle actions)",
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.StopInstances(c.NamedArg("search"), c.NamedArg("region"), force, dryRun)
 				if err != nil {
@@ -997,6 +1025,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.StartInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -1020,6 +1049,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.RebootInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -1043,6 +1073,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.TerminateInstances(c.NamedArg("name"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -1071,6 +1102,7 @@ func main() {
 					Optional:    false,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.LaunchInstance(c.NamedArg("class"), c.NamedArg("sequence"), c.NamedArg("az"), dryRun)
 				if err != nil {
@@ -1089,6 +1121,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				addresses, errs := aws.GetAddresses(c.NamedArg("search"), false)
 				if errs != nil {
@@ -1099,8 +1132,9 @@ func main() {
 			},
 		},
 		{
-			Name:  "listAlarms",
-			Usage: "Lists CloudWatch Alarms",
+			Name:   "listAlarms",
+			Usage:  "Lists CloudWatch Alarms",
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				alarms, errs := aws.GetAlarms()
 				if errs != nil {
@@ -1121,6 +1155,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				groups, errs := aws.GetAutoScaleGroups(c.NamedArg("search"))
 				if errs != nil {
@@ -1141,6 +1176,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				iam, errs := aws.GetIAMInstanceProfiles(c.NamedArg("search"))
 				if errs != nil {
@@ -1161,6 +1197,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				iam, errs := aws.GetIAMPolicies(c.NamedArg("search"))
 				if errs != nil {
@@ -1181,6 +1218,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				iam, errs := aws.GetIAMRoles(c.NamedArg("search"))
 				if errs != nil {
@@ -1201,6 +1239,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				iam, errs := aws.GetIAMUsers(c.NamedArg("search"))
 				if errs != nil {
@@ -1221,6 +1260,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				images, errs := aws.GetImages(c.NamedArg("search"), false)
 				if errs != nil {
@@ -1241,6 +1281,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				instances, errs := aws.GetInstances(c.NamedArg("search"), false)
 				if errs != nil {
@@ -1261,6 +1302,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				keyPairs, errs := aws.GetKeyPairs(c.NamedArg("search"))
 				if errs != nil {
@@ -1281,6 +1323,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				launchConfigs, errs := aws.GetLaunchConfigurations(c.NamedArg("search"))
 				if errs != nil {
@@ -1292,8 +1335,9 @@ func main() {
 			},
 		},
 		{
-			Name:  "listLoadBalancers",
-			Usage: "Lists Elastic Load Balancers",
+			Name:   "listLoadBalancers",
+			Usage:  "Lists Elastic Load Balancers",
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				loadBalancers, errs := aws.GetLoadBalancers()
 				if errs != nil {
@@ -1305,8 +1349,9 @@ func main() {
 			},
 		},
 		{
-			Name:  "listScalingPolicies",
-			Usage: "Lists Scaling Policies",
+			Name:   "listScalingPolicies",
+			Usage:  "Lists Scaling Policies",
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				policies, errs := aws.GetScalingPolicies()
 				if errs != nil {
@@ -1327,6 +1372,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				groups, errs := aws.GetSecurityGroups(c.NamedArg("search"))
 				if errs != nil {
@@ -1347,6 +1393,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				snapshots, errs := aws.GetSnapshots(c.NamedArg("search"), false)
 				if errs != nil {
@@ -1367,6 +1414,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				subnets, errs := aws.GetSubnets(c.NamedArg("search"))
 				if errs != nil {
@@ -1387,6 +1435,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				domains, errs := aws.GetSimpleDBDomains(c.NamedArg("search"))
 				if errs != nil {
@@ -1407,6 +1456,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				volumes, errs := aws.GetVolumes(c.NamedArg("search"), false)
 				if errs != nil {
@@ -1427,6 +1477,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				vpcs, errs := aws.GetVpcs(c.NamedArg("search"))
 				if errs != nil {
@@ -1452,6 +1503,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.ResumeProcesses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -1461,8 +1513,9 @@ func main() {
 			},
 		},
 		{
-			Name:  "runCommand",
-			Usage: "Run a command on a set of instances",
+			Name:   "runCommand",
+			Usage:  "Run a command on a set of instances",
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				// TODO
 				return nil
@@ -1483,6 +1536,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.SuspendProcesses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -1513,6 +1567,7 @@ func main() {
 					Usage:       "double (Doubles the desired-capacity and max-capacity)",
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.UpdateAutoScaleGroups(c.NamedArg("search"), c.NamedArg("version"), double, dryRun)
 				if err != nil {
@@ -1536,6 +1591,7 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.UpdateSecurityGroups(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
@@ -1549,24 +1605,21 @@ func main() {
 	app.Run(os.Args)
 }
 
-func setupCheck() error {
+func setupCheck(c *cli.Context) error {
+
+	// Creds Check
+	found, accountId := aws.CheckCreds()
+	if !found {
+		terminal.ErrorLine("No Credentials Available, Aborting!")
+		os.Exit(0)
+	}
+
+	// DB Check
 	if !config.CheckDB() {
 		create := terminal.BoxPromptBool("No awsm database found!", "Do you want to create one now?")
 		if !create {
-			terminal.Information("Ok then, maybe next time.. ")
+			terminal.Information("Ok, maybe next time.. ")
 			os.Exit(0)
-		}
-
-		// Get the current user
-		iamUser, err := aws.GetIAMUser("")
-		if err != nil {
-			return err
-		}
-
-		// Parse the ARN to get the account ID
-		parsedArn, err := aws.ParseArn(iamUser.Arn)
-		if err != nil {
-			return err
 		}
 
 		// Check if we already have an awsm KeyPair on aws already or not
@@ -1577,14 +1630,13 @@ func setupCheck() error {
 		}
 
 		// Create the SimpleDB Domain
-		err = config.CreateAwsmDatabase(generateAwsmKeyPair)
+		err := config.CreateAwsmDatabase(generateAwsmKeyPair)
 		if err != nil {
 			return err
 		}
 
 		var policyDocument string
 		region := "us-east-1" // TODO handle default region preference
-		accountId := parsedArn.AccountID
 		dbArn := "arn:aws:sdb:" + region + ":" + accountId + ":domain/awsm"
 
 		t := template.New("")

@@ -3,15 +3,12 @@
 
 [![Build Status](https://travis-ci.org/murdinc/awsm.svg)](https://travis-ci.org/murdinc/awsm)
 
-#### Note: This tool is not yet complete, it is being heavily developed currently.
-
-Also, check out [awsmDashboard](https://github.com/murdinc/awsmDashboard) which feeds into this project.
+#### Note: This tool is not yet complete, but it is nearing initial release.
 
 ## Intro
-**awsm** is an alternative interface for Amazon Web Services. It's designed to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions. It's goal is to introduce as few new concepts as possible, and provide powerful tools that require only a few inputs to use.
+**awsm** is a CLI for building and maintaining your infrastructure on Amazon Web Services. It's designed to streamline many of the tasks involved with setting up and scaling infrastructure across multiple AWS Regions. It's goal is to introduce as few new concepts as possible, and provide powerful tools that require only a few inputs to use.
 
-**awsm** is a cli and a web interface. Configuration of Classes (see Concepts) is done though the web interface, and you can build your infrastructure in the cli or the web interface.
-
+**[awsmDashboard](https://github.com/murdinc/awsmDashboard)** is a web interface for configuring awsm. The configuration of Classes (see Features) are done though the web interface, and you can also see a list of all of your current AWS services through the Dashboard.
 
 ## Features
 **Class** (short for classification) is a group of settings for any AWS service, stored in a SimpleDB database by awsm. Classes can be used to bootstrap assets in any AWS region, allowing you to configure once, and run anywhere.
@@ -22,13 +19,16 @@ Also, check out [awsmDashboard](https://github.com/murdinc/awsmDashboard) which 
 
 
 ## Installation
+To install awsm, simply copy/paste the following command into your terminal:
 ```
 curl -s http://dl.sudoba.sh/get/awsm | sh
 ```
 
 
 ## Configuration
+The first time you run awsm on a machine, it will ask you to provide an AWS Access ID and Secret Key. Once those are saved, it will create a simpleDB Domain named `awsm` if one does not already exist, and load the default starter awsm classes.
 
+Note: When running awsm on an EC2 instance that was launched with an IAM Instance Profile, you will not need to enter your Key and Secret.
 
 
 ## Commands (CLI)
@@ -92,13 +92,10 @@ curl -s http://dl.sudoba.sh/get/awsm | sh
 * The un-camelCase-ing of the commands
 * Adding support for Application ELBs
 * runCommand - "Run a command on a set of instances"
-* Testing all the commands
-* Writing Tests
-* API and redoing Dashboard
 * Config to JSON import and export
 
 
 
-
+Also, check out [awsmDashboard](https://github.com/murdinc/awsmDashboard) which feeds into this project.
 
 

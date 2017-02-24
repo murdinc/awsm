@@ -3,8 +3,6 @@ package aws
 import (
 	"os/user"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/murdinc/terminal"
 	"gopkg.in/ini.v1"
 )
@@ -21,28 +19,38 @@ type Profile struct {
 }
 
 // CheckCreds Runs before everything, verifying we have proper authentication or asking us to set some up
-func CheckCreds() bool {
-	creds, err := testCreds()
-	if err != nil || len(creds.ProviderName) == 0 {
+func CheckCreds() (bool, string) {
+	id, err := testCreds()
+	if err != nil || len(id) == 0 {
+		create := false
+
 		// Try to read the config file
 		cfg, err := readCreds()
 		if err != nil || len(cfg.Profiles) == 0 {
-
-			// No Config Found, ask if we want to create one
-			create := terminal.BoxPromptBool("No AWS Credentials found!", "Do you want to add them now?")
-			if !create {
-				terminal.Information("Ok then, maybe next time.. ")
-				return false
-			}
-			cfg.addCredsDialog()
+			create = terminal.BoxPromptBool("The AWS Credentials config file is empty or missing!", "Do you want to add one now?")
+		} else {
+			create = terminal.BoxPromptBool("The AWS Credentials in your config file aren't working!", "Do you want to update it now?")
 		}
+
+		if !create {
+			terminal.Information("Ok, maybe next time.. ")
+			return false, ""
+		}
+
+		id := cfg.addCredsDialog()
+
+		if len(id) > 0 {
+			terminal.Notice("Success! Authenticated to AWS account: " + id)
+		}
+
+		return CheckCreds()
 	}
-	return true
+
+	return true, id
 }
 
 // addCredsDialog is the dialog for the new creds setup
-func (a *awsmCreds) addCredsDialog() {
-
+func (a *awsmCreds) addCredsDialog() string {
 	// TODO prompt for default, or named alternatives
 
 	accessKey := terminal.PromptString("What is your AWS Access Key Id?")
@@ -55,20 +63,34 @@ func (a *awsmCreds) addCredsDialog() {
 	err := a.SaveCreds()
 	if err != nil {
 		terminal.ErrorLine("There was a problem saving the config to [~/.aws/credentials]!")
+		return ""
 	}
 
-	creds, err := testCreds()
-	if err != nil || len(creds.ProviderName) == 0 {
-		terminal.ErrorLine("There was a problem with auth, please try again.")
+	terminal.Delta("Checking...")
+
+	id, err := testCreds()
+	if err != nil {
+		terminal.ErrorLine("There was a problem with your aws key and secret, please try again.")
 		a.addCredsDialog()
 	}
+	return id
 }
 
-// testCreds verifies our credentials work
-func testCreds() (credentials.Value, error) {
-	// TODO more substiantial testing
-	sess := session.New()
-	return sess.Config.Credentials.Get()
+// testCreds verifies our credentials work and returns the current account ID
+func testCreds() (string, error) {
+	// Get the current user
+	iamUser, err := GetIAMUser("")
+	if err != nil {
+		return "", err
+	}
+
+	// Parse the ARN to get the account ID
+	parsedArn, err := ParseArn(iamUser.Arn)
+	if err != nil || len(parsedArn.AccountID) == 0 {
+		return "", err
+	}
+
+	return parsedArn.AccountID, nil
 }
 
 // readCreds reads in the config and returns a awsmCreds struct
