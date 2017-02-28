@@ -25,7 +25,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "awsm"
 	app.Usage = "AWS Interface"
-	app.Version = "1.0"
+	app.Version = "0.1.0"
 	app.Author = "Ahmad A"
 	app.Email = "send@ahmad.pizza"
 	app.EnableBashCompletion = true
@@ -1560,7 +1560,7 @@ func main() {
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
-					Description: "The search term autoscaling group to update",
+					Description: "The search term of the autoscaling group to update",
 					Optional:    false,
 				},
 				{
@@ -1591,7 +1591,7 @@ func main() {
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
-					Description: "The search term autoscaling group to update",
+					Description: "The search term of the security group group to update",
 					Optional:    false,
 				},
 				{

@@ -30,7 +30,9 @@ type Volume models.Volume
 
 // GetVolumesByInstanceID returns a list of EBS Volumes given an instance Id
 func GetVolumesByInstanceID(region, instanceId string) (Volumes, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeVolumesInput{
 
@@ -62,7 +64,9 @@ func GetVolumesByInstanceID(region, instanceId string) (Volumes, error) {
 
 // GetVolumeByTag returns a single EBS Volume given a region and Tag key/value
 func GetVolumeByTag(region, key, value string) (Volume, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeVolumesInput{
 		Filters: []*ec2.Filter{
@@ -133,7 +137,10 @@ func GetVolumes(search string, available bool) (*Volumes, []error) {
 
 // GetRegionVolumes returns a slice of region Volumes into the provided Volumes slice that matches the provided region and search, and optional available flag
 func GetRegionVolumes(region string, volList *Volumes, search string, available bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeVolumes(&ec2.DescribeVolumesInput{})
 
 	if err != nil {
@@ -210,7 +217,8 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 	vol := (*volList)[0]
 
 	// Detach it
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DetachVolumeInput{
 		VolumeId:   aws.String(vol.VolumeID),
@@ -272,7 +280,8 @@ func AttachVolume(volume, instance string, dryRun bool) error {
 	terminal.Information("Found Volume Class Configuration for [" + vol.Class + "]!")
 
 	// Attach it
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.AttachVolumeInput{
 		Device:     aws.String(volCfg.DeviceName),
@@ -331,7 +340,8 @@ func CreateVolume(class, name, az string, dryRun bool) error {
 
 	terminal.Information("Found Snapshot [" + latestSnapshot.SnapshotID + "] with class [" + latestSnapshot.Class + "] created [" + humanize.Time(latestSnapshot.StartTime) + "]!")
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.CreateVolumeInput{
 		AvailabilityZone: aws.String(az),
@@ -417,7 +427,8 @@ func DeleteVolumes(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func deleteVolumes(volList *Volumes, dryRun bool) (err error) {
 	for _, volume := range *volList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(volume.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(volume.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.DeleteVolumeInput{
 			VolumeId: aws.String(volume.VolumeID),

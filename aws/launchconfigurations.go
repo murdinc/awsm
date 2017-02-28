@@ -45,7 +45,9 @@ func GetLaunchConfigurationName(region, class string, version int) string {
 // GetLaunchConfigurationsByName returns a slice of Launch Configurations for a given region and name
 func GetLaunchConfigurationsByName(region, name string) (LaunchConfigs, error) {
 
-	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := autoscaling.New(sess)
+
 	params := &autoscaling.DescribeLaunchConfigurationsInput{
 		LaunchConfigurationNames: []*string{
 			aws.String(name),
@@ -101,7 +103,10 @@ func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
 
 // GetRegionLaunchConfigurations returns a slice of Launch Configurations into the provided LaunchConfigs slice that match the region and search term
 func GetRegionLaunchConfigurations(region string, lcList *LaunchConfigs, search string) error {
-	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := autoscaling.New(sess)
+
 	result, err := svc.DescribeLaunchConfigurations(&autoscaling.DescribeLaunchConfigurationsInput{})
 	if err != nil || len(result.LaunchConfigurations) == 0 {
 		return err
@@ -390,7 +395,8 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 		params.UserData = aws.String(parsedUserData)
 		params.SecurityGroups = secGroupIds
 
-		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+		svc := autoscaling.New(sess)
 
 		_, err = svc.CreateLaunchConfiguration(params)
 
@@ -532,7 +538,8 @@ func DeleteLaunchConfigurations(search, region string, dryRun bool) (err error) 
 // Private function without the confirmation terminal prompts
 func deleteLaunchConfigurations(lcList *LaunchConfigs, dryRun bool) (err error) {
 	for _, lc := range *lcList {
-		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(lc.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lc.Region)}))
+		svc := autoscaling.New(sess)
 
 		params := &autoscaling.DeleteLaunchConfigurationInput{
 			LaunchConfigurationName: aws.String(lc.Name),

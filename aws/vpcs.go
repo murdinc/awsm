@@ -28,7 +28,8 @@ type Vpc models.Vpc
 // GetVpcByTag returns a single VPC that matches the provided region and Tag key/value
 func GetVpcByTag(region, key, value string) (Vpc, error) {
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
@@ -63,7 +64,8 @@ func GetVpcByTag(region, key, value string) (Vpc, error) {
 // GetVpcSecurityGroupByTag returns a VPC Security Group that matches the provided Tag key/value
 func (v *Vpc) GetVpcSecurityGroupByTag(key, value string) (SecurityGroup, error) {
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(v.Region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(v.Region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
@@ -119,7 +121,8 @@ func (v *Vpc) GetVpcSecurityGroupByTagMulti(key string, value []string) (Securit
 // GetVpcSubnetByTag Gets a single VPC Subnet that matches the provided Tag key/value
 func (v *Vpc) GetVpcSubnetByTag(key, value string) (Subnet, error) {
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(v.Region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(v.Region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
@@ -198,7 +201,10 @@ func (v *Vpc) Marshal(vpc *ec2.Vpc, region string) {
 
 // GetRegionVpcs returns a list of a regions VPCs that match the provided search term
 func GetRegionVpcs(region string, vpcList *Vpcs, search string) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeVpcs(&ec2.DescribeVpcsInput{})
 
 	if err != nil {
@@ -285,7 +291,8 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 
 	// TODO limit to one VPC of a class per region, so that we can target VPCs by class instead of name.
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Create the VPC
 	vpcParams := &ec2.CreateVpcInput{
@@ -362,7 +369,8 @@ func DeleteVpcs(search, region string, dryRun bool) (err error) {
 // private function without the confirmation terminal prompts
 func deleteVpcs(vpcList *Vpcs, dryRun bool) (err error) {
 	for _, vpc := range *vpcList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(vpc.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(vpc.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.DeleteVpcInput{
 			VpcId:  aws.String(vpc.VpcID),

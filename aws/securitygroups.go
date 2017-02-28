@@ -43,7 +43,9 @@ func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
 
 // GetSecurityGroupByTag returns a single Security Group that matches a provided region and key/value tag
 func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
@@ -120,7 +122,10 @@ func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 
 // GetRegionSecurityGroups returns a regions Security Groups into the provided SecurityGroups slice
 func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups, search string) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{})
 
 	if err != nil {
@@ -273,7 +278,8 @@ func CreateSecurityGroup(class, region, vpc string, dryRun bool) error {
 	}
 
 	// Create the security group
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	createSecGrpResponse, err := svc.CreateSecurityGroup(params)
 
@@ -413,10 +419,12 @@ func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 
 		// cycle through existing grants and find ones to remove
 		for _, eGrant := range secGrp.SecurityGroupGrants {
+
 			existingGrantHash, err := hashstructure.Hash(eGrant, nil)
 			if err != nil {
 				return err
 			}
+
 			if _, ok := cfgHashes[existingGrantHash]; !ok {
 				fmt.Println("remove")
 				fmt.Println(existingGrantHash)
@@ -462,8 +470,69 @@ func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 }
 
 // TODO
-func authorizeIngress() {
+func authorizeIngress(dryRun bool) {
 
+	params := &ec2.AuthorizeSecurityGroupIngressInput{
+		CidrIp:   aws.String("String"),
+		DryRun:   aws.Bool(dryRun),
+		FromPort: aws.Int64(1),
+		GroupId:  aws.String("String"),
+		//GroupName: aws.String("String"),
+		IpPermissions: []*ec2.IpPermission{
+			{ // Required
+				FromPort:   aws.Int64(1),
+				IpProtocol: aws.String("String"),
+				IpRanges: []*ec2.IpRange{
+					{ // Required
+						CidrIp: aws.String("String"),
+					},
+					// More values...
+				},
+				Ipv6Ranges: []*ec2.Ipv6Range{
+					{ // Required
+						CidrIpv6: aws.String("String"),
+					},
+					// More values...
+				},
+				PrefixListIds: []*ec2.PrefixListId{
+					{ // Required
+						PrefixListId: aws.String("String"),
+					},
+					// More values...
+				},
+				ToPort: aws.Int64(1),
+				UserIdGroupPairs: []*ec2.UserIdGroupPair{
+					{ // Required
+						GroupId:       aws.String("String"),
+						GroupName:     aws.String("String"),
+						PeeringStatus: aws.String("String"),
+						UserId:        aws.String("String"),
+						VpcId:         aws.String("String"),
+						VpcPeeringConnectionId: aws.String("String"),
+					},
+					// More values...
+				},
+			},
+			// More values...
+		},
+		IpProtocol:                 aws.String("String"),
+		SourceSecurityGroupName:    aws.String("String"),
+		SourceSecurityGroupOwnerId: aws.String("String"),
+		ToPort: aws.Int64(1),
+	}
+
+	sess := session.Must(session.NewSession())
+	svc := ec2.New(sess)
+
+	resp, err := svc.AuthorizeSecurityGroupIngress(params)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	// Pretty-print the response data.
+	fmt.Println(resp)
 }
 
 // TODO
@@ -485,7 +554,8 @@ func revokeEgress() {
 func deleteSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
 
 	for _, secGrp := range *secGrpList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(secGrp.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(secGrp.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.DeleteSecurityGroupInput{
 			DryRun:  aws.Bool(dryRun),

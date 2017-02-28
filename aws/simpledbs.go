@@ -37,7 +37,7 @@ func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionSimpleDBDomains(region.RegionName, domainList, search)
+			err := GetRegionSimpleDBDomains(*region.RegionName, domainList, search)
 			if err != nil {
 				// TODO handle regions without service endpoints that work
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering simpledb domain list for region [%s]", *region.RegionName), err.Error())
@@ -52,8 +52,11 @@ func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 }
 
 // GetRegionSimpleDBDomains returns a slice of a regions SimpleDB Domains into the provided SimpleDBDomains slice
-func GetRegionSimpleDBDomains(region *string, domainList *SimpleDBDomains, search string) error {
-	svc := simpledb.New(session.New(&aws.Config{Region: region}))
+func GetRegionSimpleDBDomains(region string, domainList *SimpleDBDomains, search string) error {
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := simpledb.New(sess)
+
 	result, err := svc.ListDomains(nil)
 	if err != nil {
 		//return err // TODO handle regions without services
@@ -64,7 +67,7 @@ func GetRegionSimpleDBDomains(region *string, domainList *SimpleDBDomains, searc
 
 		domains[i] = SimpleDBDomain{
 			Name:   aws.StringValue(domain),
-			Region: aws.StringValue(region),
+			Region: region,
 		}
 	}
 
@@ -118,7 +121,8 @@ func CreateSimpleDBDomain(domain, region string) error {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := simpledb.New(sess)
 
 	params := &simpledb.CreateDomainInput{
 		DomainName: aws.String(domain),
@@ -141,7 +145,7 @@ func DeleteSimpleDBDomains(search, region string) (err error) {
 
 	// Check if we were given a region or not
 	if region != "" {
-		err = GetRegionSimpleDBDomains(aws.String(region), domainList, search)
+		err = GetRegionSimpleDBDomains(region, domainList, search)
 	} else {
 		domainList, _ = GetSimpleDBDomains(search)
 	}
@@ -167,7 +171,8 @@ func DeleteSimpleDBDomains(search, region string) (err error) {
 
 	// Delete 'Em
 	for _, domain := range *domainList {
-		svc := simpledb.New(session.New(&aws.Config{Region: aws.String(domain.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(domain.Region)}))
+		svc := simpledb.New(sess)
 
 		params := &simpledb.DeleteDomainInput{
 			DomainName: aws.String(domain.Name),

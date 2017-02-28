@@ -75,7 +75,10 @@ func (a *Address) Marshal(address *ec2.Address, region string, instList *Instanc
 
 // GetRegionAddresses returns a list of Elastic IP Addresses for a given region into the provided Addresses slice
 func GetRegionAddresses(region string, adrList *Addresses, search string, available bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeAddresses(&ec2.DescribeAddressesInput{})
 
 	if err != nil {
@@ -138,7 +141,8 @@ func CreateAddress(region, domain string, dryRun bool) error {
 		return errors.New("Domain should be either [vpc] or [classic].")
 	}
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Create the address
 	params := &ec2.AllocateAddressInput{
@@ -207,7 +211,9 @@ func DeleteAddresses(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func deleteAddresses(addrList *Addresses, dryRun bool) (err error) {
 	for _, addr := range *addrList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(addr.Region)}))
+
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(addr.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.ReleaseAddressInput{
 			AllocationId: aws.String(addr.AllocationID),

@@ -50,7 +50,10 @@ func GetLoadBalancers() (*LoadBalancers, []error) {
 
 // GetRegionLoadBalancers returns a list of Load Balancers in a region into the provided LoadBalancers slice
 func GetRegionLoadBalancers(region string, lbList *LoadBalancers) error {
-	svc := elb.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := elb.New(sess)
+
 	result, err := svc.DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{})
 
 	if err != nil {
@@ -151,7 +154,8 @@ func CreateLoadBalancer(class, name, az string, dryRun bool) error {
 
 	region := azs.GetRegion(az)
 
-	svc := elb.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := elb.New(sess)
 
 	params := &elb.CreateLoadBalancerInput{
 		Listeners: []*elb.Listener{ // Required
@@ -264,7 +268,8 @@ func DeleteLoadBalancers(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func deleteLoadBalancers(elbList *LoadBalancers) (err error) {
 	for _, elb := range *elbList {
-		svc := elb.New(session.New(&aws.Config{Region: aws.String(elb.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(elb.Region)}))
+		svc := elb.New(sess)
 
 		params := &ec2.DeleteLoadBalancerInput{
 			LoadBalancerName: aws.String(elb.Name),

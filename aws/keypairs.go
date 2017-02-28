@@ -33,7 +33,8 @@ func GetKeyPairByName(region, name string) (KeyPair, error) {
 		return KeyPair{}, errors.New("No KeyName provided!")
 	}
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeKeyPairsInput{
 		KeyNames: []*string{
@@ -95,7 +96,10 @@ func (k *KeyPair) Marshal(keyPair *ec2.KeyPairInfo, region string) {
 
 // GetRegionKeyPairs returns a list of KeyPairs for a given region into the provided KeyPairs slice
 func GetRegionKeyPairs(region string, keyList *KeyPairs, search string) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{})
 	if err != nil {
 		return err
@@ -179,7 +183,8 @@ func CreateKeyPair(class, region string, dryRun bool) error {
 
 func importKeyPair(region, name string, publicKey []byte, dryRun bool) error {
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.ImportKeyPairInput{
 		KeyName:           aws.String(name),
@@ -226,7 +231,8 @@ func DeleteKeyPairs(name string, dryRun bool) error {
 
 	// Delete 'Em
 	for _, key := range *keyList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(key.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(key.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.DeleteKeyPairInput{
 			KeyName: aws.String(key.KeyName),

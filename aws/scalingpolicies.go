@@ -49,7 +49,10 @@ func GetScalingPolicies() (*ScalingPolicies, []error) {
 
 // GetRegionScalingPolicies returns a slice of Scaling Policies for a region into the given ScalingPolicies slice
 func GetRegionScalingPolicies(region string, spList *ScalingPolicies) error {
-	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := autoscaling.New(sess)
+
 	result, err := svc.DescribePolicies(&autoscaling.DescribePoliciesInput{})
 	if err != nil {
 		return err

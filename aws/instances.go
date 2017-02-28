@@ -103,7 +103,10 @@ func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subne
 
 // GetRegionInstances returns a slice of Instances into the passed Instances slice based on the provided region and search term, and optional running flag
 func GetRegionInstances(region string, instList *Instances, search string, running bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: &region}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{})
 	if err != nil {
 		return err
@@ -458,7 +461,8 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		params.BlockDeviceMappings = ebsVolumes
 	}
 
-	svc := ec2.New(session.New(&aws.Config{Region: &region}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	if dryRun {
 		terminal.Notice("Params:")
@@ -598,10 +602,10 @@ func TerminateInstances(search, region string, dryRun bool) (err error) {
 
 // Private function without the confirmation terminal prompts
 func terminateInstances(instList *Instances, dryRun bool) (err error) {
-	for _, instance := range *instList {
-		azs, _ := regions.GetAZs()
 
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
+	for _, instance := range *instList {
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(instance.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.TerminateInstancesInput{
 			InstanceIds: []*string{
@@ -670,11 +674,11 @@ func StopInstances(search, region string, force, dryRun bool) (err error) {
 
 // Private function without the confirmation terminal prompts
 func stopInstances(instList *Instances, force, dryRun bool) (err error) {
-	azs, _ := regions.GetAZs()
 
 	for _, instance := range *instList {
 
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(instance.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.StopInstancesInput{
 			InstanceIds: []*string{
@@ -745,11 +749,10 @@ func StartInstances(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func startInstances(instList *Instances, dryRun bool) (err error) {
 
-	azs, _ := regions.GetAZs()
-
 	for _, instance := range *instList {
 
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(instance.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.StartInstancesInput{
 			InstanceIds: []*string{
@@ -819,9 +822,9 @@ func RebootInstances(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func rebootInstances(instList *Instances, dryRun bool) (err error) {
 	for _, instance := range *instList {
-		azs, _ := regions.GetAZs()
 
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(azs.GetRegion(instance.AvailabilityZone))}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(instance.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.RebootInstancesInput{
 			InstanceIds: []*string{

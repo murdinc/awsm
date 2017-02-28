@@ -11,7 +11,8 @@ import (
 
 // GetRegionList returns a list of AWS Regions as a slice of *ec2.Region
 func GetRegionList() []*ec2.Region {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String("us-east-1")}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")}))
+	svc := ec2.New(sess)
 
 	resp, err := svc.DescribeRegions(nil)
 
@@ -91,7 +92,10 @@ func GetAZs() (*AZs, []error) {
 
 // GetRegionAZs returns a slice of a regions Availability Zones into the provided AZs
 func GetRegionAZs(region string, azList *AZs) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeAvailabilityZones(nil)
 
 	if err != nil {

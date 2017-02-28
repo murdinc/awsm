@@ -42,7 +42,9 @@ func (s *Subnets) GetSubnetNames(ids []string) []string {
 
 // GetSubnetByTag returns a single Subnet given the provided region and Tag key/value
 func GetSubnetByTag(region, key, value string) (Subnet, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
@@ -121,7 +123,10 @@ func (s *Subnet) Marshal(subnet *ec2.Subnet, region string, vpcList *Vpcs) {
 
 // GetRegionSubnets returns a list of Subnets of a region into the provided Subnets slice
 func GetRegionSubnets(region string, subList *Subnets, search string) error {
-	svc := ec2.New(session.New(&aws.Config{Region: &region}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeSubnets(&ec2.DescribeSubnetsInput{})
 
 	if err != nil {
@@ -160,7 +165,9 @@ func GetRegionSubnets(region string, subList *Subnets, search string) error {
 
 // GetSubnetsByVpcID returns a slice of Subnets that belong to the provided VPC ID
 func GetSubnetsByVpcID(vpcID string, region string) (Subnets, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
@@ -262,7 +269,8 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 
 	// Create the Subnet
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.CreateSubnetInput{
 		CidrBlock:        aws.String(ip + cfg.CIDR),
@@ -338,7 +346,8 @@ func DeleteSubnets(name, region string, dryRun bool) (err error) {
 // private function without the confirmation terminal prompts
 func deleteSubnets(subnetList *Subnets, dryRun bool) (err error) {
 	for _, subnet := range *subnetList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(subnet.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(subnet.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.DeleteSubnetInput{
 			SubnetId: aws.String(subnet.SubnetID),

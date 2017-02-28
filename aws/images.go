@@ -44,7 +44,8 @@ func GetImagesByTag(region, key, value string, available bool) (Images, error) {
 
 	imgList := new(Images)
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeImagesInput{
 		Owners: []*string{aws.String("self")},
@@ -80,7 +81,9 @@ func GetImagesByTag(region, key, value string, available bool) (Images, error) {
 
 // GetImageById returns an Amazon Machine Image via its ID
 func GetImageById(region, id string) (Image, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	params := &ec2.DescribeImagesInput{
 		ImageIds: []*string{
@@ -142,7 +145,10 @@ func GetImages(search string, available bool) (*Images, []error) {
 
 // GetRegionImages returns a slice of AMI's into the passed Image slice based on the provided region and search term, and optional available flag
 func GetRegionImages(region string, imgList *Images, search string, available bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeImages(&ec2.DescribeImagesInput{Owners: []*string{aws.String("self")}})
 
 	if err != nil {
@@ -225,7 +231,8 @@ func CopyImage(search, region string, dryRun bool) error {
 // private function without prompts
 func copyImage(image Image, region string, dryRun bool) (*ec2.CopyImageOutput, error) {
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Copy image to the destination region
 	params := &ec2.CopyImageInput{
@@ -440,7 +447,9 @@ func rotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 
 // waitForImage waits for an Image to complete being created
 func waitForImage(imageID, region string, dryRun bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Wait for the snapshot to complete.
 	waitParams := &ec2.DescribeImagesInput{
@@ -461,7 +470,8 @@ func waitForImage(imageID, region string, dryRun bool) error {
 // createImage is the private function without terminal prompts
 func createImage(instanceID, name, region string, dryRun bool) (*ec2.CreateImageOutput, error) {
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Create the Image
 	params := &ec2.CreateImageInput{
@@ -582,7 +592,9 @@ func DeleteImages(search, region string, dryRun bool) (err error) {
 // Private function without the confirmation terminal prompts
 func deleteImages(imgList *Images, dryRun bool) (err error) {
 	for _, image := range *imgList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(image.Region)}))
+
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(image.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.DeregisterImageInput{
 			ImageId: aws.String(image.ImageID),

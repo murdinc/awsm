@@ -30,7 +30,9 @@ type Snapshot models.Snapshot
 func GetSnapshotsByTag(region, key, value string, completed bool) (Snapshots, error) {
 	snapList := new(Snapshots)
 
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	params := &ec2.DescribeSnapshotsInput{
 		OwnerIds: []*string{aws.String("self")},
 		Filters: []*ec2.Filter{
@@ -147,7 +149,10 @@ func (s *Snapshot) Marshal(snapshot *ec2.Snapshot, region string) {
 
 // GetRegionSnapshots returns a list of a regions Snapshots into the provided Snapshots slice that match the provided search term and optional completed flag
 func GetRegionSnapshots(region string, snapList *Snapshots, search string, completed bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
 	result, err := svc.DescribeSnapshots(&ec2.DescribeSnapshotsInput{OwnerIds: []*string{aws.String("self")}})
 
 	if err != nil {
@@ -237,7 +242,9 @@ func CopySnapshot(search, region string, dryRun bool) error {
 
 // private function without terminal prompts
 func copySnapshot(snapshot Snapshot, region string, dryRun bool) (*ec2.CopySnapshotOutput, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Copy snapshot to the destination region
 	params := &ec2.CopySnapshotInput{
@@ -460,7 +467,9 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 
 // waitForSnapshot waits for a snapshot to complete
 func waitForSnapshot(snapshotID, region string, dryRun bool) error {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Wait for the snapshot to complete.
 	waitParams := &ec2.DescribeSnapshotsInput{
@@ -479,7 +488,9 @@ func waitForSnapshot(snapshotID, region string, dryRun bool) error {
 
 // private function without terminal prompts
 func createSnapshot(volumeID, description, region string, dryRun bool) (*ec2.Snapshot, error) {
-	svc := ec2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
 
 	// Create the Snapshot
 	snapshotParams := &ec2.CreateSnapshotInput{
@@ -549,7 +560,8 @@ func DeleteSnapshots(search, region string, dryRun bool) (err error) {
 // private function without the confirmation terminal prompts
 func deleteSnapshots(snapList *Snapshots, dryRun bool) (err error) {
 	for _, snapshot := range *snapList {
-		svc := ec2.New(session.New(&aws.Config{Region: aws.String(snapshot.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(snapshot.Region)}))
+		svc := ec2.New(sess)
 
 		params := &ec2.DeleteSnapshotInput{
 			SnapshotId: aws.String(snapshot.SnapshotID),

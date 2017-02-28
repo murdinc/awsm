@@ -52,7 +52,9 @@ func GetAlarms() (*Alarms, []error) {
 
 // GetRegionAlarms returns a list of CloudWatch Alarms for the given region into the provided Alarms slice
 func GetRegionAlarms(region string, alList *Alarms) error {
-	svc := cloudwatch.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := cloudwatch.New(sess)
+
 	result, err := svc.DescribeAlarms(&cloudwatch.DescribeAlarmsInput{})
 	if err != nil {
 		return err
@@ -139,7 +141,8 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 	}
 	terminal.Information("Found CloudWatch Alarm class configuration for [" + class + "]")
 
-	svc := cloudwatch.New(session.New(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := cloudwatch.New(sess)
 
 	// Create the alarm
 	params := &cloudwatch.PutMetricAlarmInput{

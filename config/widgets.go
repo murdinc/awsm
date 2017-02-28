@@ -82,7 +82,8 @@ func SaveWidget(widgetName string, data []byte) (widget Widget, err error) {
 
 // DeleteWidget deletes a widget from SimpleDB
 func DeleteWidget(widgetName string) error {
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	itemName := "widgets/" + widgetName
 

@@ -15,7 +15,8 @@ import (
 // CheckDB checks for an awsm database
 func CheckDB() bool {
 
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	params := &simpledb.DomainMetadataInput{
 		DomainName: aws.String("awsm"), // Required
@@ -33,7 +34,8 @@ func CheckDB() bool {
 // GetItemByName gets a SimpleDB item by its type and name
 func GetItemByName(classType, className string) (*simpledb.Item, error) {
 
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	params := &simpledb.GetAttributesInput{
 		DomainName:     aws.String("awsm"),
@@ -61,7 +63,8 @@ func GetItemByName(classType, className string) (*simpledb.Item, error) {
 // GetItemsByType returns all SimpleDB items by class type
 func GetItemsByType(classType string) ([]*simpledb.Item, error) {
 
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	params := &simpledb.SelectInput{
 		SelectExpression: aws.String(fmt.Sprintf("select * from awsm where classType = '%s'", classType)),
@@ -84,7 +87,9 @@ func GetItemsByType(classType string) ([]*simpledb.Item, error) {
 
 // DeleteItemsByType batch deletes classes from SimpleDB
 func DeleteItemsByType(classType string) error {
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	existingItems, err := GetItemsByType(classType)
 	if err != nil {
@@ -118,7 +123,8 @@ func DeleteItemsByType(classType string) error {
 // CreateAwsmDatabase creates an awsm SimpleDB Domain
 func CreateAwsmDatabase(generateAwsmKeyPair bool) error {
 
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	params := &simpledb.CreateDomainInput{
 		DomainName: aws.String("awsm"),

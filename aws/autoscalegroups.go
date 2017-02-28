@@ -55,7 +55,10 @@ func GetAutoScaleGroups(search string) (*AutoScaleGroups, []error) {
 
 // GetRegionAutoScaleGroups returns a list of AutoScale Groups for a given region into the provided AutoScaleGroups slice
 func GetRegionAutoScaleGroups(region string, asgList *AutoScaleGroups, search string) error {
-	svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := autoscaling.New(sess)
+
 	result, err := svc.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
 
 	if err != nil {
@@ -160,7 +163,8 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 		}
 		terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region))
 
-		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+		svc := autoscaling.New(sess)
 
 		params := &autoscaling.CreateAutoScalingGroupInput{
 			AutoScalingGroupName:    aws.String(class),
@@ -326,7 +330,8 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			}
 			terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, asg.Region))
 
-			svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(region)}))
+			sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+			svc := autoscaling.New(sess)
 
 			params := &autoscaling.UpdateAutoScalingGroupInput{
 				AutoScalingGroupName: aws.String(asg.Name),
@@ -451,7 +456,8 @@ func DeleteAutoScaleGroups(name, region string, force, dryRun bool) (err error) 
 // Private function without the confirmation terminal prompts
 func deleteAutoScaleGroups(asgList *AutoScaleGroups, force, dryRun bool) (err error) {
 	for _, asg := range *asgList {
-		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(asg.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(asg.Region)}))
+		svc := autoscaling.New(sess)
 
 		params := &autoscaling.DeleteAutoScalingGroupInput{
 			AutoScalingGroupName: aws.String(asg.Name),
@@ -530,7 +536,8 @@ func SuspendProcesses(search, region string, dryRun bool) (err error) {
 
 func suspendProcesses(asgList *AutoScaleGroups) error {
 	for _, asg := range *asgList {
-		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(asg.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(asg.Region)}))
+		svc := autoscaling.New(sess)
 
 		params := &autoscaling.ScalingProcessQuery{
 			AutoScalingGroupName: aws.String(asg.Name),
@@ -598,7 +605,8 @@ func ResumeProcesses(search, region string, dryRun bool) (err error) {
 
 func resumeProcesses(asgList *AutoScaleGroups) error {
 	for _, asg := range *asgList {
-		svc := autoscaling.New(session.New(&aws.Config{Region: aws.String(asg.Region)}))
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(asg.Region)}))
+		svc := autoscaling.New(sess)
 
 		params := &autoscaling.ScalingProcessQuery{
 			AutoScalingGroupName: aws.String(asg.Name),

@@ -14,7 +14,9 @@ import (
 
 // DeleteClass deletes a class from SimpleDB
 func DeleteClass(classType, className string) error {
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	itemName := classType + "/" + className
 
@@ -39,7 +41,9 @@ func Insert(classType string, classInterface interface{}) error {
 
 	var itemName string
 	itemsMap := make(map[string][]*simpledb.ReplaceableAttribute)
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
 
 	// Build Attributes
 	switch classType {

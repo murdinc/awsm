@@ -38,7 +38,9 @@ func (f FeedItems) Swap(i, j int) {
 // SaveScalingPolicyClass reads and unmarshals a byte slice and inserts it into the db
 func SaveFeed(feedName string, latest FeedItems, max int) (feed FeedItems, err error) {
 
-	svc := simpledb.New(session.New(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
+	svc := simpledb.New(sess)
+
 	existing, _ := LoadAllFeedItems(feedName)
 
 	sort.Sort(existing)

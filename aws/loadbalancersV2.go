@@ -50,7 +50,10 @@ func GetLoadBalancersV2() (*LoadBalancersV2, []error) {
 
 // GetRegionLoadBalancersV2 returns a slice of Application Load Balancers in the region into the provided LoadBalancersV2 slice
 func GetRegionLoadBalancersV2(region string, lbList *LoadBalancersV2) error {
-	svc := elbv2.New(session.New(&aws.Config{Region: aws.String(region)}))
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := elbv2.New(sess)
+
 	result, err := svc.DescribeLoadBalancers(&elbv2.DescribeLoadBalancersInput{})
 
 	fmt.Println(result)
