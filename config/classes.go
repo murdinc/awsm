@@ -303,7 +303,7 @@ func LoadClassByName(classType, className string) (configs interface{}, err erro
 		return LoadAlarmClass(className)
 
 	case "securitygroups":
-		return LoadSecurityGroupClass(className)
+		return LoadSecurityGroupClass(className, false)
 
 	case "keypairs":
 		return LoadKeyPairClass(className)
@@ -358,6 +358,7 @@ func LoadAllClassOptions(classType string) (options map[string]interface{}, err 
 		classOptionKeys = []string{"scalingpolicies"} // TODO: don't limit to only scaling policies?
 
 	case "securitygroups":
+		classOptionKeys = []string{"securitygroups"}
 
 	case "keypairs":
 

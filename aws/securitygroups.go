@@ -3,11 +3,14 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"reflect"
 	"regexp"
+	"strings"
 	"sync"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -39,6 +42,41 @@ func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
 		}
 	}
 	return names
+}
+
+// GetSecurityGroupByName returns a single Security Group that matches a provided region and name
+func GetSecurityGroupByName(region, name string) (SecurityGroup, error) {
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
+	params := &ec2.DescribeSecurityGroupsInput{
+		GroupNames: []*string{
+			aws.String(name),
+		},
+	}
+
+	result, err := svc.DescribeSecurityGroups(params)
+	if err != nil {
+		return SecurityGroup{}, err
+	}
+
+	count := len(result.SecurityGroups)
+
+	switch count {
+	case 0:
+		// Fall back to tag
+		return GetSecurityGroupByTag(region, "Name", name)
+	case 1:
+		vpcList := new(Vpcs)
+		GetRegionVpcs(region, vpcList, "")
+
+		sec := new(SecurityGroup)
+		sec.Marshal(result.SecurityGroups[0], region, vpcList)
+		return *sec, nil
+	}
+
+	return SecurityGroup{}, errors.New("Found more than one Security Group named [" + name + "] in [" + region + "], Aborting!")
 }
 
 // GetSecurityGroupByTag returns a single Security Group that matches a provided region and key/value tag
@@ -167,7 +205,7 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 
 	vpc := vpcList.GetVpcName(aws.StringValue(securitygroup.VpcId))
 
-	s.Name = aws.StringValue(securitygroup.GroupName)
+	s.Name = GetTagValue("Name", securitygroup.Tags)
 	s.Class = GetTagValue("Class", securitygroup.Tags)
 	s.GroupID = aws.StringValue(securitygroup.GroupId)
 	s.Description = aws.StringValue(securitygroup.Description)
@@ -175,37 +213,52 @@ func (s *SecurityGroup) Marshal(securitygroup *ec2.SecurityGroup, region string,
 	s.VpcID = aws.StringValue(securitygroup.VpcId)
 	s.Region = region
 
+	// Fall back to the Group name
+	if s.Name == "" {
+		s.Name = aws.StringValue(securitygroup.GroupName)
+	}
+
 	// Get the ingress grants
 	for _, grant := range securitygroup.IpPermissions {
 
-		var cidr []string
+		var cidr, group []string
 		for _, ipRange := range grant.IpRanges {
 			cidr = append(cidr, aws.StringValue(ipRange.CidrIp))
 		}
 
+		for _, groupPairs := range grant.UserIdGroupPairs {
+			group = append(group, aws.StringValue(groupPairs.GroupName))
+		}
+
 		s.SecurityGroupGrants = append(s.SecurityGroupGrants, config.SecurityGroupGrant{
-			Type:       "ingress",
-			FromPort:   int(aws.Int64Value(grant.FromPort)),
-			ToPort:     int(aws.Int64Value(grant.ToPort)),
-			IPProtocol: aws.StringValue(grant.IpProtocol),
-			CidrIP:     cidr,
+			Type:                     "ingress",
+			FromPort:                 int(aws.Int64Value(grant.FromPort)),
+			ToPort:                   int(aws.Int64Value(grant.ToPort)),
+			IPProtocol:               aws.StringValue(grant.IpProtocol),
+			CidrIPs:                  cidr,
+			SourceSecurityGroupNames: group,
 		})
 	}
 
 	// Get the egress grants
 	for _, grant := range securitygroup.IpPermissionsEgress {
 
-		var cidr []string
+		var cidr, group []string
 		for _, ipRange := range grant.IpRanges {
 			cidr = append(cidr, aws.StringValue(ipRange.CidrIp))
 		}
 
+		for _, groupPairs := range grant.UserIdGroupPairs {
+			group = append(group, aws.StringValue(groupPairs.GroupName))
+		}
+
 		s.SecurityGroupGrants = append(s.SecurityGroupGrants, config.SecurityGroupGrant{
-			Type:       "egress",
-			FromPort:   int(aws.Int64Value(grant.FromPort)),
-			ToPort:     int(aws.Int64Value(grant.ToPort)),
-			IPProtocol: aws.StringValue(grant.IpProtocol),
-			CidrIP:     cidr,
+			Type:                     "egress",
+			FromPort:                 int(aws.Int64Value(grant.FromPort)),
+			ToPort:                   int(aws.Int64Value(grant.ToPort)),
+			IPProtocol:               aws.StringValue(grant.IpProtocol),
+			CidrIPs:                  cidr,
+			SourceSecurityGroupNames: group,
 		})
 	}
 
@@ -240,7 +293,7 @@ func CreateSecurityGroup(class, region, vpc string, dryRun bool) error {
 	}
 
 	// Verify the security group class input
-	cfg, err := config.LoadSecurityGroupClass(class)
+	cfg, err := config.LoadSecurityGroupClass(class, false)
 	if err != nil {
 		return err
 	}
@@ -294,7 +347,16 @@ func CreateSecurityGroup(class, region, vpc string, dryRun bool) error {
 	SetEc2NameAndClassTags(createSecGrpResponse.GroupId, class, class, region)
 	terminal.Delta("Created Security Group [" + aws.StringValue(createSecGrpResponse.GroupId) + "] in region [" + region + "]")
 
-	return nil
+	// Add Grants
+	group, err := GetSecurityGroupByName(region, class)
+	groupSlice := make(SecurityGroups, 1)
+	groupSlice[0] = group
+	changes, err := groupSlice.Diff()
+	if err != nil {
+		return err
+	}
+
+	return updateSecurityGroups(changes, dryRun)
 }
 
 // DeleteSecurityGroups deletes one or more Security Groups that match the provided search term and optional region
@@ -372,13 +434,23 @@ func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
 		return errors.New("No Security Groups found, Aborting!")
 	}
 
+	changes, err := secGrpList.Diff()
+	if err != nil {
+		return err
+	}
+
+	if len(changes) == 0 {
+		terminal.Information("There are no changes needed on these security groups!")
+		return nil
+	}
+
 	// Confirm
 	if !terminal.PromptBool("Are you sure you want to update these Security Groups?") {
 		return errors.New("Aborting!")
 	}
 
 	// Update 'Em
-	err = updateSecurityGroups(secGrpList, dryRun)
+	err = updateSecurityGroups(changes, dryRun)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return errors.New(awsErr.Message())
@@ -391,163 +463,612 @@ func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
 	return nil
 }
 
-// private function without terminal prompts
-func updateSecurityGroups(secGrpList *SecurityGroups, dryRun bool) error {
+type SecurityGroupChange struct {
+	Group  SecurityGroup
+	Revoke bool
+	Type   string
+	Grants []config.SecurityGroupGrant
+}
 
-	for _, secGrp := range *secGrpList {
+func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
+
+	terminal.Delta("Building list of security group changes...")
+
+	changes := []SecurityGroupChange{}
+	cfgHashes := make([]map[uint64]config.SecurityGroupGrant, len(s))
+
+	for i, secGrp := range s {
+		cfgHashes[i] = make(map[uint64]config.SecurityGroupGrant)
 		// Verify the security group class input
-		cfg, err := config.LoadSecurityGroupClass(secGrp.Class)
+		cfg, err := config.LoadSecurityGroupClass(secGrp.Class, true)
 		if err != nil {
-			terminal.Notice("Skipping Security Group [" + secGrp.Name + "]")
-			terminal.ErrorLine(err.Error())
-			continue
-		} else {
-			terminal.Information("Found Security Group class configuration for [" + secGrp.Class + "]")
+			return changes, err
 		}
 
-		// cycle through the config grants an generate hashes
-		cfgHashes := make(map[uint64]int)
-		for i, cGrant := range cfg.SecurityGroupGrants {
-			configGrantHash, err := hashstructure.Hash(cGrant, nil)
-			if err != nil {
-				return err
+		// cycle through the config grants and generate hashess
+		for _, cGrant := range cfg.SecurityGroupGrants {
+
+			for _, ipGrant := range cGrant.CidrIPs {
+				cidrIpGrant := cGrant
+				cidrIpGrant.CidrIPs = []string{ipGrant}
+				cidrIpGrant.SourceSecurityGroupNames = []string{}
+
+				configGrantHash, err := hashstructure.Hash(cidrIpGrant, nil)
+				if err != nil {
+					return changes, err
+				}
+				cfgHashes[i][configGrantHash] = cidrIpGrant
 			}
-			cfgHashes[configGrantHash] = i
+
+			for _, secGrant := range cGrant.SourceSecurityGroupNames {
+				secGrpGrant := cGrant
+				secGrpGrant.CidrIPs = []string{}
+				secGrpGrant.SourceSecurityGroupNames = []string{secGrant}
+
+				configGrantHash, err := hashstructure.Hash(secGrpGrant, nil)
+				if err != nil {
+					return changes, err
+				}
+				cfgHashes[i][configGrantHash] = secGrpGrant
+			}
+
 		}
 
-		var remove, add []config.SecurityGroupGrant
+	}
+
+	for i, secGrp := range s {
+
+		var removeIngress, removeEgress, addIngress, addEgress []config.SecurityGroupGrant
 
 		// cycle through existing grants and find ones to remove
-		for _, eGrant := range secGrp.SecurityGroupGrants {
+		for _, grant := range secGrp.SecurityGroupGrants {
 
-			existingGrantHash, err := hashstructure.Hash(eGrant, nil)
-			if err != nil {
-				return err
+			for _, ipGrant := range grant.CidrIPs {
+				cidrIpGrant := grant
+				cidrIpGrant.CidrIPs = []string{ipGrant}
+				cidrIpGrant.SourceSecurityGroupNames = []string{}
+
+				existingGrantHash, err := hashstructure.Hash(cidrIpGrant, nil)
+				if err != nil {
+					return changes, err
+				}
+
+				if _, ok := cfgHashes[i][existingGrantHash]; !ok {
+					terminal.Delta(fmt.Sprintf("[%s %s] - Deauthorize - [%s]	[%s :%d-%d]	[%s]", secGrp.Name, secGrp.Region, cidrIpGrant.Type, cidrIpGrant.IPProtocol, cidrIpGrant.FromPort, cidrIpGrant.ToPort, strings.Join(cidrIpGrant.CidrIPs, ", ")))
+
+					if cidrIpGrant.Type == "ingress" {
+						removeIngress = append(removeIngress, cidrIpGrant)
+					} else if cidrIpGrant.Type == "egress" {
+						removeEgress = append(removeEgress, cidrIpGrant)
+					}
+
+				} else {
+					//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping - [%s]	[%s :%d-%d]	[%s]", secGrp.Name, secGrp.Region, cidrIpGrant.Type, cidrIpGrant.IPProtocol, cidrIpGrant.FromPort, cidrIpGrant.ToPort, strings.Join(cidrIpGrant.CidrIPs, ", ")))
+					delete(cfgHashes[i], existingGrantHash)
+				}
 			}
 
-			if _, ok := cfgHashes[existingGrantHash]; !ok {
-				fmt.Println("remove")
-				fmt.Println(existingGrantHash)
-				fmt.Println(eGrant)
-				fmt.Println("")
+			for _, secGrant := range grant.SourceSecurityGroupNames {
+				secGrpGrant := grant
+				secGrpGrant.CidrIPs = []string{}
+				secGrpGrant.SourceSecurityGroupNames = []string{secGrant}
 
-				//cfgHashes[existingGrantHash] = -1
+				existingGrantHash, err := hashstructure.Hash(secGrpGrant, nil)
+				if err != nil {
+					return changes, err
+				}
 
-				remove = append(remove, eGrant)
-			} else {
-				fmt.Println("keep")
-				fmt.Println(existingGrantHash)
-				fmt.Println(eGrant)
-				fmt.Println("")
+				if _, ok := cfgHashes[i][existingGrantHash]; !ok {
+					terminal.Delta(fmt.Sprintf("[%s %s] - Deauthorize - [%s]	[%s :%d-%d]	[%s]", secGrp.Name, secGrp.Region, secGrpGrant.Type, secGrpGrant.IPProtocol, secGrpGrant.FromPort, secGrpGrant.ToPort, strings.Join(secGrpGrant.SourceSecurityGroupNames, ", ")))
 
-				delete(cfgHashes, existingGrantHash)
+					if secGrpGrant.Type == "ingress" {
+						removeIngress = append(removeIngress, secGrpGrant)
+					} else if secGrpGrant.Type == "egress" {
+						removeEgress = append(removeEgress, secGrpGrant)
+					}
+
+				} else {
+					//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping - [%s]	[%s :%d-%d]	[%s]", secGrp.Name, secGrp.Region, secGrpGrant.Type, secGrpGrant.IPProtocol, secGrpGrant.FromPort, secGrpGrant.ToPort, strings.Join(secGrpGrant.SourceSecurityGroupNames, ", ")))
+					delete(cfgHashes[i], existingGrantHash)
+				}
+
 			}
+
 		}
 
 		// cycle through hashes and find ones to add
-		for hash, i := range cfgHashes {
-			fmt.Println("add")
-			fmt.Println(hash)
-			fmt.Println(i)
-			fmt.Println(cfg.SecurityGroupGrants[i])
-			fmt.Println("")
-			add = append(add, cfg.SecurityGroupGrants[i])
+		for _, grant := range cfgHashes[i] {
+
+			sGrant := grant
+
+			for _, ipGrant := range grant.CidrIPs {
+				sGrant.CidrIPs = []string{ipGrant}
+				sGrant.SourceSecurityGroupNames = []string{}
+
+				terminal.Delta(fmt.Sprintf("[%s %s] - Authorize - [%s]	[%s :%d-%d]	[%s]", secGrp.Name, secGrp.Region, sGrant.Type, sGrant.IPProtocol, sGrant.FromPort, sGrant.ToPort, strings.Join(sGrant.CidrIPs, ", ")))
+
+				if grant.Type == "ingress" {
+					addIngress = append(addIngress, sGrant)
+				} else if grant.Type == "egress" {
+					addEgress = append(addEgress, sGrant)
+				}
+			}
+
+			for _, secGrant := range grant.SourceSecurityGroupNames {
+
+				sGrant.CidrIPs = []string{}
+				sGrant.SourceSecurityGroupNames = []string{secGrant}
+
+				terminal.Delta(fmt.Sprintf("[%s %s] - Authorize - [%s]	[%s :%d-%d]	[%s]", secGrp.Name, secGrp.Region, sGrant.Type, sGrant.IPProtocol, sGrant.FromPort, sGrant.ToPort, strings.Join(sGrant.SourceSecurityGroupNames, ", ")))
+
+				if grant.Type == "ingress" {
+					addIngress = append(addIngress, sGrant)
+				} else if grant.Type == "egress" {
+					addEgress = append(addEgress, sGrant)
+				}
+			}
 		}
 
-		fmt.Println("=======================================================")
+		// authorize
+		if len(addIngress) > 0 {
+			changes = append(changes, SecurityGroupChange{
+				Group:  secGrp,
+				Revoke: false,
+				Type:   "ingress",
+				Grants: addIngress,
+			})
+		}
+		if len(addEgress) > 0 {
+			changes = append(changes, SecurityGroupChange{
+				Group:  secGrp,
+				Revoke: false,
+				Type:   "egress",
+				Grants: addEgress,
+			})
+		}
+		// deauthorize
+		if len(removeIngress) > 0 {
+			changes = append(changes, SecurityGroupChange{
+				Group:  secGrp,
+				Revoke: true,
+				Type:   "ingress",
+				Grants: removeIngress,
+			})
+		}
 
-		fmt.Println("remove:")
-		fmt.Println(remove)
-		fmt.Println("")
+		if len(removeEgress) > 0 {
+			changes = append(changes, SecurityGroupChange{
+				Group:  secGrp,
+				Revoke: true,
+				Type:   "egress",
+				Grants: removeEgress,
+			})
+		}
+	}
 
-		fmt.Println("add:")
-		fmt.Println(add)
-		fmt.Println("")
+	terminal.Information("Diff complete!")
 
+	return changes, nil
+
+}
+
+// private function without terminal prompts
+func updateSecurityGroups(changes []SecurityGroupChange, dryRun bool) error {
+
+	for _, change := range changes {
+		if change.Type == "ingress" {
+			if change.Revoke {
+				// revoke
+				err := revokeIngress(change.Group, change.Grants, dryRun)
+				if err != nil {
+					return err
+				}
+			} else {
+				// authorize
+				err := authorizeIngress(change.Group, change.Grants, dryRun)
+				if err != nil {
+					return err
+				}
+			}
+
+		} else if change.Type == "egress" {
+			if change.Revoke {
+				// revoke
+				err := revokeEgress(change.Group, change.Grants, dryRun)
+				if err != nil {
+					return err
+				}
+			} else {
+				// authorize
+				err := authorizeEgress(change.Group, change.Grants, dryRun)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil
 }
 
-// TODO
-func authorizeIngress(dryRun bool) {
+func authorizeIngress(secGrp SecurityGroup, grants []config.SecurityGroupGrant, dryRun bool) error {
+
+	if len(grants) == 0 {
+		return nil
+	}
 
 	params := &ec2.AuthorizeSecurityGroupIngressInput{
-		CidrIp:   aws.String("String"),
-		DryRun:   aws.Bool(dryRun),
-		FromPort: aws.Int64(1),
-		GroupId:  aws.String("String"),
-		//GroupName: aws.String("String"),
-		IpPermissions: []*ec2.IpPermission{
-			{ // Required
-				FromPort:   aws.Int64(1),
-				IpProtocol: aws.String("String"),
-				IpRanges: []*ec2.IpRange{
-					{ // Required
-						CidrIp: aws.String("String"),
-					},
-					// More values...
-				},
-				Ipv6Ranges: []*ec2.Ipv6Range{
-					{ // Required
-						CidrIpv6: aws.String("String"),
-					},
-					// More values...
-				},
-				PrefixListIds: []*ec2.PrefixListId{
-					{ // Required
-						PrefixListId: aws.String("String"),
-					},
-					// More values...
-				},
-				ToPort: aws.Int64(1),
-				UserIdGroupPairs: []*ec2.UserIdGroupPair{
-					{ // Required
-						GroupId:       aws.String("String"),
-						GroupName:     aws.String("String"),
-						PeeringStatus: aws.String("String"),
-						UserId:        aws.String("String"),
-						VpcId:         aws.String("String"),
-						VpcPeeringConnectionId: aws.String("String"),
-					},
-					// More values...
-				},
-			},
-			// More values...
-		},
-		IpProtocol:                 aws.String("String"),
-		SourceSecurityGroupName:    aws.String("String"),
-		SourceSecurityGroupOwnerId: aws.String("String"),
-		ToPort: aws.Int64(1),
+		DryRun:  aws.Bool(dryRun),
+		GroupId: aws.String(secGrp.GroupID),
+		//GroupName: aws.String(secGrp.Name),
 	}
 
-	sess := session.Must(session.NewSession())
-	svc := ec2.New(sess)
+	ipPermissions := []*ec2.IpPermission{}
 
-	resp, err := svc.AuthorizeSecurityGroupIngress(params)
+	for _, grant := range grants {
+
+		ipRanges := []*ec2.IpRange{}
+		ipv6Ranges := []*ec2.Ipv6Range{}
+		groupPairs := []*ec2.UserIdGroupPair{}
+
+		for _, ip := range grant.CidrIPs {
+
+			address, _, _ := net.ParseCIDR(ip)
+
+			if govalidator.IsIPv4(address.String()) {
+				ipRanges = append(ipRanges,
+					&ec2.IpRange{
+						CidrIp: aws.String(ip),
+					},
+				)
+			} else if govalidator.IsIPv6(address.String()) {
+				ipv6Ranges = append(ipv6Ranges,
+					&ec2.Ipv6Range{
+						CidrIpv6: aws.String(ip),
+					},
+				)
+			} else {
+				return errors.New("IP [" + ip + "] does not appear to be a valid IPv4 or IPv6 Address. Aborting!")
+			}
+		}
+
+		for _, groupName := range grant.SourceSecurityGroupNames {
+			_, err := GetSecurityGroupByName(secGrp.Region, groupName)
+			if err != nil {
+				return errors.New("Security Group [" + groupName + "] does not appear to exist in [" + secGrp.Region + "]. Aborting!")
+			}
+
+			groupPairs = append(groupPairs,
+				&ec2.UserIdGroupPair{
+					GroupName: aws.String(groupName),
+				},
+			)
+		}
+
+		ipPermission := &ec2.IpPermission{}
+
+		ipPermission.
+			SetIpProtocol(grant.IPProtocol).
+			SetFromPort(int64(grant.FromPort)).
+			SetToPort(int64(grant.ToPort))
+
+		if len(ipRanges) > 0 {
+			ipPermission.SetIpRanges(ipRanges)
+		}
+
+		if len(ipv6Ranges) > 0 {
+			ipPermission.SetIpv6Ranges(ipv6Ranges)
+		}
+
+		if len(groupPairs) > 0 {
+			ipPermission.SetUserIdGroupPairs(groupPairs)
+		}
+
+		ipPermissions = append(ipPermissions, ipPermission)
+		params.SetIpPermissions(ipPermissions)
+
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(secGrp.Region)}))
+	svc := ec2.New(sess)
+	_, err := svc.AuthorizeSecurityGroupIngress(params)
 
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "DryRunOperation" {
+				return nil
+			}
+			return errors.New(awsErr.Message())
+		}
+		return err
 	}
 
-	// Pretty-print the response data.
-	fmt.Println(resp)
+	return nil
 }
 
-// TODO
-func authorizeEgress() {
+func authorizeEgress(secGrp SecurityGroup, grants []config.SecurityGroupGrant, dryRun bool) error {
 
+	if len(grants) == 0 {
+		return nil
+	}
+
+	params := &ec2.AuthorizeSecurityGroupEgressInput{
+		DryRun:  aws.Bool(dryRun),
+		GroupId: aws.String(secGrp.GroupID),
+		//GroupName: aws.String(secGrp.Name),
+	}
+
+	ipPermissions := []*ec2.IpPermission{}
+
+	for _, grant := range grants {
+
+		ipRanges := []*ec2.IpRange{}
+		ipv6Ranges := []*ec2.Ipv6Range{}
+		groupPairs := []*ec2.UserIdGroupPair{}
+
+		for _, ip := range grant.CidrIPs {
+
+			address, _, _ := net.ParseCIDR(ip)
+
+			if govalidator.IsIPv4(address.String()) {
+				ipRanges = append(ipRanges,
+					&ec2.IpRange{
+						CidrIp: aws.String(ip),
+					},
+				)
+			} else if govalidator.IsIPv6(address.String()) {
+				ipv6Ranges = append(ipv6Ranges,
+					&ec2.Ipv6Range{
+						CidrIpv6: aws.String(ip),
+					},
+				)
+			} else {
+				return errors.New("IP [" + ip + "] does not appear to be a valid IPv4 or IPv6 Address. Aborting!")
+			}
+		}
+
+		for _, groupName := range grant.SourceSecurityGroupNames {
+			_, err := GetSecurityGroupByName(secGrp.Region, groupName)
+			if err != nil {
+				return errors.New("Security Group [" + groupName + "] does not appear to exist in [" + secGrp.Region + "]. Aborting!")
+			}
+
+			groupPairs = append(groupPairs,
+				&ec2.UserIdGroupPair{
+					GroupName: aws.String(groupName),
+				},
+			)
+		}
+
+		ipPermission := &ec2.IpPermission{}
+
+		ipPermission.
+			SetIpProtocol(grant.IPProtocol).
+			SetFromPort(int64(grant.FromPort)).
+			SetToPort(int64(grant.ToPort))
+
+		if len(ipRanges) > 0 {
+			ipPermission.SetIpRanges(ipRanges)
+		}
+
+		if len(ipv6Ranges) > 0 {
+			ipPermission.SetIpv6Ranges(ipv6Ranges)
+		}
+
+		if len(groupPairs) > 0 {
+			ipPermission.SetUserIdGroupPairs(groupPairs)
+		}
+
+		ipPermissions = append(ipPermissions, ipPermission)
+		params.SetIpPermissions(ipPermissions)
+
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(secGrp.Region)}))
+	svc := ec2.New(sess)
+	_, err := svc.AuthorizeSecurityGroupEgress(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "DryRunOperation" {
+				return nil
+			}
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
 }
 
-// TODO
-func revokeIngress() {
+func revokeIngress(secGrp SecurityGroup, grants []config.SecurityGroupGrant, dryRun bool) error {
 
+	if len(grants) == 0 {
+		return nil
+	}
+
+	params := &ec2.RevokeSecurityGroupIngressInput{
+		DryRun:  aws.Bool(dryRun),
+		GroupId: aws.String(secGrp.GroupID),
+		//GroupName: aws.String(secGrp.Name),
+	}
+
+	ipPermissions := []*ec2.IpPermission{}
+
+	for _, grant := range grants {
+
+		ipRanges := []*ec2.IpRange{}
+		ipv6Ranges := []*ec2.Ipv6Range{}
+		groupPairs := []*ec2.UserIdGroupPair{}
+
+		for _, ip := range grant.CidrIPs {
+
+			address, _, _ := net.ParseCIDR(ip)
+
+			if govalidator.IsIPv4(address.String()) {
+				ipRanges = append(ipRanges,
+					&ec2.IpRange{
+						CidrIp: aws.String(ip),
+					},
+				)
+			} else if govalidator.IsIPv6(address.String()) {
+				ipv6Ranges = append(ipv6Ranges,
+					&ec2.Ipv6Range{
+						CidrIpv6: aws.String(ip),
+					},
+				)
+			} else {
+				return errors.New("IP [" + ip + "] does not appear to be a valid IPv4 or IPv6 Address. Aborting!")
+			}
+		}
+
+		for _, groupName := range grant.SourceSecurityGroupNames {
+			_, err := GetSecurityGroupByName(secGrp.Region, groupName)
+			if err != nil {
+				return errors.New("Security Group [" + groupName + "] does not appear to exist in [" + secGrp.Region + "]. Aborting!")
+			}
+
+			groupPairs = append(groupPairs,
+				&ec2.UserIdGroupPair{
+					GroupName: aws.String(groupName),
+				},
+			)
+		}
+
+		ipPermission := &ec2.IpPermission{}
+
+		ipPermission.
+			SetIpProtocol(grant.IPProtocol).
+			SetFromPort(int64(grant.FromPort)).
+			SetToPort(int64(grant.ToPort))
+
+		if len(ipRanges) > 0 {
+			ipPermission.SetIpRanges(ipRanges)
+		}
+
+		if len(ipv6Ranges) > 0 {
+			ipPermission.SetIpv6Ranges(ipv6Ranges)
+		}
+
+		if len(groupPairs) > 0 {
+			ipPermission.SetUserIdGroupPairs(groupPairs)
+		}
+
+		ipPermissions = append(ipPermissions, ipPermission)
+		params.SetIpPermissions(ipPermissions)
+
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(secGrp.Region)}))
+	svc := ec2.New(sess)
+	_, err := svc.RevokeSecurityGroupIngress(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "DryRunOperation" {
+				return nil
+			}
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
 }
 
-// TODO
-func revokeEgress() {
+func revokeEgress(secGrp SecurityGroup, grants []config.SecurityGroupGrant, dryRun bool) error {
 
+	if len(grants) == 0 {
+		return nil
+	}
+
+	params := &ec2.RevokeSecurityGroupEgressInput{
+		DryRun:  aws.Bool(dryRun),
+		GroupId: aws.String(secGrp.GroupID),
+		//GroupName: aws.String(secGrp.Name),
+	}
+
+	ipPermissions := []*ec2.IpPermission{}
+
+	for _, grant := range grants {
+
+		ipRanges := []*ec2.IpRange{}
+		ipv6Ranges := []*ec2.Ipv6Range{}
+		groupPairs := []*ec2.UserIdGroupPair{}
+
+		for _, ip := range grant.CidrIPs {
+
+			address, _, _ := net.ParseCIDR(ip)
+
+			if govalidator.IsIPv4(address.String()) {
+				ipRanges = append(ipRanges,
+					&ec2.IpRange{
+						CidrIp: aws.String(ip),
+					},
+				)
+			} else if govalidator.IsIPv6(address.String()) {
+				ipv6Ranges = append(ipv6Ranges,
+					&ec2.Ipv6Range{
+						CidrIpv6: aws.String(ip),
+					},
+				)
+			} else {
+				return errors.New("IP [" + ip + "] does not appear to be a valid IPv4 or IPv6 Address. Aborting!")
+			}
+		}
+
+		for _, groupName := range grant.SourceSecurityGroupNames {
+			_, err := GetSecurityGroupByName(secGrp.Region, groupName)
+			if err != nil {
+				return errors.New("Security Group [" + groupName + "] does not appear to exist in [" + secGrp.Region + "]. Aborting!")
+			}
+
+			groupPairs = append(groupPairs,
+				&ec2.UserIdGroupPair{
+					GroupName: aws.String(groupName),
+				},
+			)
+		}
+
+		ipPermission := &ec2.IpPermission{}
+
+		ipPermission.
+			SetIpProtocol(grant.IPProtocol).
+			SetFromPort(int64(grant.FromPort)).
+			SetToPort(int64(grant.ToPort))
+
+		if len(ipRanges) > 0 {
+			ipPermission.SetIpRanges(ipRanges)
+		}
+
+		if len(ipv6Ranges) > 0 {
+			ipPermission.SetIpv6Ranges(ipv6Ranges)
+		}
+
+		if len(groupPairs) > 0 {
+			ipPermission.SetUserIdGroupPairs(groupPairs)
+		}
+
+		ipPermissions = append(ipPermissions, ipPermission)
+		params.SetIpPermissions(ipPermissions)
+
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(secGrp.Region)}))
+	svc := ec2.New(sess)
+	_, err := svc.RevokeSecurityGroupEgress(params)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "DryRunOperation" {
+				return nil
+			}
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
 }
 
 // private function without terminal prompts

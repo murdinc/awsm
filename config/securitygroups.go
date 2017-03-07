@@ -19,13 +19,14 @@ type SecurityGroupClass struct {
 
 // SecurityGroupGrant is a Security Group Grant
 type SecurityGroupGrant struct {
-	ID         string   `json:"id" hash:"ignore" awsm:"ignore"`
-	Note       string   `json:"note" hash:"ignore"`
-	Type       string   `json:"type"` // ingress / egress
-	FromPort   int      `json:"fromPort"`
-	ToPort     int      `json:"toPort"`
-	IPProtocol string   `json:"ipProtocol"`
-	CidrIP     []string `json:"cidrIP" hash:"set"`
+	ID                       string   `json:"id" hash:"ignore" awsm:"ignore"`
+	Note                     string   `json:"note" hash:"ignore"`
+	Type                     string   `json:"type"` // ingress / egress
+	FromPort                 int      `json:"fromPort"`
+	ToPort                   int      `json:"toPort"`
+	IPProtocol               string   `json:"ipProtocol"`
+	CidrIPs                  []string `json:"cidrIPs" hash:"set"`
+	SourceSecurityGroupNames []string `json:"sourceSecurityGroupNames"`
 }
 
 // DefaultSecurityGroupClasses returns the defauly Security Group Classes
@@ -33,7 +34,7 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 	defaultSecurityGroups := make(SecurityGroupClasses)
 
 	defaultSecurityGroups["dev"] = SecurityGroupClass{
-		Description: "dev server security group",
+		Description: "dev servers",
 		SecurityGroupGrants: []SecurityGroupGrant{
 			SecurityGroupGrant{
 				Note:       "http port 80",
@@ -41,7 +42,7 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				FromPort:   80,
 				ToPort:     80,
 				IPProtocol: "tcp",
-				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 			SecurityGroupGrant{
 				Note:       "http port 443",
@@ -49,13 +50,13 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				FromPort:   443,
 				ToPort:     443,
 				IPProtocol: "tcp",
-				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 		},
 	}
 
 	defaultSecurityGroups["prod"] = SecurityGroupClass{
-		Description: "prod server security group",
+		Description: "prod servers",
 		SecurityGroupGrants: []SecurityGroupGrant{
 			SecurityGroupGrant{
 				Note:       "http port 80",
@@ -63,7 +64,7 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				FromPort:   80,
 				ToPort:     80,
 				IPProtocol: "tcp",
-				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 			SecurityGroupGrant{
 				Note:       "http port 443",
@@ -71,7 +72,7 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				FromPort:   443,
 				ToPort:     443,
 				IPProtocol: "tcp",
-				CidrIP:     []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
 			},
 		},
 	}
@@ -91,7 +92,7 @@ func SaveSecurityGroupClass(className string, data []byte) (class SecurityGroupC
 }
 
 // LoadSecurityGroupClass loads a Security Group Class by its name
-func LoadSecurityGroupClass(name string) (SecurityGroupClass, error) {
+func LoadSecurityGroupClass(name string, splitGrants bool) (SecurityGroupClass, error) {
 	cfgs := make(SecurityGroupClasses)
 	item, err := GetItemByName("securitygroups", name)
 	if err != nil {
@@ -99,7 +100,34 @@ func LoadSecurityGroupClass(name string) (SecurityGroupClass, error) {
 	}
 
 	cfgs.Marshal([]*simpledb.Item{item})
-	return cfgs[name], nil
+	cfg := cfgs[name]
+
+	if splitGrants {
+
+		var sGrants []SecurityGroupGrant
+
+		for _, grant := range cfg.SecurityGroupGrants {
+
+			// Grant Source: Sec Group
+			for _, secGrp := range grant.SourceSecurityGroupNames {
+				sGrant := grant
+				sGrant.CidrIPs = []string{}
+				sGrant.SourceSecurityGroupNames = []string{secGrp}
+				sGrants = append(sGrants, sGrant)
+			}
+
+			// Grant Source: CIDR IP
+			for _, cidrIp := range grant.CidrIPs {
+				sGrant := grant
+				sGrant.SourceSecurityGroupNames = []string{}
+				sGrant.CidrIPs = []string{cidrIp}
+				sGrants = append(sGrants, sGrant)
+			}
+		}
+		cfg.SecurityGroupGrants = sGrants
+	}
+
+	return cfg, nil
 }
 
 // LoadAllSecurityGroupClasses loads all Security Group Classes
@@ -160,8 +188,11 @@ func (c SecurityGroupClasses) Marshal(items []*simpledb.Item) {
 				case "IPProtocol":
 					cfg.SecurityGroupGrants[i].IPProtocol = val
 
-				case "CidrIP":
-					cfg.SecurityGroupGrants[i].CidrIP = append(cfg.SecurityGroupGrants[i].CidrIP, val)
+				case "CidrIPs":
+					cfg.SecurityGroupGrants[i].CidrIPs = append(cfg.SecurityGroupGrants[i].CidrIPs, val)
+
+				case "SourceSecurityGroupNames":
+					cfg.SecurityGroupGrants[i].SourceSecurityGroupNames = append(cfg.SecurityGroupGrants[i].SourceSecurityGroupNames, val)
 
 				}
 			}
