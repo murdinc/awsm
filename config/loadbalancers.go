@@ -13,14 +13,37 @@ type LoadBalancerClasses map[string]LoadBalancerClass
 
 // LoadBalancerClass is a single Load Balancer Class
 type LoadBalancerClass struct {
-	Scheme            string                 `json:"scheme" awsmClass:"Scheme"`
-	SecurityGroups    []string               `json:"securityGroups" awsmClass:"Security Groups"`
-	Subnets           []string               `json:"subnets" awsmClass:"Subnets"`
-	AvailabilityZones []string               `json:"availabilityZones" awsmClass:"Availability Zone"`
-	Listeners         []LoadBalancerListener `json:"listeners"  awsmClass:"Listeners"`
+	Scheme            string   `json:"scheme" awsmClass:"Scheme"`
+	SecurityGroups    []string `json:"securityGroups" awsmClass:"Security Groups"`
+	Subnets           []string `json:"subnets" awsmClass:"Subnets"`
+	AvailabilityZones []string `json:"availabilityZones" awsmClass:"Availability Zone"`
+
+	// Listeners
+	LoadBalancerListeners []LoadBalancerListener `json:"loadBalancerListeners"  awsmClass:"Listeners"`
+
+	// Health Checks
+	HealthCheckTarget             string `json:"healthCheckTarget" awsmClass:"Health Check Target"`
+	HealthCheckTimeout            int    `json:"healthCheckTimeout" awsmClass:"Health Check Timeout"`
+	HealthCheckInterval           int    `json:"healthCheckInterval" awsmClass:"Health Check Interval"`
+	HealthCheckUnhealthyThreshold int    `json:"healthCheckUnhealthyThreshold" awsmClass:"Unhealthy Threshold"`
+	HealthCheckHealthyThreshold   int    `json:"healthCheckHealthyThreshold" awsmClass:"Healthy Threshold"`
+
+	// Connection Draining
+	ConnectionDrainingEnabled bool `json:"connectionDrainingEnabled" awsmClass:"Connection Draining"`
+	ConnectionDrainingTimeout int  `json:"connectionDrainingTimeout" awsmClass:"Connection Draining Timeout"`
+
+	// Connection Settings
+	IdleTimeout                   int  `json:"idleTimeout" awsmClass:"Idle Timeout"`
+	CrossZoneLoadBalancingEnabled bool `json:"crossZoneLoadBalancing" awsmClass:"Cross Zone Load Balancing"`
+
+	// Access Logs
+	AccessLogEnabled        bool   `json:"accessLogEnabled" awsmClass:"Access Log Enabled"`
+	AccessLogEmitInterval   int    `json:"accessLogEmitInterval" awsmClass:"Access Log Emit Interval"`
+	AccessLogS3BucketName   string `json:"accessLogS3BucketName" awsmClass:"Access Log S3 Bucket Name"`
+	AccessLogS3BucketPrefix string `json:"accessLogS3BucketPrefix" awsmClass:"Access Log S3 Bucket Prefix"`
 }
 
-// LoadBalancerListener is a Load Balancer Listener
+// LoadBalancerListener is a single Load Balancer Listener
 type LoadBalancerListener struct {
 	ID               string `json:"id" hash:"ignore" awsm:"ignore"` // Needed?
 	InstancePort     int    `json:"instancePort"`
@@ -35,15 +58,20 @@ func DefaultLoadBalancerClasses() LoadBalancerClasses {
 	defaultLBs := make(LoadBalancerClasses)
 
 	defaultLBs["prod"] = LoadBalancerClass{
-		Scheme:         "internet-facing",
-		SecurityGroups: []string{"prod"},
-		Subnets:        []string{"public"},
-		Listeners: []LoadBalancerListener{
+		Scheme:                        "internet-facing",
+		SecurityGroups:                []string{"prod"},
+		Subnets:                       []string{"public"},
+		HealthCheckTarget:             "HTTP:80/index.html",
+		HealthCheckTimeout:            5,
+		HealthCheckInterval:           30,
+		HealthCheckUnhealthyThreshold: 2,
+		HealthCheckHealthyThreshold:   10,
+		LoadBalancerListeners: []LoadBalancerListener{
 			LoadBalancerListener{
 				InstancePort:     80,
 				LoadBalancerPort: 80,
-				Protocol:         "tcp",
-				InstanceProtocol: "tcp",
+				Protocol:         "HTTP",
+				InstanceProtocol: "HTTP",
 				SSLCertificateID: "",
 			},
 		},
@@ -66,6 +94,7 @@ func SaveLoadBalancerClass(className string, data []byte) (class LoadBalancerCla
 
 // LoadLoadBalancerClass loads a Load Balancer Class by its name
 func LoadLoadBalancerClass(name string) (LoadBalancerClass, error) {
+	// awkward func name ^
 	cfgs := make(LoadBalancerClasses)
 	item, err := GetItemByName("loadbalancers", name)
 	if err != nil {
@@ -115,10 +144,10 @@ func (c LoadBalancerClasses) Marshal(items []*simpledb.Item) {
 
 		// Get the listeners
 		listeners, _ := GetItemsByType("loadbalancers/" + name + "/listeners")
-		cfg.Listeners = make([]LoadBalancerListener, len(listeners))
+		cfg.LoadBalancerListeners = make([]LoadBalancerListener, len(listeners))
 		for i, listener := range listeners {
 
-			cfg.Listeners[i].ID = strings.Replace(*listener.Name, "loadbalancers/"+name+"/listeners/", "", -1) // Needed?
+			cfg.LoadBalancerListeners[i].ID = strings.Replace(*listener.Name, "loadbalancers/"+name+"/listeners/", "", -1) // Needed?
 
 			for _, attribute := range listener.Attributes {
 
@@ -127,19 +156,19 @@ func (c LoadBalancerClasses) Marshal(items []*simpledb.Item) {
 				switch *attribute.Name {
 
 				case "InstancePort":
-					cfg.Listeners[i].InstancePort, _ = strconv.Atoi(val)
+					cfg.LoadBalancerListeners[i].InstancePort, _ = strconv.Atoi(val)
 
 				case "LoadBalancerPort":
-					cfg.Listeners[i].LoadBalancerPort, _ = strconv.Atoi(val)
+					cfg.LoadBalancerListeners[i].LoadBalancerPort, _ = strconv.Atoi(val)
 
 				case "Protocol":
-					cfg.Listeners[i].Protocol = val
+					cfg.LoadBalancerListeners[i].Protocol = val
 
 				case "InstanceProtocol":
-					cfg.Listeners[i].InstanceProtocol = val
+					cfg.LoadBalancerListeners[i].InstanceProtocol = val
 
 				case "SSLCertificateID":
-					cfg.Listeners[i].SSLCertificateID = val
+					cfg.LoadBalancerListeners[i].SSLCertificateID = val
 
 				}
 			}

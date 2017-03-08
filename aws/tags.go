@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
 )
 
 // GetTagValue returns the tag with the given key if available.
@@ -18,7 +19,15 @@ func GetTagValue(key string, tags interface{}) string {
 				return aws.StringValue(tag.Value)
 			}
 		}
+	case []*elb.Tag:
+		for _, tag := range v {
+			if aws.StringValue(tag.Key) == key {
+				return aws.StringValue(tag.Value)
+			}
+		}
+
 	}
+
 	return ""
 }
 

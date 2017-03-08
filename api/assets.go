@@ -53,7 +53,7 @@ func getAssets(w http.ResponseWriter, r *http.Request) {
 		resp, errs = aws.GetLaunchConfigurations("")
 
 	case "loadbalancers":
-		resp, errs = aws.GetLoadBalancers()
+		resp, errs = aws.GetLoadBalancers("")
 
 	case "scalingpolicies":
 		resp, errs = aws.GetScalingPolicies()

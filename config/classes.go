@@ -104,7 +104,7 @@ func Insert(classType string, classInterface interface{}) error {
 			DeleteItemsByType(classType + "/" + class + "/listeners")
 
 			// Load Balancer Listeners
-			for _, listener := range config.Listeners {
+			for _, listener := range config.LoadBalancerListeners {
 				itemName = classType + "/" + class + "/listeners/" + uuid.NewV4().String()
 				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(listener, classType+"/"+class+"/listeners")...)
 			}

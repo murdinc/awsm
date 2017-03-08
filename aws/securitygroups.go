@@ -79,6 +79,49 @@ func GetSecurityGroupByName(region, name string) (SecurityGroup, error) {
 	return SecurityGroup{}, errors.New("Found more than one Security Group named [" + name + "] in [" + region + "], Aborting!")
 }
 
+// GetClassicSecurityGroupByName returns a single Security Group that matches a provided region and name, (non-vpc only)
+func GetEc2ClassicSecurityGroupByName(region, name string) (SecurityGroup, error) {
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
+	params := &ec2.DescribeSecurityGroupsInput{
+		GroupNames: []*string{
+			aws.String(name),
+		},
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("vpc-id"),
+				Values: []*string{
+					aws.String(""),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeSecurityGroups(params)
+	if err != nil {
+		return SecurityGroup{}, err
+	}
+
+	count := len(result.SecurityGroups)
+
+	switch count {
+	case 0:
+		// Fall back to tag
+		return GetSecurityGroupByTag(region, "Name", name)
+	case 1:
+		vpcList := new(Vpcs)
+		GetRegionVpcs(region, vpcList, "")
+
+		sec := new(SecurityGroup)
+		sec.Marshal(result.SecurityGroups[0], region, vpcList)
+		return *sec, nil
+	}
+
+	return SecurityGroup{}, errors.New("Found more than one Security Group named [" + name + "] in [" + region + "], Aborting!")
+}
+
 // GetSecurityGroupByTag returns a single Security Group that matches a provided region and key/value tag
 func GetSecurityGroupByTag(region, key, value string) (SecurityGroup, error) {
 
@@ -472,7 +515,7 @@ type SecurityGroupChange struct {
 
 func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 
-	terminal.Delta("Building list of security group changes...")
+	terminal.Delta("Comparing awsm security group grants...")
 
 	changes := []SecurityGroupChange{}
 	cfgHashes := make([]map[uint64]config.SecurityGroupGrant, len(s))
@@ -581,6 +624,12 @@ func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 
 			sGrant := grant
 
+			// Skip egress rules on non vpc security groups
+			if secGrp.Vpc == "" && grant.Type == "egress" {
+				terminal.Notice(fmt.Sprintf("[%s %s] - Skip - [%s]	[%s :%d-%d]	Egress rules can only be applied to VPC Security Groups", secGrp.Name, secGrp.Region, sGrant.Type, sGrant.IPProtocol, sGrant.FromPort, sGrant.ToPort))
+				continue
+			}
+
 			for _, ipGrant := range grant.CidrIPs {
 				sGrant.CidrIPs = []string{ipGrant}
 				sGrant.SourceSecurityGroupNames = []string{}
@@ -646,7 +695,7 @@ func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 		}
 	}
 
-	terminal.Information("Diff complete!")
+	terminal.Information("Comparison complete!")
 
 	return changes, nil
 

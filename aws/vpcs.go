@@ -289,7 +289,7 @@ func CreateVpc(class, name, ip, region string, dryRun bool) error {
 		return errors.New("Region [" + region + "] is Invalid!")
 	}
 
-	// TODO limit to one VPC of a class per region, so that we can target VPCs by class instead of name.
+	// TODO limit to one VPC of a class per region, so that we can target VPCs by class instead of name?
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 	svc := ec2.New(sess)

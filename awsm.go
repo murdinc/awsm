@@ -333,6 +333,35 @@ func main() {
 			},
 		},
 		{
+			Name:  "createLoadBalancer",
+			Usage: "Create an AWS Load Balancer",
+			Arguments: []cli.Argument{
+				{
+					Name:        "class",
+					Description: "The class of the load balancer groups to create",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region to create the load balancer in",
+					Optional:    false,
+				},
+				{
+					Name:        "vpc",
+					Description: "The vpc to create the load balancer in (optional)",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.CreateLoadBalancer(c.NamedArg("class"), c.NamedArg("region"), c.NamedArg("vpc"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "createKeyPair",
 			Usage: "Create an AWS Key Pair in the specified region",
 			Arguments: []cli.Argument{
@@ -728,6 +757,30 @@ func main() {
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteLaunchConfigurations(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "deleteLoadBalancers",
+			Usage: "Delete AWS Load Balancer(s)",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for the load balancer to delete",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region to create the load balancer in",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteLoadBalancers(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -1344,11 +1397,18 @@ func main() {
 			},
 		},
 		{
-			Name:   "listLoadBalancers",
-			Usage:  "Lists Elastic Load Balancers",
+			Name:  "listLoadBalancers",
+			Usage: "Lists Elastic Load Balancers",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				loadBalancers, errs := aws.GetLoadBalancers()
+				loadBalancers, errs := aws.GetLoadBalancers(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Load Balancers!", 1)
 				}
@@ -1586,12 +1646,36 @@ func main() {
 			},
 		},
 		{
+			Name:  "updateLoadBalancers",
+			Usage: "Update Load Balancers",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term of the load balancers to update",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region to update the load balancers in (optional)",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.UpdateLoadBalancers(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "updateSecurityGroups",
 			Usage: "Update Security Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
-					Description: "The search term of the security group group to update",
+					Description: "The search term of the security groups to update",
 					Optional:    false,
 				},
 				{
