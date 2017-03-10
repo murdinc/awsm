@@ -350,7 +350,7 @@ func LoadAllClassOptions(classType string) (options map[string]interface{}, err 
 		classOptionKeys = []string{"regions", "instances"}
 
 	case "loadbalancers":
-		classOptionKeys = []string{"securitygroups", "subnets", "zones"}
+		classOptionKeys = []string{"securitygroups", "vpcs", "subnets", "zones"}
 
 	case "scalingpolicies":
 

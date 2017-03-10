@@ -15,32 +15,18 @@ type LoadBalancerClasses map[string]LoadBalancerClass
 type LoadBalancerClass struct {
 	Scheme            string   `json:"scheme" awsmClass:"Scheme"`
 	SecurityGroups    []string `json:"securityGroups" awsmClass:"Security Groups"`
+	Vpc               string   `json:"vpc" awsmClass:"VPC"`
 	Subnets           []string `json:"subnets" awsmClass:"Subnets"`
 	AvailabilityZones []string `json:"availabilityZones" awsmClass:"Availability Zone"`
 
 	// Listeners
-	LoadBalancerListeners []LoadBalancerListener `json:"loadBalancerListeners"  awsmClass:"Listeners"`
+	LoadBalancerListeners []LoadBalancerListener `json:"loadBalancerListeners" hash:"ignore" awsmClass:"Listeners"`
 
 	// Health Checks
-	HealthCheckTarget             string `json:"healthCheckTarget" awsmClass:"Health Check Target"`
-	HealthCheckTimeout            int    `json:"healthCheckTimeout" awsmClass:"Health Check Timeout"`
-	HealthCheckInterval           int    `json:"healthCheckInterval" awsmClass:"Health Check Interval"`
-	HealthCheckUnhealthyThreshold int    `json:"healthCheckUnhealthyThreshold" awsmClass:"Unhealthy Threshold"`
-	HealthCheckHealthyThreshold   int    `json:"healthCheckHealthyThreshold" awsmClass:"Healthy Threshold"`
+	LoadBalancerHealthCheck LoadBalancerHealthCheck `json:"loadBalancerHealthCheck" hash:"ignore" awsmClass:"Health Check"`
 
-	// Connection Draining
-	ConnectionDrainingEnabled bool `json:"connectionDrainingEnabled" awsmClass:"Connection Draining"`
-	ConnectionDrainingTimeout int  `json:"connectionDrainingTimeout" awsmClass:"Connection Draining Timeout"`
-
-	// Connection Settings
-	IdleTimeout                   int  `json:"idleTimeout" awsmClass:"Idle Timeout"`
-	CrossZoneLoadBalancingEnabled bool `json:"crossZoneLoadBalancing" awsmClass:"Cross Zone Load Balancing"`
-
-	// Access Logs
-	AccessLogEnabled        bool   `json:"accessLogEnabled" awsmClass:"Access Log Enabled"`
-	AccessLogEmitInterval   int    `json:"accessLogEmitInterval" awsmClass:"Access Log Emit Interval"`
-	AccessLogS3BucketName   string `json:"accessLogS3BucketName" awsmClass:"Access Log S3 Bucket Name"`
-	AccessLogS3BucketPrefix string `json:"accessLogS3BucketPrefix" awsmClass:"Access Log S3 Bucket Prefix"`
+	// Attributes
+	LoadBalancerAttributes LoadBalancerAttributes `json:"loadBalancerAttributes" hash:"ignore" awsmClass:"Attributes"`
 }
 
 // LoadBalancerListener is a single Load Balancer Listener
@@ -53,19 +39,45 @@ type LoadBalancerListener struct {
 	SSLCertificateID string `json:"sslCertificateID"`
 }
 
+type LoadBalancerHealthCheck struct {
+	HealthCheckTarget             string `json:"healthCheckTarget" awsmClass:"Health Check Target"`
+	HealthCheckTimeout            int    `json:"healthCheckTimeout" awsmClass:"Health Check Timeout"`
+	HealthCheckInterval           int    `json:"healthCheckInterval" awsmClass:"Health Check Interval"`
+	HealthCheckUnhealthyThreshold int    `json:"healthCheckUnhealthyThreshold" awsmClass:"Unhealthy Threshold"`
+	HealthCheckHealthyThreshold   int    `json:"healthCheckHealthyThreshold" awsmClass:"Healthy Threshold"`
+}
+
+type LoadBalancerAttributes struct {
+	// Connection Draining
+	ConnectionDrainingEnabled bool `json:"connectionDrainingEnabled" awsmClass:"Connection Draining"`
+	ConnectionDrainingTimeout int  `json:"connectionDrainingTimeout" awsmClass:"Connection Draining Timeout"`
+
+	// Connection Settings
+	IdleTimeout                   int  `json:"idleTimeout" awsmClass:"Idle Timeout"`
+	CrossZoneLoadBalancingEnabled bool `json:"crossZoneLoadBalancingEnabled" awsmClass:"Cross Zone Load Balancing"`
+
+	// Access Logs
+	AccessLogEnabled        bool   `json:"accessLogEnabled" awsmClass:"Access Log Enabled"`
+	AccessLogEmitInterval   int    `json:"accessLogEmitInterval" awsmClass:"Access Log Emit Interval"`
+	AccessLogS3BucketName   string `json:"accessLogS3BucketName" awsmClass:"Access Log S3 Bucket Name"`
+	AccessLogS3BucketPrefix string `json:"accessLogS3BucketPrefix" awsmClass:"Access Log S3 Bucket Prefix"`
+}
+
 // DefaultLoadBalancerClasses returns the default Load Balancer Classes
 func DefaultLoadBalancerClasses() LoadBalancerClasses {
 	defaultLBs := make(LoadBalancerClasses)
 
 	defaultLBs["prod"] = LoadBalancerClass{
-		Scheme:                        "internet-facing",
-		SecurityGroups:                []string{"prod"},
-		Subnets:                       []string{"public"},
-		HealthCheckTarget:             "HTTP:80/index.html",
-		HealthCheckTimeout:            5,
-		HealthCheckInterval:           30,
-		HealthCheckUnhealthyThreshold: 2,
-		HealthCheckHealthyThreshold:   10,
+		Scheme:         "internet-facing",
+		SecurityGroups: []string{"prod"},
+		Subnets:        []string{"public"},
+		LoadBalancerHealthCheck: LoadBalancerHealthCheck{
+			HealthCheckTarget:             "HTTP:80/index.html",
+			HealthCheckTimeout:            5,
+			HealthCheckInterval:           30,
+			HealthCheckUnhealthyThreshold: 2,
+			HealthCheckHealthyThreshold:   10,
+		},
 		LoadBalancerListeners: []LoadBalancerListener{
 			LoadBalancerListener{
 				InstancePort:     80,
@@ -133,11 +145,55 @@ func (c LoadBalancerClasses) Marshal(items []*simpledb.Item) {
 			case "SecurityGroups":
 				cfg.SecurityGroups = append(cfg.SecurityGroups, val)
 
+			case "Vpc":
+				cfg.Vpc = val
+
 			case "Subnets":
 				cfg.Subnets = append(cfg.Subnets, val)
 
 			case "AvailabilityZones":
 				cfg.AvailabilityZones = append(cfg.AvailabilityZones, val)
+
+			// Get the health check
+			case "HealthCheckTarget":
+				cfg.LoadBalancerHealthCheck.HealthCheckTarget = val
+
+			case "HealthCheckTimeout":
+				cfg.LoadBalancerHealthCheck.HealthCheckTimeout, _ = strconv.Atoi(val)
+
+			case "HealthCheckInterval":
+				cfg.LoadBalancerHealthCheck.HealthCheckInterval, _ = strconv.Atoi(val)
+
+			case "HealthCheckUnhealthyThreshold":
+				cfg.LoadBalancerHealthCheck.HealthCheckUnhealthyThreshold, _ = strconv.Atoi(val)
+
+			case "HealthCheckHealthyThreshold":
+				cfg.LoadBalancerHealthCheck.HealthCheckHealthyThreshold, _ = strconv.Atoi(val)
+
+			case "ConnectionDrainingEnabled":
+				cfg.LoadBalancerAttributes.ConnectionDrainingEnabled, _ = strconv.ParseBool(val)
+
+			// Get the attributes
+			case "ConnectionDrainingTimeout":
+				cfg.LoadBalancerAttributes.ConnectionDrainingTimeout, _ = strconv.Atoi(val)
+
+			case "IdleTimeout":
+				cfg.LoadBalancerAttributes.IdleTimeout, _ = strconv.Atoi(val)
+
+			case "CrossZoneLoadBalancingEnabled":
+				cfg.LoadBalancerAttributes.CrossZoneLoadBalancingEnabled, _ = strconv.ParseBool(val)
+
+			case "AccessLogEnabled":
+				cfg.LoadBalancerAttributes.AccessLogEnabled, _ = strconv.ParseBool(val)
+
+			case "AccessLogEmitInterval":
+				cfg.LoadBalancerAttributes.AccessLogEmitInterval, _ = strconv.Atoi(val)
+
+			case "AccessLogS3BucketName":
+				cfg.LoadBalancerAttributes.AccessLogS3BucketName = val
+
+			case "AccessLogS3BucketPrefix":
+				cfg.LoadBalancerAttributes.AccessLogS3BucketPrefix = val
 
 			}
 		}

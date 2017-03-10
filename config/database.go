@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
-	"github.com/murdinc/terminal"
 )
 
 // CheckDB checks for an awsm database
@@ -102,12 +101,12 @@ func DeleteItemsByType(classType string) error {
 	}
 
 	for _, item := range existingItems {
-		itemName := aws.StringValue(item.Name)
 		params.Items = append(params.Items, &simpledb.DeletableItem{
 			Name: item.Name,
 		})
 
-		terminal.Delta("Deleting [" + classType + "/" + itemName + "] Configuration...")
+		//itemName := aws.StringValue(item.Name)
+		//terminal.Delta("Deleting [" + classType + "/" + itemName + "] Configuration...")
 	}
 
 	_, err = svc.BatchDeleteAttributes(params)
@@ -115,7 +114,7 @@ func DeleteItemsByType(classType string) error {
 		return err
 	}
 
-	terminal.Information("Done!")
+	//terminal.Information("Done!")
 
 	return nil
 }
@@ -218,6 +217,12 @@ func BuildAttributes(class interface{}, classType string) []*simpledb.Replaceabl
 
 		case []SecurityGroupGrant, []LoadBalancerListener:
 			// Handled in config/classes.go, for now
+
+		case LoadBalancerHealthCheck:
+			attributes = append(attributes, BuildAttributes(val.Field(i).Interface().(LoadBalancerHealthCheck), classType)...)
+
+		case LoadBalancerAttributes:
+			attributes = append(attributes, BuildAttributes(val.Field(i).Interface().(LoadBalancerAttributes), classType)...)
 
 		default:
 			println("BuildAttributes does not have a switch for type:")

@@ -515,7 +515,7 @@ type SecurityGroupChange struct {
 
 func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 
-	terminal.Delta("Comparing awsm security group grants...")
+	terminal.Delta("Comparing awsm Security Group grants...")
 
 	changes := []SecurityGroupChange{}
 	cfgHashes := make([]map[uint64]config.SecurityGroupGrant, len(s))

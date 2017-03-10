@@ -346,15 +346,10 @@ func main() {
 					Description: "The region to create the load balancer in",
 					Optional:    false,
 				},
-				{
-					Name:        "vpc",
-					Description: "The vpc to create the load balancer in (optional)",
-					Optional:    true,
-				},
 			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				err := aws.CreateLoadBalancer(c.NamedArg("class"), c.NamedArg("region"), c.NamedArg("vpc"), dryRun)
+				err := aws.CreateLoadBalancer(c.NamedArg("class"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}

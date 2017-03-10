@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/asaskevich/govalidator"
@@ -195,18 +194,39 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 	subnetNamesSorted := sort.StringSlice(subnetNames[0:])
 	subnetNamesSorted.Sort()
 
+	// attributes
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := elb.New(sess)
+	params := &elb.DescribeLoadBalancerAttributesInput{
+		LoadBalancerName: balancer.LoadBalancerName,
+	}
+	attributesResp, _ := svc.DescribeLoadBalancerAttributes(params)
+
+	l.LoadBalancerHealthCheck.HealthCheckTarget = aws.StringValue(balancer.HealthCheck.Target)
+	l.LoadBalancerHealthCheck.HealthCheckTimeout = int(aws.Int64Value(balancer.HealthCheck.Timeout))
+	l.LoadBalancerHealthCheck.HealthCheckInterval = int(aws.Int64Value(balancer.HealthCheck.Interval))
+	l.LoadBalancerHealthCheck.HealthCheckUnhealthyThreshold = int(aws.Int64Value(balancer.HealthCheck.UnhealthyThreshold))
+	l.LoadBalancerHealthCheck.HealthCheckHealthyThreshold = int(aws.Int64Value(balancer.HealthCheck.HealthyThreshold))
+
+	l.LoadBalancerAttributes.ConnectionDrainingEnabled = aws.BoolValue(attributesResp.LoadBalancerAttributes.ConnectionDraining.Enabled)
+	l.LoadBalancerAttributes.ConnectionDrainingTimeout = int(aws.Int64Value(attributesResp.LoadBalancerAttributes.ConnectionDraining.Timeout))
+	l.LoadBalancerAttributes.IdleTimeout = int(aws.Int64Value(attributesResp.LoadBalancerAttributes.ConnectionSettings.IdleTimeout))
+	l.LoadBalancerAttributes.CrossZoneLoadBalancingEnabled = aws.BoolValue(attributesResp.LoadBalancerAttributes.CrossZoneLoadBalancing.Enabled)
+	l.LoadBalancerAttributes.AccessLogEnabled = aws.BoolValue(attributesResp.LoadBalancerAttributes.AccessLog.Enabled)
+	l.LoadBalancerAttributes.AccessLogEmitInterval = int(aws.Int64Value(attributesResp.LoadBalancerAttributes.AccessLog.EmitInterval))
+	l.LoadBalancerAttributes.AccessLogS3BucketName = aws.StringValue(attributesResp.LoadBalancerAttributes.AccessLog.S3BucketName)
+	l.LoadBalancerAttributes.AccessLogS3BucketPrefix = aws.StringValue(attributesResp.LoadBalancerAttributes.AccessLog.S3BucketPrefix)
+
 	l.Name = aws.StringValue(balancer.LoadBalancerName)
 	l.DNSName = aws.StringValue(balancer.DNSName)
 	l.CreatedTime = aws.TimeValue(balancer.CreatedTime)
 	l.VpcID = aws.StringValue(balancer.VPCId)
 	l.Vpc = vpcList.GetVpcName(l.VpcID)
 	l.SubnetIDs = aws.StringValueSlice(balancer.Subnets)
-	l.Subnets = strings.Join(subnetNamesSorted, ", ")
-	l.HealthCheckTarget = aws.StringValue(balancer.HealthCheck.Target)
-	l.HealthCheckInterval = fmt.Sprintf("%d seconds", *balancer.HealthCheck.Interval)
+	l.Subnets = subnetNamesSorted
 	l.Scheme = aws.StringValue(balancer.Scheme)
-	l.SecurityGroups = strings.Join(secGroupNamesSorted, ", ")
-	l.AvailabilityZones = strings.Join(aws.StringValueSlice(balancer.AvailabilityZones), ", ")
+	l.SecurityGroups = secGroupNamesSorted
+	l.AvailabilityZones = aws.StringValueSlice(balancer.AvailabilityZones)
 	l.Region = region
 	l.Class = GetTagValue("Class", tags[l.Name])
 
@@ -222,21 +242,21 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 		})
 	}
 
+	/* TODO
+	// Get the app cookie policies
+	for _, policy := range balancer.Policies.AppCookieStickinessPolicies {
+		policy.PolicyName
+		policy.CookieName
+	}
+
+	// Get the lb cookie policies
+	for _, policy := range balancer.Policies.LBCookieStickinessPolicies {
+		policy.PolicyName
+		policy.CookieExpirationPeriod
+	}
+	*/
+
 }
-
-/*
-
-// LoadBalancerListener is a Load Balancer Listener
-type LoadBalancerListener struct {
-	ID               string `json:"id" hash:"ignore" awsm:"ignore"` // Needed?
-	InstancePort     int    `json:"instancePort"`
-	LoadBalancerPort int    `json:"loadBalancerPort"`
-	Protocol         string `json:"protocol"`
-	InstanceProtocol string `json:"instanceProtocol"`
-	SSLCertificateID string `json:"sslCertificateID"`
-}
-
-*/
 
 // PrintTable Prints an ascii table of the list of Load Balancers
 func (i *LoadBalancers) PrintTable() {
@@ -258,7 +278,7 @@ func (i *LoadBalancers) PrintTable() {
 	table.Render()
 }
 
-func CreateLoadBalancer(class, region, vpcName string, dryRun bool) error {
+func CreateLoadBalancer(class, region string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -289,8 +309,8 @@ func CreateLoadBalancer(class, region, vpcName string, dryRun bool) error {
 	subnetIds := []*string{}
 
 	// Validate the vpc if passed one - with security groups, and get the matching security groups
-	if vpcName != "" {
-		vpc, err := GetVpcByTag(region, "Name", vpcName)
+	if elbCfg.Vpc != "" {
+		vpc, err := GetVpcByTag(region, "Name", elbCfg.Vpc)
 		if err != nil {
 			return err
 		}
@@ -459,15 +479,32 @@ func updateLoadBalancers(changes []LoadBalancerChange, dryRun bool) error {
 
 	if !dryRun {
 		for _, change := range changes {
-			if change.Remove {
-				// remove
-				err := removeListener(change.LoadBalancer, change.Listeners)
+			if len(change.Listeners) > 0 {
+				if change.Revoke {
+					// remove
+					err := removeListener(change.LoadBalancer, change.Listeners)
+					if err != nil {
+						return err
+					}
+				} else {
+					// add
+					err := addListener(change.LoadBalancer, change.Listeners)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			//blank := config.LoadBalancerAttributes{}
+			if change.Attributes != (config.LoadBalancerAttributes{}) {
+				// add
+				err := modifyAttributes(change.LoadBalancer, change.Attributes)
 				if err != nil {
 					return err
 				}
-			} else {
+			}
+			if change.HealthCheck != (config.LoadBalancerHealthCheck{}) {
 				// add
-				err := addListener(change.LoadBalancer, change.Listeners)
+				err := configureHealthCheck(change.LoadBalancer, change.HealthCheck)
 				if err != nil {
 					return err
 				}
@@ -478,7 +515,90 @@ func updateLoadBalancers(changes []LoadBalancerChange, dryRun bool) error {
 	return nil
 }
 
+func modifyAttributes(lb LoadBalancer, attributes config.LoadBalancerAttributes) error {
+
+	params := &elb.ModifyLoadBalancerAttributesInput{
+		LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+			ConnectionSettings: &elb.ConnectionSettings{
+				IdleTimeout: aws.Int64(int64(attributes.IdleTimeout)),
+			},
+			CrossZoneLoadBalancing: &elb.CrossZoneLoadBalancing{
+				Enabled: aws.Bool(attributes.CrossZoneLoadBalancingEnabled),
+			},
+			/*
+				AdditionalAttributes: []*elb.AdditionalAttribute{
+					{
+						Key:   aws.String("AdditionalAttributeKey"),
+						Value: aws.String("AdditionalAttributeValue"),
+					},
+				},
+			*/
+		},
+		LoadBalancerName: aws.String(lb.Name),
+	}
+
+	if attributes.AccessLogEnabled {
+		params.LoadBalancerAttributes.SetAccessLog(&elb.AccessLog{
+			Enabled:        aws.Bool(attributes.AccessLogEnabled),
+			EmitInterval:   aws.Int64(int64(attributes.AccessLogEmitInterval)),
+			S3BucketName:   aws.String(attributes.AccessLogS3BucketName),
+			S3BucketPrefix: aws.String(attributes.AccessLogS3BucketPrefix),
+		})
+	}
+
+	if attributes.ConnectionDrainingEnabled {
+		params.LoadBalancerAttributes.SetConnectionDraining(&elb.ConnectionDraining{
+			Enabled: aws.Bool(attributes.ConnectionDrainingEnabled),
+			Timeout: aws.Int64(int64(attributes.ConnectionDrainingTimeout)),
+		})
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lb.Region)}))
+	svc := elb.New(sess)
+
+	_, err := svc.ModifyLoadBalancerAttributes(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func configureHealthCheck(lb LoadBalancer, healthcheck config.LoadBalancerHealthCheck) error {
+
+	params := &elb.ConfigureHealthCheckInput{
+		HealthCheck: &elb.HealthCheck{ // Required
+			HealthyThreshold:   aws.Int64(int64(healthcheck.HealthCheckHealthyThreshold)),
+			Interval:           aws.Int64(int64(healthcheck.HealthCheckInterval)),
+			Target:             aws.String(healthcheck.HealthCheckTarget),
+			Timeout:            aws.Int64(int64(healthcheck.HealthCheckTimeout)),
+			UnhealthyThreshold: aws.Int64(int64(healthcheck.HealthCheckUnhealthyThreshold)),
+		},
+		LoadBalancerName: aws.String(lb.Name),
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lb.Region)}))
+	svc := elb.New(sess)
+
+	_, err := svc.ConfigureHealthCheck(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
 func addListener(lb LoadBalancer, listeners []config.LoadBalancerListener) error {
+
+	if len(listeners) == 0 {
+		return nil
+	}
 
 	params := &elb.CreateLoadBalancerListenersInput{
 		LoadBalancerName: aws.String(lb.Name),
@@ -507,9 +627,6 @@ func addListener(lb LoadBalancer, listeners []config.LoadBalancerListener) error
 	_, err := svc.CreateLoadBalancerListeners(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "DryRunOperation" {
-				return nil
-			}
 			return errors.New(awsErr.Message())
 		}
 		return err
@@ -520,6 +637,10 @@ func addListener(lb LoadBalancer, listeners []config.LoadBalancerListener) error
 }
 
 func removeListener(lb LoadBalancer, listeners []config.LoadBalancerListener) error {
+
+	if len(listeners) == 0 {
+		return nil
+	}
 
 	params := &elb.DeleteLoadBalancerListenersInput{
 		LoadBalancerName: aws.String(lb.Name),
@@ -539,9 +660,6 @@ func removeListener(lb LoadBalancer, listeners []config.LoadBalancerListener) er
 	_, err := svc.DeleteLoadBalancerListeners(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "DryRunOperation" {
-				return nil
-			}
 			return errors.New(awsErr.Message())
 		}
 		return err
@@ -552,43 +670,66 @@ func removeListener(lb LoadBalancer, listeners []config.LoadBalancerListener) er
 
 type LoadBalancerChange struct {
 	LoadBalancer LoadBalancer
-	Remove       bool
+	Revoke       bool
+	Attributes   config.LoadBalancerAttributes
+	HealthCheck  config.LoadBalancerHealthCheck
 	Listeners    []config.LoadBalancerListener
 }
 
 func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 
-	terminal.Delta("Comparing awsm load balancer listeners...")
+	terminal.Delta("Comparing awsm Load Balancer listeners...")
 
 	changes := []LoadBalancerChange{}
-	cfgHashes := make([]map[uint64]config.LoadBalancerListener, len(s))
+	listenerHashes := make([]map[uint64]config.LoadBalancerListener, len(s))
 
 	for i, lb := range s {
-		cfgHashes[i] = make(map[uint64]config.LoadBalancerListener)
+
+		listenerHashes[i] = make(map[uint64]config.LoadBalancerListener)
 		// Verify the security group class input
 		cfg, err := config.LoadLoadBalancerClass(lb.Class)
 		if err != nil {
 			return changes, err
 		}
 
-		// cycle through the config listeners and generate hashess
+		// attributes
+		lbAttrHash, _ := hashstructure.Hash(lb.LoadBalancerAttributes, nil)
+		cfgAttrHash, _ := hashstructure.Hash(cfg.LoadBalancerAttributes, nil)
+		if lbAttrHash != cfgAttrHash {
+			terminal.Delta(fmt.Sprintf("[%s %s] - Update -	[Load Balancer Attributes]", lb.Name, lb.Region))
+			changes = append(changes, LoadBalancerChange{
+				Attributes:   cfg.LoadBalancerAttributes,
+				LoadBalancer: lb,
+			})
+		}
+
+		// health check
+		lbHealthCheckHash, _ := hashstructure.Hash(lb.LoadBalancerHealthCheck, nil)
+		cfgHealthCheckHash, _ := hashstructure.Hash(cfg.LoadBalancerHealthCheck, nil)
+		if lbHealthCheckHash != cfgHealthCheckHash {
+			terminal.Delta(fmt.Sprintf("[%s %s] - Update -	[Load Balancer Health Check]", lb.Name, lb.Region))
+			changes = append(changes, LoadBalancerChange{
+				HealthCheck:  cfg.LoadBalancerHealthCheck,
+				LoadBalancer: lb,
+			})
+		}
+
+		// cycle through the config listeners and generate hashes
 		for _, cListener := range cfg.LoadBalancerListeners {
 
 			configListenerHash, err := hashstructure.Hash(cListener, nil)
 			if err != nil {
 				return changes, err
 			}
-			cfgHashes[i][configListenerHash] = cListener
-
+			listenerHashes[i][configListenerHash] = cListener
 		}
-
 	}
 
 	for i, lb := range s {
 
 		var remove, add []config.LoadBalancerListener
 
-		// cycle through existing grants and find ones to remove
+		// cycle through existing listeners and find ones to remove
 		for _, listener := range lb.LoadBalancerListeners {
 
 			existingListenerHash, err := hashstructure.Hash(listener, nil)
@@ -596,18 +737,18 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 				return changes, err
 			}
 
-			if _, ok := cfgHashes[i][existingListenerHash]; !ok {
+			if _, ok := listenerHashes[i][existingListenerHash]; !ok {
 				terminal.Delta(fmt.Sprintf("[%s %s] - Remove -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
 				remove = append(remove, listener)
 
 			} else {
 				//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
-				delete(cfgHashes[i], existingListenerHash)
+				delete(listenerHashes[i], existingListenerHash)
 			}
 		}
 
 		// cycle through hashes and find ones to add
-		for _, listener := range cfgHashes[i] {
+		for _, listener := range listenerHashes[i] {
 			terminal.Delta(fmt.Sprintf("[%s %s] - Add -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
 			add = append(add, listener)
 
@@ -618,7 +759,7 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 			changes = append(changes, LoadBalancerChange{
 				LoadBalancer: lb,
 				Listeners:    remove,
-				Remove:       true,
+				Revoke:       true,
 			})
 		}
 
