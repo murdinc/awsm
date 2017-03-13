@@ -538,7 +538,7 @@ func AttachIAMRolePolicy(roleName, policy string, dryRun bool) error {
 	policies.PrintTable()
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to these policies to this IAM Role?") {
+	if !terminal.PromptBool("Are you sure you want to attach these policies to this IAM Role?") {
 		terminal.ErrorLine("Aborting!")
 		return nil
 	}

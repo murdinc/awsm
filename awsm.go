@@ -1224,6 +1224,27 @@ func main() {
 			},
 		},
 		{
+			Name:  "listBuckets",
+			Usage: "Lists S3 Buckets",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				groups, errs := aws.GetBuckets(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing S3 Buckets!", 1)
+				}
+				groups.PrintTable()
+
+				return nil
+			},
+		},
+		{
 			Name:  "listIAMInstanceProfiles",
 			Usage: "Lists IAM Instance Profiles",
 			Arguments: []cli.Argument{

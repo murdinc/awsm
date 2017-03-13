@@ -35,9 +35,6 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 			case "bool":
 				sVal = fmt.Sprint(inValue.Field(k).Bool())
 			case "[]string":
-
-				fmt.Printf("%v", inValue.Field(k).Len())
-
 				if !inValue.Field(k).IsNil() {
 					strSlice, ok := inValue.Field(k).Interface().([]string)
 					if ok {

@@ -44,6 +44,16 @@ func (s *SecurityGroups) GetSecurityGroupNames(ids []string) []string {
 	return names
 }
 
+// GetSecurityGroupNames returns a slice of the security group names (or ID's if a name is not available)
+func (s *SecurityGroups) GetSecurityGroupIDs() []string {
+	ids := make([]string, len(*s))
+	for i, secGrp := range *s {
+		ids[i] = secGrp.GroupID
+	}
+
+	return ids
+}
+
 // GetSecurityGroupByName returns a single Security Group that matches a provided region and name
 func GetSecurityGroupByName(region, name string) (SecurityGroup, error) {
 

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/asaskevich/govalidator"
@@ -479,6 +480,7 @@ func updateLoadBalancers(changes []LoadBalancerChange, dryRun bool) error {
 
 	if !dryRun {
 		for _, change := range changes {
+			// Listeners
 			if len(change.Listeners) > 0 {
 				if change.Revoke {
 					// remove
@@ -494,19 +496,58 @@ func updateLoadBalancers(changes []LoadBalancerChange, dryRun bool) error {
 					}
 				}
 			}
-			//blank := config.LoadBalancerAttributes{}
+
+			// Attributes
 			if change.Attributes != (config.LoadBalancerAttributes{}) {
-				// add
 				err := modifyAttributes(change.LoadBalancer, change.Attributes)
 				if err != nil {
 					return err
 				}
 			}
+
+			// Health Check
 			if change.HealthCheck != (config.LoadBalancerHealthCheck{}) {
-				// add
 				err := configureHealthCheck(change.LoadBalancer, change.HealthCheck)
 				if err != nil {
 					return err
+				}
+			}
+
+			// Security Groups
+			if len(change.SecurityGroups) != 0 {
+				err := applySecurityGroups(change.LoadBalancer, change.SecurityGroups)
+				if err != nil {
+					return err
+				}
+			}
+
+			// Availability Zones - enable/disable
+			if len(change.AvailabilityZones) != 0 {
+				if change.Disable {
+					err := disableAvailabilityZone(change.LoadBalancer, change.AvailabilityZones)
+					if err != nil {
+						return err
+					}
+				} else {
+					err := enableAvailabilityZones(change.LoadBalancer, change.AvailabilityZones)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			// Subnets - attach/detach
+			if len(change.Subnets) != 0 {
+				if change.Detach {
+					err := detachSubnets(change.LoadBalancer, change.Subnets)
+					if err != nil {
+						return err
+					}
+				} else {
+					err := attachSubnets(change.LoadBalancer, change.Subnets)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -557,6 +598,111 @@ func modifyAttributes(lb LoadBalancer, attributes config.LoadBalancerAttributes)
 	svc := elb.New(sess)
 
 	_, err := svc.ModifyLoadBalancerAttributes(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func applySecurityGroups(lb LoadBalancer, securityGroupIds []string) error {
+
+	params := &elb.ApplySecurityGroupsToLoadBalancerInput{
+		LoadBalancerName: aws.String(lb.Name),
+		SecurityGroups:   aws.StringSlice(securityGroupIds),
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lb.Region)}))
+	svc := elb.New(sess)
+
+	_, err := svc.ApplySecurityGroupsToLoadBalancer(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func attachSubnets(lb LoadBalancer, subnetIds []string) error {
+
+	params := &elb.AttachLoadBalancerToSubnetsInput{
+		LoadBalancerName: aws.String(lb.Name),
+		Subnets:          aws.StringSlice(subnetIds),
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lb.Region)}))
+	svc := elb.New(sess)
+
+	_, err := svc.AttachLoadBalancerToSubnets(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func detachSubnets(lb LoadBalancer, subnetIds []string) error {
+
+	params := &elb.DetachLoadBalancerFromSubnetsInput{
+		LoadBalancerName: aws.String(lb.Name),
+		Subnets:          aws.StringSlice(subnetIds),
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lb.Region)}))
+	svc := elb.New(sess)
+
+	_, err := svc.DetachLoadBalancerFromSubnets(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func disableAvailabilityZone(lb LoadBalancer, azs []string) error {
+
+	params := &elb.DisableAvailabilityZonesForLoadBalancerInput{
+		AvailabilityZones: aws.StringSlice(azs),
+		LoadBalancerName:  aws.String(lb.Name),
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lb.Region)}))
+	svc := elb.New(sess)
+
+	_, err := svc.DisableAvailabilityZonesForLoadBalancer(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func enableAvailabilityZones(lb LoadBalancer, azs []string) error {
+
+	params := &elb.EnableAvailabilityZonesForLoadBalancerInput{
+		AvailabilityZones: aws.StringSlice(azs),
+		LoadBalancerName:  aws.String(lb.Name),
+	}
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(lb.Region)}))
+	svc := elb.New(sess)
+
+	_, err := svc.EnableAvailabilityZonesForLoadBalancer(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return errors.New(awsErr.Message())
@@ -669,11 +815,16 @@ func removeListener(lb LoadBalancer, listeners []config.LoadBalancerListener) er
 }
 
 type LoadBalancerChange struct {
-	LoadBalancer LoadBalancer
-	Revoke       bool
-	Attributes   config.LoadBalancerAttributes
-	HealthCheck  config.LoadBalancerHealthCheck
-	Listeners    []config.LoadBalancerListener
+	LoadBalancer      LoadBalancer
+	Revoke            bool
+	Attributes        config.LoadBalancerAttributes
+	HealthCheck       config.LoadBalancerHealthCheck
+	Listeners         []config.LoadBalancerListener
+	SecurityGroups    []string
+	Subnets           []string
+	AvailabilityZones []string
+	Disable           bool
+	Detach            bool
 }
 
 func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
@@ -682,17 +833,29 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 
 	changes := []LoadBalancerChange{}
 	listenerHashes := make([]map[uint64]config.LoadBalancerListener, len(s))
+	azHashes := make([]map[uint64]string, len(s))
+	subnetHashes := make([]map[uint64]string, len(s))
+
+	azs, errs := regions.GetAZs()
+	if errs != nil {
+		return changes, errors.New("Error Verifying Availability Zones")
+	}
 
 	for i, lb := range s {
 
 		listenerHashes[i] = make(map[uint64]config.LoadBalancerListener)
+		azHashes[i] = make(map[uint64]string)
+		subnetHashes[i] = make(map[uint64]string)
+
 		// Verify the security group class input
 		cfg, err := config.LoadLoadBalancerClass(lb.Class)
 		if err != nil {
 			return changes, err
 		}
 
-		// attributes
+		/////////////////
+		// ATTRIBUTES
+
 		lbAttrHash, _ := hashstructure.Hash(lb.LoadBalancerAttributes, nil)
 		cfgAttrHash, _ := hashstructure.Hash(cfg.LoadBalancerAttributes, nil)
 		if lbAttrHash != cfgAttrHash {
@@ -703,7 +866,9 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 			})
 		}
 
-		// health check
+		/////////////////
+		// HEALTH CHECK
+
 		lbHealthCheckHash, _ := hashstructure.Hash(lb.LoadBalancerHealthCheck, nil)
 		cfgHealthCheckHash, _ := hashstructure.Hash(cfg.LoadBalancerHealthCheck, nil)
 		if lbHealthCheckHash != cfgHealthCheckHash {
@@ -714,7 +879,52 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 			})
 		}
 
-		// cycle through the config listeners and generate hashes
+		/////////////////
+		// SECURITY GROUPS / SUBNETS
+
+		if lb.VpcID != "" && !reflect.DeepEqual(lb.SecurityGroups, cfg.SecurityGroups) {
+			secGrps, err := GetSecurityGroupByTagMulti(lb.Region, "Class", cfg.SecurityGroups)
+			if err != nil {
+				return changes, err
+			}
+
+			terminal.Delta(fmt.Sprintf("[%s %s] - Update -	[Load Balancer Security Groups] [%s]", lb.Name, lb.Region, strings.Join(cfg.SecurityGroups, ", ")))
+
+			secGrpIds := secGrps.GetSecurityGroupIDs()
+
+			changes = append(changes, LoadBalancerChange{
+				SecurityGroups: secGrpIds,
+				LoadBalancer:   lb,
+			})
+
+			for _, cSubnet := range cfg.Subnets {
+
+				configSubnetHash, err := hashstructure.Hash(cSubnet, nil)
+				if err != nil {
+					return changes, err
+				}
+				subnetHashes[i][configSubnetHash] = cSubnet
+			}
+
+		}
+
+		/////////////////
+		// AZS
+
+		for _, cAz := range cfg.AvailabilityZones {
+			if azs.GetRegion(cAz) == lb.Region {
+
+				configAzHash, err := hashstructure.Hash(cAz, nil)
+				if err != nil {
+					return changes, err
+				}
+				azHashes[i][configAzHash] = cAz
+			}
+		}
+
+		/////////////////
+		// LISTENERS
+
 		for _, cListener := range cfg.LoadBalancerListeners {
 
 			configListenerHash, err := hashstructure.Hash(cListener, nil)
@@ -726,21 +936,22 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 	}
 
 	for i, lb := range s {
+		var removeListener, addListener []config.LoadBalancerListener
+		var disableAz, enableAz []string
+		var detachSubnet, attachSubnet []string
 
-		var remove, add []config.LoadBalancerListener
+		/////////////////
+		// LISTENERS
 
 		// cycle through existing listeners and find ones to remove
 		for _, listener := range lb.LoadBalancerListeners {
-
 			existingListenerHash, err := hashstructure.Hash(listener, nil)
 			if err != nil {
 				return changes, err
 			}
-
 			if _, ok := listenerHashes[i][existingListenerHash]; !ok {
 				terminal.Delta(fmt.Sprintf("[%s %s] - Remove -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
-				remove = append(remove, listener)
-
+				removeListener = append(removeListener, listener)
 			} else {
 				//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
 				delete(listenerHashes[i], existingListenerHash)
@@ -750,24 +961,104 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 		// cycle through hashes and find ones to add
 		for _, listener := range listenerHashes[i] {
 			terminal.Delta(fmt.Sprintf("[%s %s] - Add -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
-			add = append(add, listener)
-
+			addListener = append(addListener, listener)
 		}
 
-		// remove
-		if len(remove) > 0 {
+		/////////////////
+		// AZs
+
+		// cycle through existing azs and find ones to remove
+		for _, az := range lb.AvailabilityZones {
+			existingAzHash, err := hashstructure.Hash(az, nil)
+			if err != nil {
+				return changes, err
+			}
+			if _, ok := azHashes[i][existingAzHash]; !ok {
+				terminal.Delta(fmt.Sprintf("[%s %s] - Disable -	[Load Balancer Availability Zone] [%s]", lb.Name, lb.Region, az))
+				disableAz = append(disableAz, az)
+			} else {
+				//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
+				delete(azHashes[i], existingAzHash)
+			}
+		}
+
+		// cycle through hashes and find ones to add
+		for _, az := range azHashes[i] {
+			terminal.Delta(fmt.Sprintf("[%s %s] - Enable -	[Load Balancer Availability Zones] [%s]", lb.Name, lb.Region, az))
+			enableAz = append(enableAz, az)
+		}
+
+		/////////////////
+		//  SUBNETS
+
+		if lb.VpcID != "" {
+			// cycle through existing subnets and find ones to remove
+			for _, subnet := range lb.Subnets {
+				existingSubnetHash, err := hashstructure.Hash(subnet, nil)
+				if err != nil {
+					return changes, err
+				}
+				if _, ok := subnetHashes[i][existingSubnetHash]; !ok {
+					terminal.Delta(fmt.Sprintf("[%s %s] - Detach -	[Load Balancer Subnet] [%s]", lb.Name, lb.Region, subnet))
+					detachSubnet = append(detachSubnet, subnet)
+				} else {
+					//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
+					delete(subnetHashes[i], existingSubnetHash)
+				}
+			}
+
+			// cycle through hashes and find ones to add
+			for _, subnet := range subnetHashes[i] {
+				terminal.Delta(fmt.Sprintf("[%s %s] - Attach -	[Load Balancer Subnet] [%s]", lb.Name, lb.Region, subnet))
+				attachSubnet = append(attachSubnet, subnet)
+			}
+		}
+
+		/////////////////
+		// COMPLIE CHANGES
+
+		// listeners
+		if len(removeListener) > 0 {
 			changes = append(changes, LoadBalancerChange{
 				LoadBalancer: lb,
-				Listeners:    remove,
+				Listeners:    removeListener,
 				Revoke:       true,
 			})
 		}
-
-		// add
-		if len(add) > 0 {
+		if len(addListener) > 0 {
 			changes = append(changes, LoadBalancerChange{
 				LoadBalancer: lb,
-				Listeners:    add,
+				Listeners:    addListener,
+			})
+		}
+
+		// azs
+		if len(enableAz) > 0 {
+			changes = append(changes, LoadBalancerChange{
+				LoadBalancer:      lb,
+				AvailabilityZones: enableAz,
+			})
+		}
+		if len(disableAz) > 0 {
+			changes = append(changes, LoadBalancerChange{
+				LoadBalancer:      lb,
+				AvailabilityZones: disableAz,
+				Disable:           true,
+			})
+		}
+
+		// subnets
+		if len(attachSubnet) > 0 {
+			changes = append(changes, LoadBalancerChange{
+				LoadBalancer: lb,
+				Subnets:      attachSubnet,
+			})
+		}
+		if len(detachSubnet) > 0 {
+			changes = append(changes, LoadBalancerChange{
+				LoadBalancer: lb,
+				Subnets:      detachSubnet,
+				Detach:       true,
 			})
 		}
 	}
