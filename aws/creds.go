@@ -1,8 +1,12 @@
 package aws
 
 import (
+	"errors"
 	"os/user"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/murdinc/terminal"
 	"gopkg.in/ini.v1"
 )
@@ -21,6 +25,7 @@ type Profile struct {
 // CheckCreds Runs before everything, verifying we have proper authentication or asking us to set some up
 func CheckCreds() (bool, string) {
 	id, err := testCreds()
+
 	if err != nil || len(id) == 0 {
 		create := false
 
@@ -78,19 +83,31 @@ func (a *awsmCreds) addCredsDialog() string {
 
 // testCreds verifies our credentials work and returns the current account ID
 func testCreds() (string, error) {
-	// Get the current user
+	// Try to get the account id from our current users IAM creds
 	iamUser, err := GetIAMUser("")
+	if err == nil {
+		// Parse the ARN to get the account ID
+		parsedArn, err := ParseArn(iamUser.Arn)
+		if err != nil || len(parsedArn.AccountID) == 0 {
+			return "", err
+		}
+
+		return parsedArn.AccountID, nil
+	}
+
+	// Try to get the account if from the ec2metadata
+	sess := session.Must(session.NewSession())
+	svc := ec2metadata.New(sess)
+
+	instanceDocument, err := svc.GetInstanceIdentityDocument()
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return "", errors.New(awsErr.Message())
+		}
 		return "", err
 	}
 
-	// Parse the ARN to get the account ID
-	parsedArn, err := ParseArn(iamUser.Arn)
-	if err != nil || len(parsedArn.AccountID) == 0 {
-		return "", err
-	}
-
-	return parsedArn.AccountID, nil
+	return instanceDocument.AccountID, nil
 }
 
 // readCreds reads in the config and returns a awsmCreds struct

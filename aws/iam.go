@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/murdinc/awsm/models"
@@ -45,21 +46,25 @@ type IAMInstanceProfile models.IAMInstanceProfile
 // GetIAMUser returns a single IAM User that matches the provided username
 func GetIAMUser(username string) (IAMUser, error) {
 
-	sess := session.Must(session.NewSession())
-	svc := iam.New(sess)
+	user := new(IAMUser)
 
 	params := &iam.GetUserInput{}
 
 	if username != "" {
-		params.UserName = aws.String(username)
+		params.SetUserName(username)
 	}
+
+	sess := session.Must(session.NewSession())
+	svc := iam.New(sess)
 
 	resp, err := svc.GetUser(params)
 	if err != nil {
-		return IAMUser{}, err
+		if awsErr, ok := err.(awserr.Error); ok {
+			return *user, errors.New(awsErr.Message())
+		}
+		return *user, err
 	}
 
-	user := new(IAMUser)
 	user.Marshal(resp.User)
 
 	return *user, nil
