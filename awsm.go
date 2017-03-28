@@ -381,6 +381,42 @@ func main() {
 			},
 		},
 		{
+			Name:  "createResourceRecord",
+			Usage: "Create an AWS Route53 Resource Record",
+			Arguments: []cli.Argument{
+				{
+					Name:        "record",
+					Description: "The record to create (www.stage1.example.com)",
+					Optional:    false,
+				},
+				{
+					Name:        "value",
+					Description: "The value of the resource record (defaults to instance IP)",
+					Optional:    true,
+				},
+				{
+					Name:        "ttl",
+					Description: "The ttl of the resource record (defaults to 300)",
+					Optional:    true,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "force",
+					Destination: &force,
+					Usage:       "force (UPSERT, no prompt)",
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.CreateResourceRecord(c.NamedArg("record"), c.NamedArg("value"), c.NamedArg("ttl"), force, dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "createSecurityGroup",
 			Usage: "Create an AWS Security Groups",
 			Arguments: []cli.Argument{
@@ -776,6 +812,25 @@ func main() {
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteLoadBalancers(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "deleteResourceRecords",
+			Usage: "Delete AWS Route53 Resource Records",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for the resource record to delete",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteResourceRecords(c.NamedArg("search"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -1245,6 +1300,28 @@ func main() {
 			},
 		},
 		{
+			Name:  "listHostedZones",
+			Usage: "Lists Route53 Hosted Zones",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				hostedZones, errs := aws.GetHostedZones(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing Hosted Zones!", 1)
+				}
+				hostedZones.PrintTable()
+
+				return nil
+			},
+		},
+
+		{
 			Name:  "listIAMInstanceProfiles",
 			Usage: "Lists IAM Instance Profiles",
 			Arguments: []cli.Argument{
@@ -1429,6 +1506,27 @@ func main() {
 					return cli.NewExitError("Error Listing Load Balancers!", 1)
 				}
 				loadBalancers.PrintTable()
+
+				return nil
+			},
+		},
+		{
+			Name:  "listResourceRecords",
+			Usage: "Lists Route53 Resource Records",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				resourceRecords, errs := aws.GetResourceRecords(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing Resource Records!", 1)
+				}
+				resourceRecords.PrintTable()
 
 				return nil
 			},

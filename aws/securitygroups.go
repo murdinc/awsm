@@ -401,7 +401,13 @@ func CreateSecurityGroup(class, region, vpc string, dryRun bool) error {
 	terminal.Delta("Created Security Group [" + aws.StringValue(createSecGrpResponse.GroupId) + "] in region [" + region + "]")
 
 	// Add Grants
-	group, err := GetSecurityGroupByName(region, class)
+	group := SecurityGroup{
+		GroupID: aws.StringValue(createSecGrpResponse.GroupId),
+		Class:   class,
+		Name:    class,
+		Region:  region,
+	}
+
 	groupSlice := make(SecurityGroups, 1)
 	groupSlice[0] = group
 	changes, err := groupSlice.Diff()
@@ -533,6 +539,7 @@ func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 	for i, secGrp := range s {
 		cfgHashes[i] = make(map[uint64]config.SecurityGroupGrant)
 		// Verify the security group class input
+		fmt.Println(secGrp)
 		cfg, err := config.LoadSecurityGroupClass(secGrp.Class, true)
 		if err != nil {
 			return changes, err

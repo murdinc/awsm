@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -27,7 +28,9 @@ func GetBuckets(search string) (*Buckets, error) {
 	bucketList := new(Buckets)
 	regions := regions.GetRegionList()
 
+	rand.Seed(time.Now().UnixNano())
 	region := regions[rand.Intn(len(regions))] // pick a random region
+
 	err := GetRegionBuckets(*region.RegionName, bucketList, search)
 
 	return bucketList, err

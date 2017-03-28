@@ -132,7 +132,7 @@ func GetLoadBalancerByName(region, name string) (LoadBalancer, error) {
 
 	switch count {
 	case 0:
-		return LoadBalancer{}, errors.New("No Load Balancers found with name of [" + name + "] in [" + region + "].")
+		return LoadBalancer{}, nil
 	case 1:
 		secGrpList := new(SecurityGroups)
 		vpcList := new(Vpcs)
@@ -288,7 +288,7 @@ func CreateLoadBalancer(class, region string, dryRun bool) error {
 
 	// Bail if it already exists. For some reason there is no error when creating an ELB that already exists?
 	lb, _ := GetLoadBalancerByName(region, class)
-	if lb.Name == class {
+	if lb.Class == class {
 		return errors.New("Load Balancer [" + class + "] already exists in [" + region + "]")
 	}
 
@@ -311,14 +311,14 @@ func CreateLoadBalancer(class, region string, dryRun bool) error {
 
 	// Validate the vpc if passed one - with security groups, and get the matching security groups
 	if elbCfg.Vpc != "" {
-		vpc, err := GetVpcByTag(region, "Name", elbCfg.Vpc)
+		vpc, err := GetVpcByTag(region, "Class", elbCfg.Vpc)
 		if err != nil {
 			return err
 		}
 
 		// Add Subnets
 		for _, sn := range elbCfg.Subnets {
-			subnet, err := vpc.GetVpcSubnetByTag("Name", sn)
+			subnet, err := vpc.GetVpcSubnetByTag("Class", sn)
 			if err != nil {
 				return err
 			}
@@ -327,7 +327,7 @@ func CreateLoadBalancer(class, region string, dryRun bool) error {
 		}
 
 		// Get the vpc security groups while we are at it.
-		secGroups, err := vpc.GetVpcSecurityGroupByTagMulti("Class", elbCfg.Subnets)
+		secGroups, err := vpc.GetVpcSecurityGroupByTagMulti("Class", elbCfg.SecurityGroups)
 		if err != nil {
 			return err
 		}

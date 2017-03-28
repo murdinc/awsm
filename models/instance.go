@@ -23,7 +23,7 @@ type Instance struct {
 	IamInstanceProfileArn  string `json:"iamInstanceProfileArn"`
 	IamInstanceProfileName string `json:"iamInstanceProfileName" awsmTable:"IAM Instance Profile"`
 	ShutdownBehavior       string `json:"shutdownBehavior"`
-	EbsOptimized           bool   `json:"ebsOptimized"` // TODO
-	Monitoring             bool   `json:"monitoring"`   // TODO
+	EbsOptimized           bool   `json:"ebsOptimized"`
+	Monitoring             bool   `json:"monitoring"`
 	Region                 string `json:"region"`
 }
