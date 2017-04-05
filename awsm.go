@@ -6,6 +6,8 @@ import (
 	"html/template"
 	"io/ioutil"
 	"os"
+	"os/user"
+	"regexp"
 
 	"github.com/murdinc/awsm/api"
 	"github.com/murdinc/awsm/aws"
@@ -1807,9 +1809,84 @@ func main() {
 				return nil
 			},
 		},
+		{
+			Name:  "install-autocomplete",
+			Usage: "Install awsm autocomplete",
+			Action: func(c *cli.Context) error {
+				err := installAutocomplete()
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
 	}
 
 	app.Run(os.Args)
+}
+
+func installAutocomplete() error {
+
+	currentUser, _ := user.Current()
+	bashrcPath := currentUser.HomeDir + "/.bashrc"
+
+	autocompleteScriptPath := currentUser.HomeDir + "/.awsm_autocomplete"
+	autcompleteLine := "PROG=awsm source " + autocompleteScriptPath
+
+	// Check for the autocomplete script
+	if _, err := os.Stat(autocompleteScriptPath); os.IsNotExist(err) {
+		terminal.Delta("autocomplete script [" + autocompleteScriptPath + "] does not exist, creating one...")
+
+		f, err := os.Create(autocompleteScriptPath)
+		defer f.Close()
+		if err != nil {
+			return err
+		}
+		f.WriteString(autocompleteScript)
+		f.Sync()
+	} else {
+		terminal.Information("autocomplete script [" + autocompleteScriptPath + "] exists, checking if .bashrc file exists...")
+	}
+
+	// check for .bashrc file
+	if _, err := os.Stat(bashrcPath); os.IsNotExist(err) {
+		terminal.Delta(".bashrc file [" + bashrcPath + "] does not exist, creating one...")
+		f, err := os.Create(bashrcPath)
+		defer f.Close()
+		if err != nil {
+			return err
+		}
+		f.Sync()
+	}
+
+	terminal.Information(".bashrc file [" + bashrcPath + "] exists, checking if autocomplete has been set up already...")
+
+	bashrcFile, err := ioutil.ReadFile(bashrcPath)
+	if err != nil {
+		terminal.ErrorLine(err.Error())
+	}
+
+	term := regexp.MustCompile("\n" + autcompleteLine)
+	exists := term.MatchString(string(bashrcFile))
+
+	if exists {
+		terminal.Information(".bashrc file already contains the path the the autocomplete script")
+	} else {
+		terminal.Delta("adding autocomplete line to your .bashrc...")
+		f, err := os.OpenFile(bashrcPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+		defer f.Close()
+		if err != nil {
+			return err
+		}
+		_, err = f.WriteString(autcompleteLine)
+		if err != nil {
+			return err
+		}
+	}
+
+	terminal.Information("Done!")
+
+	return nil
 }
 
 func setupCheck(c *cli.Context) error {
@@ -1917,3 +1994,18 @@ var awsmRolePolicyDocument = `{
     }
   ]
 }`
+
+var autocompleteScript = `#! /bin/bash
+
+: ${PROG:=$(basename ${BASH_SOURCE})}
+
+_cli_bash_autocomplete() {
+     local cur opts base
+     COMPREPLY=()
+     cur="${COMP_WORDS[COMP_CWORD]}"
+     opts=$( ${COMP_WORDS[@]:0:$COMP_CWORD} --generate-bash-completion )
+     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+     return 0
+ }
+
+ complete -F _cli_bash_autocomplete $PROG`
