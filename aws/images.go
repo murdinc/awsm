@@ -103,7 +103,6 @@ func GetImageById(region, id string) (Image, error) {
 	}
 
 	return imgList[0], err
-
 }
 
 // GetLatestImageByTag returns the newest Amazon Machine Image in the provided region that matches the key/value tag provided

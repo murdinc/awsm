@@ -66,6 +66,16 @@ func (i *Instances) GetInstanceName(id string) string {
 	return id
 }
 
+// GetInstanceClass returns the the class of an EC2 Instance given an EC2 Instance ID
+func (i *Instances) GetInstanceClass(id string) string {
+	for _, instance := range *i {
+		if instance.InstanceID == id && instance.Name != "" {
+			return instance.Class
+		}
+	}
+	return id
+}
+
 // Marshal parses the response from the aws sdk into an awsm Instance
 func (i *Instance) Marshal(instance *ec2.Instance, region string, subList *Subnets, vpcList *Vpcs, imgList *Images) {
 
@@ -415,6 +425,9 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		Monitoring: &ec2.RunInstancesMonitoringEnabled{
 			Enabled: aws.Bool(instanceCfg.Monitoring),
 		},
+		SecurityGroupIds: secGroupIds,
+		SubnetId:         aws.String(subnetID),
+		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte(parsedUserData))),
 		NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{ // only needed when we launch with a public ip. TODO
 			{
 			/*
@@ -449,10 +462,6 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 			},
 		*/
 		// PrivateIpAddress: aws.String("String"),
-		SecurityGroupIds: secGroupIds,
-		SubnetId:         aws.String(subnetID),
-		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte(parsedUserData))),
-
 		//KernelId:         aws.String("String"),
 		//RamdiskId:        aws.String("String"),
 	}
@@ -470,6 +479,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	}
 
 	launchInstanceResp, err := svc.RunInstances(params)
+	instance := launchInstanceResp.Instances[0]
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -477,6 +487,19 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		}
 		return err
 	}
+
+	terminal.Delta("Launching Instance:")
+
+	inst := make(Instances, 1)
+	inst[0].Marshal(instance, region, &Subnets{subnet}, &Vpcs{vpc}, &Images{ami})
+
+	inst[0].Name = class + sequence
+	inst[0].Class = class
+	inst[0].AMIName = ami.ImageID
+
+	inst.PrintTable()
+
+	terminal.Notice("Waiting to tag Instance...")
 
 	// Wait to tag it
 	err = svc.WaitUntilInstanceExists(&ec2.DescribeInstancesInput{
@@ -491,11 +514,11 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		}
 	}
 
+	terminal.Delta("Adding EC2 Tags...")
+
 	// Add Instance Tags
 	instanceTagsParams := &ec2.CreateTagsInput{
-		Resources: []*string{
-			launchInstanceResp.Instances[0].InstanceId,
-		},
+		Resources: []*string{instance.InstanceId},
 		Tags: []*ec2.Tag{
 			{
 				Key:   aws.String("Name"),
@@ -520,38 +543,48 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		return err
 	}
 
-	// Add EBS Volume Tags
-	ebsVols, err := GetVolumesByInstanceID(region, aws.StringValue(launchInstanceResp.Instances[0].InstanceId))
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
-		}
-		return err
-	}
+	if len(ebsVolumes) > 0 {
+		terminal.Notice("Waiting to tag EBS Volumes...")
 
-	for _, ebsVol := range ebsVols {
-		if ebsVolumeNames[ebsVol.Device] != "" || ebsVolumeClasses[ebsVol.Device] != "" {
-			// Add Tags
-			err = SetEc2NameAndClassTags(aws.String(ebsVol.VolumeID), ebsVolumeNames[ebsVol.Device], ebsVolumeClasses[ebsVol.Device], region)
-			if err != nil {
-				if awsErr, ok := err.(awserr.Error); ok {
-					return errors.New(awsErr.Message())
+		// Wait to tag it
+		err = svc.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{
+			DryRun: aws.Bool(dryRun),
+			InstanceIds: []*string{
+				launchInstanceResp.Instances[0].InstanceId,
+			},
+		})
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+		}
+
+		terminal.Delta("Adding EBS Tags...")
+
+		// Add EBS Volume Tags
+		ebsVols, err := GetVolumesByInstanceID(region, aws.StringValue(instance.InstanceId))
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return errors.New(awsErr.Message())
+			}
+			return err
+		}
+
+		for _, ebsVol := range ebsVols {
+			if ebsVolumeNames[ebsVol.Device] != "" || ebsVolumeClasses[ebsVol.Device] != "" {
+				// Add Tags
+				err = SetEc2NameAndClassTags(aws.String(ebsVol.VolumeID), ebsVolumeNames[ebsVol.Device], ebsVolumeClasses[ebsVol.Device], region)
+				if err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						return errors.New(awsErr.Message())
+					}
+					return err
 				}
-				return err
 			}
 		}
 	}
 
 	terminal.Information("Finished Launching Instance!")
-
-	inst := make(Instances, 1)
-	inst[0].Marshal(launchInstanceResp.Instances[0], region, &Subnets{subnet}, &Vpcs{vpc}, &Images{ami})
-
-	inst[0].Name = class + sequence
-	inst[0].Class = class
-	inst[0].AMIName = ami.ImageID
-
-	inst.PrintTable()
 
 	return nil
 }

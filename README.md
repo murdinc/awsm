@@ -89,7 +89,6 @@ Note: When running awsm on an EC2 instance that was launched with an IAM Instanc
 
 ## Roadmap
 
-* The un-camelCase-ing of the commands
 * Adding support for Application ELBs
 * runCommand - "Run a command on a set of instances"
 * Config to JSON import and export

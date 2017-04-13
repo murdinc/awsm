@@ -21,6 +21,8 @@ type VolumeClass struct {
 	VolumeType          string `json:"volumeType" awsmClass:"Volume Type"`
 	Iops                int    `json:"iops" awsmClass:"IOPS"`
 	Encrypted           bool   `json:"encrypted" awsmClass:"Encrypted"`
+	AttachCommand       string `json:"attachCommand"`
+	DetachCommand       string `json:"detachCommand"`
 }
 
 // DefaultVolumeClasses returns the default Volume Classes
@@ -133,6 +135,12 @@ func (c VolumeClasses) Marshal(items []*simpledb.Item) {
 
 			case "Encrypted":
 				cfg.Encrypted, _ = strconv.ParseBool(val)
+
+			case "AttachCommand":
+				cfg.AttachCommand = val
+
+			case "DetachCommand":
+				cfg.DetachCommand = val
 
 			}
 

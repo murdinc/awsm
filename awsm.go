@@ -22,7 +22,8 @@ func main() {
 
 	var dryRun bool
 	var force bool
-	var double bool // optional flag when updating an auto-scale group
+	var double bool  // optional flag when updating an auto-scale group
+	var details bool // optional flag when listing command invocations
 
 	app := cli.NewApp()
 	app.Name = "awsm"
@@ -985,6 +986,30 @@ func main() {
 			},
 		},
 		{
+			Name:  "deregisterInstances",
+			Usage: "Deregister an instance from SSM Inventory",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The inventory to search for",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region of the instance (optional)",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.DeregisterInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "detachVolume",
 			Usage: "Detach an AWS EBS Volume",
 			Arguments: []cli.Argument{
@@ -1074,14 +1099,14 @@ func main() {
 			Usage: "Get an IAM User",
 			Arguments: []cli.Argument{
 				{
-					Name:        "username",
+					Name:        "search",
 					Description: "The username to search for",
 					Optional:    true,
 				},
 			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				iam, err := aws.GetIAMUser(c.NamedArg("username"))
+				iam, err := aws.GetIAMUser(c.NamedArg("search"))
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 					return err
@@ -1090,6 +1115,27 @@ func main() {
 				userSlice := aws.IAMUsers{iam}
 				userSlice.PrintTable()
 
+				return nil
+			},
+		},
+		{
+			Name:  "getInventory",
+			Usage: "Get SSM Inventory",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The inventory to search for",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				inventory, errs := aws.GetInventory(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing Inventory!", 1)
+				}
+
+				inventory.PrintTable()
 				return nil
 			},
 		},
@@ -1166,6 +1212,37 @@ func main() {
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.RebootInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "refreshVolume",
+			Usage: "Refreshes an AWS EBS Volume on an EC2 Instance",
+			Arguments: []cli.Argument{
+				{
+					Name:        "volume",
+					Description: "The volume to refresh",
+					Optional:    false,
+				},
+				{
+					Name:        "instance",
+					Description: "The instance to refresh the volume on",
+					Optional:    false,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "force",
+					Destination: &force,
+					Usage:       "force refresh",
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.RefreshVolume(c.NamedArg("volume"), c.NamedArg("instance"), force, dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -1297,6 +1374,38 @@ func main() {
 					return cli.NewExitError("Error Listing S3 Buckets!", 1)
 				}
 				groups.PrintTable()
+
+				return nil
+			},
+		},
+		{
+			Name:  "listCommandInvocations",
+			Usage: "List SSM Command Invocations",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "details",
+					Destination: &details,
+					Usage:       "details (Shows the output of each command)",
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				commandInvocations, errs := aws.ListCommandInvocations(c.NamedArg("search"), details)
+				if errs != nil {
+					return cli.NewExitError("Error Listing Command Invocations!", 1)
+				}
+				if details {
+					commandInvocations.PrintOutput()
+				} else {
+					commandInvocations.PrintTable()
+				}
 
 				return nil
 			},
@@ -1590,6 +1699,27 @@ func main() {
 			},
 		},
 		{
+			Name:  "listSSMInstances",
+			Usage: "List SSM Instances",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				instances, errs := aws.GetSSMInstances(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing SSM Instances!", 1)
+				}
+				instances.PrintTable()
+
+				return nil
+			},
+		},
+		{
 			Name:  "listSubnets",
 			Usage: "Lists AWS Subnets",
 			Arguments: []cli.Argument{
@@ -1675,7 +1805,7 @@ func main() {
 		},
 		{
 			Name:  "resumeProcesses",
-			Usage: "Resume scaling processes on autoscaling groups",
+			Usage: "Resume scaling processes on Autoscaling Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1698,17 +1828,34 @@ func main() {
 			},
 		},
 		{
-			Name:   "runCommand",
-			Usage:  "Run a command on a set of instances",
+			Name:  "runCommand",
+			Usage: "Run a command on a set of EC2 Instances",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for the instances to run the command on",
+					Optional:    false,
+				},
+				{
+					Name:        "command",
+					Description: "The command to run on the instances",
+					Optional:    false,
+				},
+			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				// TODO
+				cmdInvocations, err := aws.RunCommand(c.NamedArg("search"), c.NamedArg("command"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				} else {
+					cmdInvocations.PrintOutput()
+				}
 				return nil
 			},
 		},
 		{
 			Name:  "suspendProcesses",
-			Usage: "Suspend scaling processes on autoscaling groups",
+			Usage: "Suspend scaling processes on Autoscaling Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1810,7 +1957,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "install-autocomplete",
+			Name:  "installAutocomplete",
 			Usage: "Install awsm autocomplete",
 			Action: func(c *cli.Context) error {
 				err := installAutocomplete()
