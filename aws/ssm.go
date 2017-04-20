@@ -364,7 +364,7 @@ func runCommand(instList *SSMInstances, command string, dryRun bool) (*CommandIn
 
 	cmdInvocationsCombined := new(CommandInvocations)
 
-	// Bail if on a dryrun
+	// Bail if on a dryRun
 	// TODO more
 	if dryRun {
 		return cmdInvocationsCombined, nil

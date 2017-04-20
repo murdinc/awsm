@@ -71,7 +71,7 @@ func main() {
 		},
 		{
 			Name:  "attachIAMRolePolicy",
-			Usage: "Attach an AWS IAM Policy to a IAM Role",
+			Usage: "Attach an IAM Policy to a IAM Role",
 			Arguments: []cli.Argument{
 				{
 					Name:        "role",
@@ -95,7 +95,7 @@ func main() {
 		},
 		{
 			Name:  "attachVolume",
-			Usage: "Attach an AWS EBS Volume to an EC2 Instance",
+			Usage: "Attach an EBS Volume to an EC2 Instance",
 			Arguments: []cli.Argument{
 				{
 					Name:        "volume",
@@ -138,7 +138,7 @@ func main() {
 		},
 		{
 			Name:  "copyImage",
-			Usage: "Copy an AWS Machine Image to another region",
+			Usage: "Copy a Machine Image to another region",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -162,7 +162,7 @@ func main() {
 		},
 		{
 			Name:  "copySnapshot",
-			Usage: "Copy an AWS EBS Snapshot to another region",
+			Usage: "Copy an EBS Snapshot to another region",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -186,7 +186,7 @@ func main() {
 		},
 		{
 			Name:  "createAddress",
-			Usage: "Create an AWS Elastic IP Address",
+			Usage: "Create an Elastic IP Address",
 			Arguments: []cli.Argument{
 				{
 					Name:        "region",
@@ -210,7 +210,7 @@ func main() {
 		},
 		{
 			Name:  "createAutoScaleGroups",
-			Usage: "Create an AWS AutoScaling Groups",
+			Usage: "Create an AutoScaling Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -294,7 +294,7 @@ func main() {
 		},
 		{
 			Name:  "createImage",
-			Usage: "Create an AWS Machine Image from a running instance",
+			Usage: "Create a Machine Image from a running instance",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -318,7 +318,7 @@ func main() {
 		},
 		{
 			Name:  "createLaunchConfigurations",
-			Usage: "Create an AWS AutoScaling Launch Configurations",
+			Usage: "Create an AutoScaling Launch Configurations",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -337,7 +337,7 @@ func main() {
 		},
 		{
 			Name:  "createLoadBalancer",
-			Usage: "Create an AWS Load Balancer",
+			Usage: "Create a Load Balancer",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -361,7 +361,7 @@ func main() {
 		},
 		{
 			Name:  "createKeyPair",
-			Usage: "Create an AWS Key Pair in the specified region",
+			Usage: "Create a Key Pair in the specified region",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -385,7 +385,7 @@ func main() {
 		},
 		{
 			Name:  "createResourceRecord",
-			Usage: "Create an AWS Route53 Resource Record",
+			Usage: "Create a Route53 Resource Record",
 			Arguments: []cli.Argument{
 				{
 					Name:        "record",
@@ -421,7 +421,7 @@ func main() {
 		},
 		{
 			Name:  "createSecurityGroup",
-			Usage: "Create an AWS Security Groups",
+			Usage: "Create a Security Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -450,7 +450,7 @@ func main() {
 		},
 		{
 			Name:  "createSimpleDBDomain",
-			Usage: "Create an AWS SimpleDB Domain",
+			Usage: "Create a SimpleDB Domain",
 			Arguments: []cli.Argument{
 				{
 					Name:        "domain",
@@ -474,7 +474,7 @@ func main() {
 		},
 		{
 			Name:  "createSnapshot",
-			Usage: "Create an AWS EBS snapshot of a volume",
+			Usage: "Create an EBS snapshot of a volume",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -498,7 +498,7 @@ func main() {
 		},
 		{
 			Name:  "createVolume",
-			Usage: "Create an AWS EBS volume",
+			Usage: "Create an EBS volume",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -527,7 +527,7 @@ func main() {
 		},
 		{
 			Name:  "createVpc",
-			Usage: "Create an AWS VPC",
+			Usage: "Create a VPC",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -561,7 +561,7 @@ func main() {
 		},
 		{
 			Name:  "createSubnet",
-			Usage: "Create an AWS VPC Subnet",
+			Usage: "Create a VPC Subnet",
 			Arguments: []cli.Argument{
 				{
 					Name:        "class",
@@ -600,7 +600,7 @@ func main() {
 		},
 		{
 			Name:  "deleteAddresses",
-			Usage: "Delete AWS Elastic IP Addresses",
+			Usage: "Delete Elastic IP Addresses",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -624,7 +624,7 @@ func main() {
 		},
 		{
 			Name:  "deleteAutoScaleGroups",
-			Usage: "Delete AWS AutoScaling Groups",
+			Usage: "Delete AutoScaling Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -655,7 +655,7 @@ func main() {
 		},
 		{
 			Name:  "deleteIAMInstanceProfiles",
-			Usage: "Delete AWS IAM Instance Profiles",
+			Usage: "Delete IAM Instance Profiles",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -674,7 +674,7 @@ func main() {
 		},
 		{
 			Name:  "deleteIAMPolicies",
-			Usage: "Delete AWS IAM Policies",
+			Usage: "Delete IAM Policies",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -693,7 +693,7 @@ func main() {
 		},
 		{
 			Name:  "deleteIAMRoles",
-			Usage: "Delete AWS IAM Roles",
+			Usage: "Delete IAM Roles",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -712,7 +712,7 @@ func main() {
 		},
 		{
 			Name:  "deleteIAMUsers",
-			Usage: "Delete AWS IAM Users",
+			Usage: "Delete IAM Users",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -731,7 +731,7 @@ func main() {
 		},
 		{
 			Name:  "deleteImages",
-			Usage: "Delete AWS Machine Images",
+			Usage: "Delete Machine Images",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -755,11 +755,11 @@ func main() {
 		},
 		{
 			Name:  "deleteKeyPairs",
-			Usage: "Delete AWS KeyPairs",
+			Usage: "Delete KeyPairs",
 			Arguments: []cli.Argument{
 				{
 					Name:        "name",
-					Description: "The name of the AWS KeyPair to delete",
+					Description: "The name of the KeyPair to delete",
 					Optional:    false,
 				},
 			},
@@ -775,7 +775,7 @@ func main() {
 		},
 		{
 			Name:  "deleteLaunchConfigurations",
-			Usage: "Delete AWS AutoScaling Launch Configurations",
+			Usage: "Delete AutoScaling Launch Configurations",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -799,7 +799,7 @@ func main() {
 		},
 		{
 			Name:  "deleteLoadBalancers",
-			Usage: "Delete AWS Load Balancer(s)",
+			Usage: "Delete Load Balancer(s)",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -823,7 +823,7 @@ func main() {
 		},
 		{
 			Name:  "deleteResourceRecords",
-			Usage: "Delete AWS Route53 Resource Records",
+			Usage: "Delete Route53 Resource Records",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -842,7 +842,7 @@ func main() {
 		},
 		{
 			Name:  "deleteSecurityGroups",
-			Usage: "Delete AWS Security Groups",
+			Usage: "Delete Security Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -866,7 +866,7 @@ func main() {
 		},
 		{
 			Name:  "deleteSnapshots",
-			Usage: "Delete AWS EBS Snapshots",
+			Usage: "Delete EBS Snapshots",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -890,7 +890,7 @@ func main() {
 		},
 		{
 			Name:  "deleteSimpleDBDomains",
-			Usage: "Delete AWS SimpleDB Domains",
+			Usage: "Delete SimpleDB Domains",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -914,7 +914,7 @@ func main() {
 		},
 		{
 			Name:  "deleteVolumes",
-			Usage: "Delete AWS EBS Volumes",
+			Usage: "Delete EBS Volumes",
 			Arguments: []cli.Argument{
 				{
 					Name:        "volume",
@@ -939,7 +939,7 @@ func main() {
 		},
 		{
 			Name:  "deleteSubnets",
-			Usage: "Delete AWS VPC Subnets",
+			Usage: "Delete VPC Subnets",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -963,7 +963,7 @@ func main() {
 		},
 		{
 			Name:  "deleteVpcs",
-			Usage: "Delete AWS VPCs",
+			Usage: "Delete VPCs",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -987,7 +987,7 @@ func main() {
 		},
 		{
 			Name:  "deregisterInstances",
-			Usage: "Deregister an instance from SSM Inventory",
+			Usage: "Deregister an Instance from SSM Inventory",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1011,7 +1011,7 @@ func main() {
 		},
 		{
 			Name:  "detachVolume",
-			Usage: "Detach an AWS EBS Volume",
+			Usage: "Detach an EBS Volume",
 			Arguments: []cli.Argument{
 				{
 					Name:        "volume",
@@ -1141,7 +1141,7 @@ func main() {
 		},
 		{
 			Name:  "stopInstances",
-			Usage: "Stop AWS instances",
+			Usage: "Stop instances",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1172,7 +1172,7 @@ func main() {
 		},
 		{
 			Name:  "startInstances",
-			Usage: "Start AWS instances",
+			Usage: "Start instances",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1196,7 +1196,7 @@ func main() {
 		},
 		{
 			Name:  "rebootInstances",
-			Usage: "Reboot AWS instances",
+			Usage: "Reboot instances",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1220,7 +1220,7 @@ func main() {
 		},
 		{
 			Name:  "refreshVolume",
-			Usage: "Refreshes an AWS EBS Volume on an EC2 Instance",
+			Usage: "Refreshe an EBS Volume on an EC2 Instance",
 			Arguments: []cli.Argument{
 				{
 					Name:        "volume",
@@ -1251,7 +1251,7 @@ func main() {
 		},
 		{
 			Name:  "terminateInstances",
-			Usage: "Terminate AWS instances",
+			Usage: "Terminate instances",
 			Arguments: []cli.Argument{
 				{
 					Name:        "name",
@@ -1304,7 +1304,7 @@ func main() {
 		},
 		{
 			Name:  "listAddresses",
-			Usage: "Lists AWS Elastic IP Addresses",
+			Usage: "List Elastic IP Addresses",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1324,7 +1324,7 @@ func main() {
 		},
 		{
 			Name:   "listAlarms",
-			Usage:  "Lists CloudWatch Alarms",
+			Usage:  "List CloudWatch Alarms",
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				alarms, errs := aws.GetAlarms()
@@ -1338,7 +1338,7 @@ func main() {
 		},
 		{
 			Name:  "listAutoScaleGroups",
-			Usage: "Lists AutoScale Groups",
+			Usage: "List AutoScale Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1359,7 +1359,7 @@ func main() {
 		},
 		{
 			Name:  "listBuckets",
-			Usage: "Lists S3 Buckets",
+			Usage: "List S3 Buckets",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1412,7 +1412,7 @@ func main() {
 		},
 		{
 			Name:  "listHostedZones",
-			Usage: "Lists Route53 Hosted Zones",
+			Usage: "List Route53 Hosted Zones",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1434,7 +1434,7 @@ func main() {
 
 		{
 			Name:  "listIAMInstanceProfiles",
-			Usage: "Lists IAM Instance Profiles",
+			Usage: "List IAM Instance Profiles",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1455,7 +1455,7 @@ func main() {
 		},
 		{
 			Name:  "listIAMPolicies",
-			Usage: "Lists IAM Policies",
+			Usage: "List IAM Policies",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1476,7 +1476,7 @@ func main() {
 		},
 		{
 			Name:  "listIAMRoles",
-			Usage: "Lists IAM Roles",
+			Usage: "List IAM Roles",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1497,7 +1497,7 @@ func main() {
 		},
 		{
 			Name:  "listIAMUsers",
-			Usage: "Lists IAM Users",
+			Usage: "List IAM Users",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1518,7 +1518,7 @@ func main() {
 		},
 		{
 			Name:  "listImages",
-			Usage: "Lists AWS Machine Images owned by us",
+			Usage: "List Machine Images owned by us",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1539,7 +1539,7 @@ func main() {
 		},
 		{
 			Name:  "listInstances",
-			Usage: "Lists AWS EC2 Instances",
+			Usage: "List EC2 Instances",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1560,7 +1560,7 @@ func main() {
 		},
 		{
 			Name:  "listKeyPairs",
-			Usage: "Lists AWS Key Pairs",
+			Usage: "List Key Pairs",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1581,7 +1581,7 @@ func main() {
 		},
 		{
 			Name:  "listLaunchConfigurations",
-			Usage: "Lists Launch Configurations",
+			Usage: "List Launch Configurations",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1602,7 +1602,7 @@ func main() {
 		},
 		{
 			Name:  "listLoadBalancers",
-			Usage: "Lists Elastic Load Balancers",
+			Usage: "List Elastic Load Balancers",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1623,7 +1623,7 @@ func main() {
 		},
 		{
 			Name:  "listResourceRecords",
-			Usage: "Lists Route53 Resource Records",
+			Usage: "List Route53 Resource Records",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1644,7 +1644,7 @@ func main() {
 		},
 		{
 			Name:   "listScalingPolicies",
-			Usage:  "Lists Scaling Policies",
+			Usage:  "List Scaling Policies",
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				policies, errs := aws.GetScalingPolicies()
@@ -1658,7 +1658,7 @@ func main() {
 		},
 		{
 			Name:  "listSecurityGroups",
-			Usage: "Lists Security Groups",
+			Usage: "List Security Groups",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1679,7 +1679,7 @@ func main() {
 		},
 		{
 			Name:  "listSnapshots",
-			Usage: "Lists AWS EBS Snapshots",
+			Usage: "List EBS Snapshots",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1721,7 +1721,7 @@ func main() {
 		},
 		{
 			Name:  "listSubnets",
-			Usage: "Lists AWS Subnets",
+			Usage: "List Subnets",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1742,7 +1742,7 @@ func main() {
 		},
 		{
 			Name:  "listSimpleDBDomains",
-			Usage: "Lists AWS SimpleDB Domains",
+			Usage: "List SimpleDB Domains",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1763,7 +1763,7 @@ func main() {
 		},
 		{
 			Name:  "listVolumes",
-			Usage: "Lists AWS EBS Volumes",
+			Usage: "List EBS Volumes",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",
@@ -1784,7 +1784,7 @@ func main() {
 		},
 		{
 			Name:  "listVpcs",
-			Usage: "Lists AWS Vpcs",
+			Usage: "List Vpcs",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",

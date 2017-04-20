@@ -312,6 +312,9 @@ func RefreshVolume(volumeSearch, instanceSearch string, force, dryRun bool) erro
 	}
 
 	volume := (*volList)[0]
+
+	terminal.Information("Found Volume [" + volume.VolumeID + "] named [" + volume.Name + "] in [" + volume.Region + "]!")
+
 	if volume.Class == "" {
 		return errors.New("Volume [" + volume.VolumeID + "] does not have a Class associated with it. Aborting!")
 	}
@@ -375,51 +378,29 @@ func refreshVolumes(volList *Volumes, instance Instance, ssmInstance SSMInstance
 			return err
 		}
 
-		// Don't refresh if we don't have a newer snapshot available
+		// Notify according to snapshot age
 		if latestSnapshot.SnapshotID == volume.SnapshoID {
 			terminal.Information("Volume [" + volume.VolumeID + "] named [" + volume.Name + "] is already using the latest snapshot [" + latestSnapshot.SnapshotID + "] named [" + latestSnapshot.Name + "].")
-			//continue
+		} else {
+			terminal.Notice("Found newer snapshot [" + latestSnapshot.SnapshotID + "] with class of [" + latestSnapshot.Class + "] named [" + latestSnapshot.Name + "] created [" + humanize.Time(latestSnapshot.StartTime) + "]")
 		}
-
-		terminal.Information("Found newer snapshot [" + latestSnapshot.SnapshotID + "] with class of [" + latestSnapshot.Class + "] named [" + latestSnapshot.Name + "] created [" + humanize.Time(latestSnapshot.StartTime) + "]")
 
 		// Create the new Volume
 		newVolume, err := createVolume(volume.Name, volume.Class, volume.AvailabilityZone, volCfg, latestSnapshot, dryRun)
-
 		if err != nil {
 			return err
 		}
 
-		// Run the Detach Command on the Instance
-		if runCommands && volCfg.DetachCommand != "" {
-			terminal.Delta("Running Detach Command...")
-			invocations, err := runCommand(&SSMInstances{ssmInstance}, volCfg.DetachCommand, dryRun)
-			if err != nil {
-				return err
-			}
-			invocations.PrintOutput()
-		}
-
 		// Detach the old Volume
-		err = detachVolume(volume, force, dryRun)
+		err = detachVolume(volume, volCfg, ssmInstance, runCommands, force, dryRun)
 		if err != nil {
 			return err
 		}
 
 		// Attach the new Volume
-		err = attachVolumes(&Volumes{newVolume}, instance, dryRun)
+		err = attachVolume(newVolume, volCfg, instance, ssmInstance, runCommands, dryRun)
 		if err != nil {
 			return err
-		}
-
-		// Run the Attach Command on the Instance
-		if runCommands && volCfg.AttachCommand != "" {
-			terminal.Delta("Running Attach Command...")
-			invocations, err := runCommand(&SSMInstances{ssmInstance}, volCfg.AttachCommand, dryRun)
-			if err != nil {
-				return err
-			}
-			invocations.PrintOutput()
 		}
 
 		// Delete the old Volume
@@ -435,7 +416,7 @@ func refreshVolumes(volList *Volumes, instance Instance, ssmInstance SSMInstance
 }
 
 // DetachVolume detaches an EBS Volume from an Instance
-func DetachVolume(volume, instance string, force, dryRun bool) error {
+func DetachVolume(volumeSearch, instanceSearch string, force, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -443,7 +424,7 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 	}
 
 	// Get the instance
-	instances, _ := GetInstances(instance, true)
+	instances, _ := GetInstances(instanceSearch, true)
 	instCount := len(*instances)
 	if instCount == 0 {
 		return errors.New("No instances found for search term.")
@@ -452,12 +433,12 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 		return errors.New("Please limit your search terms to return only one instance.")
 	}
 
-	inst := (*instances)[0]
-	region := inst.Region
+	instance := (*instances)[0]
+	region := instance.Region
 
-	terminal.Information("Found Instance [" + inst.InstanceID + "] named [" + inst.Name + "] in [" + inst.Region + "]!")
+	terminal.Information("Found Instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + region + "]!")
 
-	volList, err := GetVolumeByInstanceIDSearch(region, inst.InstanceID, volume)
+	volList, err := GetVolumeByInstanceIDSearch(region, instance.InstanceID, volumeSearch)
 	if err != nil {
 		return err
 	}
@@ -470,6 +451,18 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 		return errors.New("Please limit your search terms to return only one volume.")
 	}
 
+	volume := (*volList)[0]
+	var volCfg config.VolumeClass
+	if volume.Class == "" {
+		return errors.New("Volume [" + volume.VolumeID + "] does not have a Class associated with it.")
+	} else {
+		// Class Config
+		volCfg, err = config.LoadVolumeClass(volume.Class)
+		if err != nil {
+			return err
+		}
+	}
+
 	volList.PrintTable()
 
 	// Confirm
@@ -477,8 +470,28 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 		return errors.New("Aborting!")
 	}
 
+	// Check if we are able to send SSM commands to this instance, if needed
+	runCmd := false
+	var ssmInstance SSMInstance
+	if volCfg.AttachCommand != "" || volCfg.DetachCommand != "" {
+		terminal.Information("Volume Class [" + volume.Class + "] has SSM Commands configured, checking if we are able to send them...")
+
+		ssmInstance, err = GetSSMInstanceById(instance.Region, instance.InstanceID)
+		if err != nil || ssmInstance.InstanceID == "" {
+			terminal.ErrorLine(err.Error() + " No attach/detach SSM Commands will be run on this instance!")
+
+			// Confirm continue if we can't run them.
+			if !terminal.PromptBool("Do you want to continue without running any attach/detach scripts?") {
+				return errors.New("Aborting!")
+			}
+		} else {
+			runCmd = true
+			terminal.Information("Found SSM Instance [" + ssmInstance.InstanceID + "] named [" + ssmInstance.ComputerName + "] and a ping time of [" + humanize.Time(ssmInstance.LastPingDateTime) + "]!")
+		}
+	}
+
 	// Detach it
-	err = detachVolume((*volList)[0], force, dryRun)
+	err = detachVolume(volume, volCfg, ssmInstance, runCmd, force, dryRun)
 	if err != nil {
 		return err
 	}
@@ -489,7 +502,17 @@ func DetachVolume(volume, instance string, force, dryRun bool) error {
 }
 
 // Private function without the confirmation terminal prompts
-func detachVolume(volume Volume, force, dryRun bool) (err error) {
+func detachVolume(volume Volume, volCfg config.VolumeClass, ssmInstance SSMInstance, runCmd, force, dryRun bool) (err error) {
+
+	// Run the Detach Command on the Instance
+	if runCmd && volCfg.DetachCommand != "" {
+		terminal.Delta("Running Detach Command...")
+		invocations, err := runCommand(&SSMInstances{ssmInstance}, volCfg.DetachCommand, dryRun)
+		if err != nil {
+			return err
+		}
+		invocations.PrintOutput()
+	}
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(volume.Region)}))
 	svc := ec2.New(sess)
@@ -498,9 +521,11 @@ func detachVolume(volume Volume, force, dryRun bool) (err error) {
 		VolumeId: aws.String(volume.VolumeID),
 		DryRun:   aws.Bool(dryRun),
 		Force:    aws.Bool(force),
-		//InstanceId: aws.String(volume.InstanceID),
-		//Device:   aws.String("String"),
+		// InstanceId: aws.String(volume.InstanceID),
+		// Device:   aws.String("String"),
 	}
+
+	terminal.Delta("Detaching Volume [" + volume.VolumeID + "] named [" + volume.Name + "] from instance [" + volume.InstanceID + "] in [" + volume.Region + "]...")
 
 	_, err = svc.DetachVolume(params)
 	if err != nil {
@@ -510,20 +535,26 @@ func detachVolume(volume Volume, force, dryRun bool) (err error) {
 		return err
 	}
 
+	terminal.Notice("Waiting for EBS Volume to detach...")
+
 	// Wait for it
 	waitForVolume(volume.VolumeID, volume.Region, dryRun)
 
-	terminal.Delta("Detached Volume [" + volume.VolumeID + "] named [" + volume.Name + "] in [" + volume.Region + "]!")
+	terminal.Information("Detached Volume [" + volume.VolumeID + "] named [" + volume.Name + "] in [" + volume.Region + "]!")
 
 	return nil
 }
 
 // AttachVolume attaches an EBS Volume to an Instance
-func AttachVolume(volume, instanceSearch string, dryRun bool) error {
+func AttachVolume(volumeSearch, instanceSearch string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
 
 	// Get the instance
 	instances, _ := GetInstances(instanceSearch, true)
-
 	instCount := len(*instances)
 	if instCount == 0 {
 		return errors.New("No instances found for search term.")
@@ -539,7 +570,7 @@ func AttachVolume(volume, instanceSearch string, dryRun bool) error {
 
 	// Look for the volume in the same region as the instance
 	volList := new(Volumes)
-	err := GetRegionVolumes(region, volList, volume, true)
+	err := GetRegionVolumes(region, volList, volumeSearch, true)
 	if err != nil {
 		return err
 	}
@@ -552,6 +583,18 @@ func AttachVolume(volume, instanceSearch string, dryRun bool) error {
 		return errors.New("Please limit your search terms to return only one volume.")
 	}
 
+	volume := (*volList)[0]
+	var volCfg config.VolumeClass
+	if volume.Class == "" {
+		return errors.New("Volume [" + volume.VolumeID + "] does not have a Class associated with it.")
+	} else {
+		// Class Config
+		volCfg, err = config.LoadVolumeClass(volume.Class)
+		if err != nil {
+			return err
+		}
+	}
+
 	volList.PrintTable()
 
 	// Confirm
@@ -559,8 +602,28 @@ func AttachVolume(volume, instanceSearch string, dryRun bool) error {
 		return errors.New("Aborting!")
 	}
 
+	// Check if we are able to send SSM commands to this instance, if needed
+	runCmd := false
+	var ssmInstance SSMInstance
+	if volCfg.AttachCommand != "" {
+		terminal.Information("Volume Class [" + volume.Class + "] has an SSM Attach Command configured, checking if we are able to send it...")
+
+		ssmInstance, err = GetSSMInstanceById(instance.Region, instance.InstanceID)
+		if err != nil || ssmInstance.InstanceID == "" {
+			terminal.ErrorLine(err.Error() + " No SSM Attach Command will be run on this instance!")
+
+			// Confirm continue if we can't run it.
+			if !terminal.PromptBool("Do you want to continue without running any attach commands?") {
+				return errors.New("Aborting!")
+			}
+		} else {
+			runCmd = true
+			terminal.Information("Found SSM Instance [" + ssmInstance.InstanceID + "] named [" + ssmInstance.ComputerName + "] and a ping time of [" + humanize.Time(ssmInstance.LastPingDateTime) + "]!")
+		}
+	}
+
 	// Attach it
-	err = attachVolumes(volList, instance, dryRun)
+	err = attachVolume(volume, volCfg, instance, ssmInstance, runCmd, dryRun)
 	if err != nil {
 		return err
 	}
@@ -570,35 +633,38 @@ func AttachVolume(volume, instanceSearch string, dryRun bool) error {
 }
 
 // Private function without the confirmation terminal prompts
-func attachVolumes(volList *Volumes, instance Instance, dryRun bool) (err error) {
+func attachVolume(volume Volume, volCfg config.VolumeClass, instance Instance, ssmInstance SSMInstance, runCmd, dryRun bool) (err error) {
 
-	for _, volume := range *volList {
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(volume.Region)}))
+	svc := ec2.New(sess)
 
-		// Class Config
-		volCfg, err := config.LoadVolumeClass(volume.Class)
+	params := &ec2.AttachVolumeInput{
+		Device:     aws.String(volCfg.DeviceName),
+		InstanceId: aws.String(instance.InstanceID),
+		VolumeId:   aws.String(volume.VolumeID),
+		DryRun:     aws.Bool(dryRun),
+	}
+
+	terminal.Delta("Attaching Volume [" + volume.VolumeID + "] named [" + volume.Name + "] to [" + instance.InstanceID + "] in [" + volume.Region + "]...")
+
+	_, err = svc.AttachVolume(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+		return err
+	}
+
+	terminal.Information("Attached Volume [" + volume.VolumeID + "] named [" + volume.Name + "] to instance [" + instance.InstanceID + "] named [" + instance.Name + "] in [" + volume.Region + "]!")
+
+	// Run the Attach Command on the Instance
+	if runCmd && volCfg.AttachCommand != "" {
+		terminal.Delta("Running Attach Command...")
+		invocations, err := runCommand(&SSMInstances{ssmInstance}, volCfg.AttachCommand, dryRun)
 		if err != nil {
 			return err
 		}
-
-		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(volume.Region)}))
-		svc := ec2.New(sess)
-
-		params := &ec2.AttachVolumeInput{
-			Device:     aws.String(volCfg.DeviceName),
-			InstanceId: aws.String(instance.InstanceID),
-			VolumeId:   aws.String(volume.VolumeID),
-			DryRun:     aws.Bool(dryRun),
-		}
-
-		_, err = svc.AttachVolume(params)
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				return errors.New(awsErr.Message())
-			}
-			return err
-		}
-
-		terminal.Delta("Attached Volume [" + volume.VolumeID + "] named [" + volume.Name + "] to [" + instance.InstanceID + "] in [" + volume.Region + "]!")
+		invocations.PrintOutput()
 	}
 
 	return nil

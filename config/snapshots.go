@@ -13,13 +13,15 @@ type SnapshotClasses map[string]SnapshotClass
 
 // SnapshotClass is a single Snapshot Class
 type SnapshotClass struct {
-	Rotate           bool     `json:"rotate" awsmClass:"Rotate"`
-	Retain           int      `json:"retain" awsmClass:"Retain"`
-	Propagate        bool     `json:"propagate" awsmClass:"Propagate"`
-	PropagateRegions []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
-	Description      string   `json:"description" awsmClass:"Description"`
-	Volume           string   `json:"volume" awsmClass:"Volume"`
-	Version          int      `json:"version" awsmClass:"Version"`
+	Rotate              bool     `json:"rotate" awsmClass:"Rotate"`
+	Retain              int      `json:"retain" awsmClass:"Retain"`
+	Propagate           bool     `json:"propagate" awsmClass:"Propagate"`
+	PropagateRegions    []string `json:"propagateRegions" awsmClass:"Propagate Regions"`
+	Description         string   `json:"description" awsmClass:"Description"`
+	Volume              string   `json:"volume" awsmClass:"Volume"`
+	Version             int      `json:"version" awsmClass:"Version"`
+	PreSnapshotCommand  string   `json:"preSnapshotCommand"`
+	PostSnapshotCommand string   `json:"postSnapshotCommand"`
 }
 
 // DefaultSnapshotClasses returns the default Snapshot Classes
@@ -115,6 +117,12 @@ func (c SnapshotClasses) Marshal(items []*simpledb.Item) {
 
 			case "Volume":
 				cfg.Volume = val
+
+			case "PreSnapshotCommand":
+				cfg.PreSnapshotCommand = val
+
+			case "PostSnapshotCommand":
+				cfg.PostSnapshotCommand = val
 
 			}
 		}

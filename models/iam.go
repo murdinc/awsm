@@ -37,7 +37,7 @@ type IAMPolicy struct {
 	AttachmentCount  int       `json:"attachmentCount" awsmTable:"Attachment Count"`
 	CreateDate       time.Time `json:"createDate" awsmTable:"Created"`
 	DefaultVersionId string    `json:"defaultVersionId" awsmTable:"Version"`
-	Arn              string    `json:"arn" awsmTable:"ARN"`
+	Arn              string    `json:"arn"`
 }
 
 // IAMPolicyDocument represents an Identity and Access Management (IAM) Policy Document
