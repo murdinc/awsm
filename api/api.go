@@ -12,7 +12,7 @@ import (
 )
 
 // StartAPI Starts the API listener on port 8081
-func StartAPI(withDashboard bool) {
+func StartAPI(withDashboard bool) error {
 	r := chi.NewRouter()
 
 	cors := cors.New(cors.Options{
@@ -67,7 +67,7 @@ func StartAPI(withDashboard bool) {
 			terminal.Notice("No awsm dashboard found!")
 			terminal.Notice("Please install the dashboard by running the following command:")
 			terminal.Notice("curl -s http://dl.sudoba.sh/get/awsmDashboard | sh")
-			return
+			return err
 		}
 
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
@@ -86,8 +86,8 @@ func StartAPI(withDashboard bool) {
 
 		})
 
-		open.Start("http://localhost:8081")
+		return open.Start("http://localhost:8081")
 	}
 
-	http.ListenAndServe(":8081", r)
+	return http.ListenAndServe(":8081", r)
 }

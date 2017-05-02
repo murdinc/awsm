@@ -56,8 +56,7 @@ func main() {
 			Usage:  "Start the awsm api server",
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				api.StartAPI(false)
-				return nil
+				return api.StartAPI(false)
 			},
 		},
 		{
@@ -65,8 +64,7 @@ func main() {
 			Usage:  "Launch the awsm Dashboard GUI",
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				api.StartAPI(true)
-				return nil
+				return api.StartAPI(true)
 			},
 		},
 		{
