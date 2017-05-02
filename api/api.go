@@ -71,20 +71,18 @@ func StartAPI(withDashboard bool) error {
 		}
 
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-			uri := r.URL.RequestURI()
+			path := r.URL.Path
 
-			//fmt.Println(r.URL.Path)
-
-			if uri == "/" {
-				uri = "/index.html"
-			} else if _, err := os.Stat(src + uri); os.IsNotExist(err) {
-				uri = "/index.html"
+			if path == "/" {
+				path = "/index.html"
+			} else if _, err := os.Stat(src + path); os.IsNotExist(err) {
+				path = "/index.html"
 			}
 
-			terminal.Information("Serving file: " + src + uri)
+			terminal.Information("Serving file: " + src + path)
 
 			// return file
-			http.ServeFile(w, r, src+uri)
+			http.ServeFile(w, r, src+path)
 
 		})
 
