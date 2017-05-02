@@ -73,6 +73,8 @@ func StartAPI(withDashboard bool) error {
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 			uri := r.URL.RequestURI()
 
+			//fmt.Println(r.URL.Path)
+
 			if uri == "/" {
 				uri = "/index.html"
 			} else if _, err := os.Stat(src + uri); os.IsNotExist(err) {
@@ -86,7 +88,7 @@ func StartAPI(withDashboard bool) error {
 
 		})
 
-		return open.Start("http://localhost:8081")
+		open.Start("http://localhost:8081")
 	}
 
 	return http.ListenAndServe(":8081", r)
