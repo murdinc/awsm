@@ -25,7 +25,43 @@ type Vpcs []Vpc
 // Vpc represents a single VPC
 type Vpc models.Vpc
 
-// GetVpcByTag returns a single VPC that matches the provided region and Tag key/value
+// GetRegionVpcByTag returns a single VPC that matches the provided region and Tag key/value
+func GetRegionVpcByTag(region, key, value string) (Vpc, error) {
+
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	svc := ec2.New(sess)
+
+	params := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:" + key),
+				Values: []*string{
+					aws.String(value),
+				},
+			},
+		},
+	}
+
+	result, err := svc.DescribeVpcs(params)
+	if err != nil {
+		return Vpc{}, err
+	}
+
+	count := len(result.Vpcs)
+
+	switch count {
+	case 0:
+		return Vpc{}, errors.New("No VPC found with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+	case 1:
+		vpc := new(Vpc)
+		vpc.Marshal(result.Vpcs[0], region)
+		return *vpc, nil
+	}
+
+	return Vpc{}, errors.New("Found more than one VPC with [" + key + "] of [" + value + "] in [" + region + "], Aborting!")
+}
+
+// GetVpcByTag returns a single VPC that matches the provided and Tag key/value
 func GetVpcByTag(region, key, value string) (Vpc, error) {
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))

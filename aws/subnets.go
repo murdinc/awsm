@@ -232,7 +232,7 @@ func (s *Subnets) GetVpcNameBySubnetID(id string) string {
 }
 
 // CreateSubnet creates a new VPC Subnet
-func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
+func CreateSubnet(class, name, vpcSearch, ip, az string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -247,36 +247,50 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 
 	terminal.Information("Found Subnet Class Configuration for [" + class + "]!")
 
+	// Verify the VPC input
+	vpcs, _ := GetVpcs(vpcSearch)
+	vpcCount := len(*vpcs)
+	if vpcCount == 0 {
+		return errors.New("No VPCs found for your search terms.")
+	}
+	if vpcCount > 1 {
+		vpcs.PrintTable()
+		return errors.New("Please limit your search to return only one VPC.")
+	}
+	vpc := (*vpcs)[0]
+
+	terminal.Information("Found VPC [" + vpc.VpcID + "] named [" + vpc.Name + "] with a class of [" + vpc.Class + "] in [" + vpc.Region + "]!")
+
 	// Verify the az input
-	azs, errs := regions.GetAZs()
-	if errs != nil {
-		return errors.New("Error Verifying Availability Zone input")
-	}
-	if !azs.ValidAZ(az) {
-		return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
-	}
+	if az != "" {
+		azs, errs := regions.GetAZs()
+		if errs != nil {
+			return errors.New("Error Verifying Availability Zone input")
+		}
+		if !azs.ValidAZ(az) {
+			return cli.NewExitError("Availability Zone ["+az+"] is Invalid!", 1)
+		}
+		terminal.Information("Found Availability Zone [" + az + "]!")
 
-	terminal.Information("Found Availability Zone [" + az + "]!")
+		region := azs.GetRegion(az)
 
-	region := azs.GetRegion(az)
-
-	// Verify the vpc input
-	targetVpc, err := GetVpcByTag(region, "Class", vpc)
-	if err != nil {
-		return err
+		if region != vpc.Region {
+			return cli.NewExitError("Availability Zone ["+az+"] is not in the same region as the VPC ["+vpc.Region+"]!", 1)
+		}
 	}
-	terminal.Information("Found [" + targetVpc.Name + "] VPC [" + targetVpc.VpcID + "]!")
 
 	// Create the Subnet
-
-	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(vpc.Region)}))
 	svc := ec2.New(sess)
 
 	params := &ec2.CreateSubnetInput{
-		CidrBlock:        aws.String(ip + cfg.CIDR),
-		VpcId:            aws.String(targetVpc.VpcID),
-		DryRun:           aws.Bool(dryRun),
-		AvailabilityZone: aws.String(az),
+		CidrBlock: aws.String(ip + cfg.CIDR),
+		VpcId:     aws.String(vpc.VpcID),
+		DryRun:    aws.Bool(dryRun),
+	}
+
+	if az != "" {
+		params.SetAvailabilityZone(az)
 	}
 
 	createSubnetResp, err := svc.CreateSubnet(params)
@@ -288,7 +302,7 @@ func CreateSubnet(class, name, vpc, ip, az string, dryRun bool) error {
 	terminal.Delta("Created Subnet [" + *createSubnetResp.Subnet.SubnetId + "] named [" + name + "] in [" + *createSubnetResp.Subnet.AvailabilityZone + "]!")
 
 	// Add Tags
-	err = SetEc2NameAndClassTags(createSubnetResp.Subnet.SubnetId, name, class, region)
+	err = SetEc2NameAndClassTags(createSubnetResp.Subnet.SubnetId, name, class, vpc.Region)
 
 	if err != nil {
 		return err

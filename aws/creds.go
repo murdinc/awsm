@@ -2,6 +2,7 @@ package aws
 
 import (
 	"errors"
+	"os"
 	"os/user"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -150,7 +151,12 @@ func readCreds() (*awsmCreds, error) {
 func (a *awsmCreds) SaveCreds() error {
 	// Saves our config file
 	currentUser, _ := user.Current()
-	configLocation := currentUser.HomeDir + "/.aws/credentials"
+	configFolder := currentUser.HomeDir + "/.aws/"
+	configLocation := configFolder + "credentials"
+
+	if _, err := os.Stat(configFolder); os.IsNotExist(err) {
+		os.Mkdir(configFolder, os.FileMode(0755))
+	}
 
 	cfg := ini.Empty()
 

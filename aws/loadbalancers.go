@@ -311,7 +311,7 @@ func CreateLoadBalancer(class, region string, dryRun bool) error {
 
 	// Validate the vpc if passed one - with security groups, and get the matching security groups
 	if elbCfg.Vpc != "" {
-		vpc, err := GetVpcByTag(region, "Class", elbCfg.Vpc)
+		vpc, err := GetRegionVpcByTag(region, "Class", elbCfg.Vpc)
 		if err != nil {
 			return err
 		}

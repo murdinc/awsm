@@ -985,7 +985,7 @@ func main() {
 		},
 		{
 			Name:  "deregisterInstances",
-			Usage: "Deregister an Instance from SSM Inventory",
+			Usage: "Deregister Instances from SSM Inventory",
 			Arguments: []cli.Argument{
 				{
 					Name:        "search",

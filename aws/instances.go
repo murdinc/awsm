@@ -330,7 +330,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	secGroupIds := make([]*string, len(instanceCfg.SecurityGroups))
 	if instanceCfg.Vpc != "" && instanceCfg.Subnet != "" {
 		// VPC
-		vpc, err = GetVpcByTag(region, "Class", instanceCfg.Vpc)
+		vpc, err = GetRegionVpcByTag(region, "Class", instanceCfg.Vpc)
 		if err != nil {
 			return err
 		}

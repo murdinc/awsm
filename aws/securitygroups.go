@@ -539,7 +539,6 @@ func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 	for i, secGrp := range s {
 		cfgHashes[i] = make(map[uint64]config.SecurityGroupGrant)
 		// Verify the security group class input
-		fmt.Println(secGrp)
 		cfg, err := config.LoadSecurityGroupClass(secGrp.Class, true)
 		if err != nil {
 			return changes, err
