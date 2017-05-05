@@ -116,8 +116,10 @@ func readCreds() (*awsmCreds, error) {
 	// Reads in our config file
 	config := new(awsmCreds)
 
+	sep := string(os.PathSeparator)
+
 	currentUser, _ := user.Current()
-	configLocation := currentUser.HomeDir + "/.aws/credentials"
+	configLocation := currentUser.HomeDir + sep + ".aws" + sep + "credentials"
 
 	cfg, err := ini.Load(configLocation)
 	if err != nil {
@@ -151,7 +153,10 @@ func readCreds() (*awsmCreds, error) {
 func (a *awsmCreds) SaveCreds() error {
 	// Saves our config file
 	currentUser, _ := user.Current()
-	configFolder := currentUser.HomeDir + "/.aws/"
+
+	sep := string(os.PathSeparator)
+
+	configFolder := currentUser.HomeDir + sep + ".aws" + sep
 	configLocation := configFolder + "credentials"
 
 	if _, err := os.Stat(configFolder); os.IsNotExist(err) {
