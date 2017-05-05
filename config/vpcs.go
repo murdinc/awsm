@@ -79,6 +79,7 @@ func (c VpcClasses) Marshal(items []*simpledb.Item) {
 
 			case "Tenancy":
 				cfg.Tenancy = val
+
 			}
 		}
 

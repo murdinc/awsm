@@ -108,6 +108,19 @@ func ExtractAwsmTable(index int, in interface{}, header *[]string, rows *[][]str
 			case "[]config.SecurityGroupGrant":
 				// nothing, yet
 
+			case "[]models.RouteTableAssociation":
+				var assocStr []string
+				associations := tV.Field(k).Interface().([]RouteTableAssociation)
+				for _, assoc := range associations {
+					if assoc.Main {
+						assocStr = append(assocStr, "main")
+					} else {
+						assocStr = append(assocStr, assoc.SubnetID)
+					}
+				}
+
+				sVal = strings.Join(assocStr, ", ")
+
 			default:
 				println("ExtractAwsmTable does not have a switch for type:")
 				println(tV.Field(k).Type().String())

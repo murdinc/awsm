@@ -68,6 +68,30 @@ func main() {
 			},
 		},
 		{
+			Name:  "associateRouteTable",
+			Usage: "Associate a Route Table to a Subnet",
+			Arguments: []cli.Argument{
+				{
+					Name:        "routetable",
+					Description: "The route table to attach",
+					Optional:    false,
+				},
+				{
+					Name:        "subnet",
+					Description: "The subnet to associate the route table with",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.AssociateRouteTable(c.NamedArg("routetable"), c.NamedArg("subnet"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "attachIAMRolePolicy",
 			Usage: "Attach an IAM Policy to a IAM Role",
 			Arguments: []cli.Argument{
@@ -85,6 +109,30 @@ func main() {
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.AttachIAMRolePolicy(c.NamedArg("role"), c.NamedArg("policy"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "attachInternetGateway",
+			Usage: "Attach an Internet Gateway to a VPC",
+			Arguments: []cli.Argument{
+				{
+					Name:        "gateway",
+					Description: "The internet gateway to attach",
+					Optional:    false,
+				},
+				{
+					Name:        "vpc",
+					Description: "The vpc to attach the internet gateway to",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.AttachInternetGateway(c.NamedArg("gateway"), c.NamedArg("vpc"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -199,7 +247,7 @@ func main() {
 			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				err := aws.CreateAddress(c.NamedArg("region"), c.NamedArg("domain"), dryRun)
+				_, err := aws.CreateAddress(c.NamedArg("region"), c.NamedArg("domain"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -284,6 +332,30 @@ func main() {
 				}
 
 				_, err = aws.CreateIAMPolicy(c.NamedArg("name"), string(doc), c.NamedArg("path"), c.NamedArg("description"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "createInternetGateway",
+			Usage: "Create an Internet Gateway",
+			Arguments: []cli.Argument{
+				{
+					Name:        "name",
+					Description: "The name of the internet gateway",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region to create the internet gateway in",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				_, err := aws.CreateInternetGateway(c.NamedArg("name"), c.NamedArg("region"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -411,6 +483,30 @@ func main() {
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				err := aws.CreateResourceRecord(c.NamedArg("record"), c.NamedArg("value"), c.NamedArg("ttl"), force, dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "createRouteTable",
+			Usage: "Create a Route Table",
+			Arguments: []cli.Argument{
+				{
+					Name:        "name",
+					Description: "The name of the route table",
+					Optional:    false,
+				},
+				{
+					Name:        "vpc",
+					Description: "The vpc to create the route table in",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				_, err := aws.CreateRouteTable(c.NamedArg("name"), c.NamedArg("vpc"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -728,6 +824,25 @@ func main() {
 			},
 		},
 		{
+			Name:  "deleteInternetGateway",
+			Usage: "Delete an Internet Gateway",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for internet gateway",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteInternetGateway(c.NamedArg("search"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "deleteImages",
 			Usage: "Delete Machine Images",
 			Arguments: []cli.Argument{
@@ -1008,6 +1123,25 @@ func main() {
 			},
 		},
 		{
+			Name:  "detachInternetGateway",
+			Usage: "Detach an Internet Gateway from a VPC",
+			Arguments: []cli.Argument{
+				{
+					Name:        "gateway",
+					Description: "The internet gateway to detach",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.DetachInternetGateway(c.NamedArg("gateway"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "detachVolume",
 			Usage: "Detach an EBS Volume",
 			Arguments: []cli.Argument{
@@ -1033,6 +1167,30 @@ func main() {
 			Action: func(c *cli.Context) error {
 
 				err := aws.DetachVolume(c.NamedArg("volume"), c.NamedArg("instance"), force, dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "disassociateRouteTable",
+			Usage: "Disassociate a Route Table from a Subnet",
+			Arguments: []cli.Argument{
+				{
+					Name:        "routetable",
+					Description: "The route table to disassociate",
+					Optional:    false,
+				},
+				{
+					Name:        "subnet",
+					Description: "The subnet to disassociate the route table from",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.DisassociateRouteTable(c.NamedArg("routetable"), c.NamedArg("subnet"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -1557,6 +1715,27 @@ func main() {
 			},
 		},
 		{
+			Name:  "listInternetGateways",
+			Usage: "List VPC Internet Gateways",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				internetGateways, errs := aws.GetInternetGateways(c.NamedArg("search"), false)
+				if errs != nil {
+					return cli.NewExitError("Error Listing Internet Gateways!", 1)
+				}
+				internetGateways.PrintTable()
+
+				return nil
+			},
+		},
+		{
 			Name:  "listKeyPairs",
 			Usage: "List Key Pairs",
 			Arguments: []cli.Argument{
@@ -1636,6 +1815,27 @@ func main() {
 					return cli.NewExitError("Error Listing Resource Records!", 1)
 				}
 				resourceRecords.PrintTable()
+
+				return nil
+			},
+		},
+		{
+			Name:  "listRouteTables",
+			Usage: "List VPC Internet Gateways",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				internetGateways, errs := aws.GetRouteTables(c.NamedArg("search"))
+				if errs != nil {
+					return cli.NewExitError("Error Listing Route Tables!", 1)
+				}
+				internetGateways.PrintTable()
 
 				return nil
 			},

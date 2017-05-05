@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
@@ -13,6 +14,16 @@ type SubnetClasses map[string]SubnetClass
 // SubnetClass is a single Subnet Class
 type SubnetClass struct {
 	CIDR string `json:"cidr" awsmClass:"CIDR"`
+
+	// INTERNET GATEWAY
+	CreateInternetGateway              bool `json:"createInternetGateway" awsmClass:"Create Internet Gateway"`
+	AddInternetGatewayToMainRouteTable bool `json:"addInternetGatewayToMainRouteTable" awsmClass:"Add Internet Gateway To Main Route Table"`
+	AddInternetGatewayToNewRouteTable  bool `json:"addInternetGatewayToNewRouteTable" awsmClass:"Add Internet Gateway To New Route Table"`
+
+	// NAT GATEWAY
+	CreateNatGateway              bool `json:"createNatGateway" awsmClass:"Create NAT Gateway"`
+	AddNatGatewayToMainRouteTable bool `json:"addNatGatewayToMainRouteTable" awsmClass:"Add NAT Gateway To Main Route Table"`
+	AddNatGatewayToNewRouteTable  bool `json:"addNatGatewayToNewRouteTable" awsmClass:"Add NAT Gateway To New Route Table"`
 }
 
 // DefaultSubnetClasses returns the defauly Subnet Classes
@@ -25,6 +36,10 @@ func DefaultSubnetClasses() SubnetClasses {
 
 	defaultSubnets["public"] = SubnetClass{
 		CIDR: "/24",
+		CreateInternetGateway:             true,
+		AddInternetGatewayToNewRouteTable: true,
+		CreateNatGateway:                  true,
+		AddNatGatewayToMainRouteTable:     true,
 	}
 
 	return defaultSubnets
@@ -78,6 +93,24 @@ func (c SubnetClasses) Marshal(items []*simpledb.Item) {
 
 			case "CIDR":
 				cfg.CIDR = val
+
+			case "CreateInternetGateway":
+				cfg.CreateInternetGateway, _ = strconv.ParseBool(val)
+
+			case "AddInternetGatewayToMainRouteTable":
+				cfg.AddInternetGatewayToMainRouteTable, _ = strconv.ParseBool(val)
+
+			case "AddInternetGatewayToNewRouteTable":
+				cfg.AddInternetGatewayToNewRouteTable, _ = strconv.ParseBool(val)
+
+			case "CreateNatGateway":
+				cfg.CreateNatGateway, _ = strconv.ParseBool(val)
+
+			case "AddNatGatewayToMainRouteTable":
+				cfg.AddNatGatewayToMainRouteTable, _ = strconv.ParseBool(val)
+
+			case "AddNatGatewayToNewRouteTable":
+				cfg.AddNatGatewayToNewRouteTable, _ = strconv.ParseBool(val)
 
 			}
 		}

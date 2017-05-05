@@ -476,9 +476,16 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	if dryRun {
 		terminal.Notice("Params:")
 		fmt.Println(params.String())
+
 	}
 
 	launchInstanceResp, err := svc.RunInstances(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+	}
+
 	instance := launchInstanceResp.Instances[0]
 
 	if err != nil {

@@ -124,7 +124,7 @@ func GetRegionAddresses(region string, adrList *Addresses, search string, availa
 }
 
 // CreateAddress creates a new Elastic IP Address in the given region and domain
-func CreateAddress(region, domain string, dryRun bool) error {
+func CreateAddress(region, domain string, dryRun bool) (string, error) {
 
 	// --dry-run flag
 	if dryRun {
@@ -133,12 +133,12 @@ func CreateAddress(region, domain string, dryRun bool) error {
 
 	// Validate the region
 	if !regions.ValidRegion(region) {
-		return errors.New("Region [" + region + "] is Invalid!")
+		return "", errors.New("Region [" + region + "] is Invalid!")
 	}
 
 	// Validate the domain
 	if !(domain == "vpc" || domain != "classic") {
-		return errors.New("Domain should be either [vpc] or [classic].")
+		return "", errors.New("Domain should be either [vpc] or [classic].")
 	}
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
@@ -149,16 +149,20 @@ func CreateAddress(region, domain string, dryRun bool) error {
 		Domain: aws.String(domain),
 		DryRun: aws.Bool(dryRun),
 	}
-	_, err := svc.AllocateAddress(params)
+	allocateAddrResp, err := svc.AllocateAddress(params)
+
+	allocationId := *allocateAddrResp.AllocationId
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Message())
+			return "", errors.New(awsErr.Message())
 		}
-		return err
+		return allocationId, err
 	}
 
-	return nil
+	terminal.Delta("Created Address  [" + *allocateAddrResp.PublicIp + "] with allocation Id [" + allocationId + "] in [" + region + "]!")
+
+	return allocationId, nil
 }
 
 // DeleteAddresses Deletes one or more Elastic IP Addresses based on the given search term and optional region

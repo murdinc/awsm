@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/aws/regions"
@@ -258,8 +259,9 @@ func CreateSubnet(class, name, vpcSearch, ip, az string, dryRun bool) error {
 		return errors.New("Please limit your search to return only one VPC.")
 	}
 	vpc := (*vpcs)[0]
+	region := vpc.Region
 
-	terminal.Information("Found VPC [" + vpc.VpcID + "] named [" + vpc.Name + "] with a class of [" + vpc.Class + "] in [" + vpc.Region + "]!")
+	terminal.Information("Found VPC [" + vpc.VpcID + "] named [" + vpc.Name + "] with a class of [" + vpc.Class + "] in [" + region + "]!")
 
 	// Verify the az input
 	if az != "" {
@@ -272,9 +274,9 @@ func CreateSubnet(class, name, vpcSearch, ip, az string, dryRun bool) error {
 		}
 		terminal.Information("Found Availability Zone [" + az + "]!")
 
-		region := azs.GetRegion(az)
+		azRegion := azs.GetRegion(az)
 
-		if region != vpc.Region {
+		if azRegion != vpc.Region {
 			return cli.NewExitError("Availability Zone ["+az+"] is not in the same region as the VPC ["+vpc.Region+"]!", 1)
 		}
 	}
@@ -294,18 +296,139 @@ func CreateSubnet(class, name, vpcSearch, ip, az string, dryRun bool) error {
 	}
 
 	createSubnetResp, err := svc.CreateSubnet(params)
-
 	if err != nil {
 		return err
 	}
 
-	terminal.Delta("Created Subnet [" + *createSubnetResp.Subnet.SubnetId + "] named [" + name + "] in [" + *createSubnetResp.Subnet.AvailabilityZone + "]!")
+	subnetId := *createSubnetResp.Subnet.SubnetId
+
+	terminal.Delta("Created Subnet [" + subnetId + "] named [" + name + "] in [" + region + "]!")
+
+	terminal.Notice("Waiting to tag Subnet...")
+
+	err = svc.WaitUntilSubnetAvailable(&ec2.DescribeSubnetsInput{
+		SubnetIds: []*string{
+			aws.String(subnetId),
+		},
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return errors.New(awsErr.Message())
+		}
+	}
+
+	terminal.Delta("Adding Subnet Tags...")
 
 	// Add Tags
 	err = SetEc2NameAndClassTags(createSubnetResp.Subnet.SubnetId, name, class, vpc.Region)
-
 	if err != nil {
 		return err
+	}
+
+	namePrefix := vpc.Name
+	if namePrefix == "" {
+		namePrefix = vpc.VpcID
+	}
+
+	if cfg.CreateInternetGateway {
+		terminal.Notice("Creating a new Internet Gateway...")
+
+		// Create a new Internet Gateway
+		internetGatewayId, err := CreateInternetGateway(namePrefix+"-internet-gateway", region, dryRun)
+		if err != nil {
+			return err
+		}
+
+		terminal.Notice("Attaching Internet Gateway to VPC...")
+		// Attach the Internet Gateway to the VPC
+		err = attachInternetGateway(vpc.VpcID, internetGatewayId, region, dryRun)
+		if err != nil {
+			return err
+		}
+
+		// Add to main route table, if specified
+		if cfg.AddInternetGatewayToMainRouteTable {
+			terminal.Notice("Adding Internet Gateway to Main Route Table...")
+
+			routeTable, err := GetVpcMainRouteTable(vpc.VpcID, region)
+			if err != nil {
+				return err
+			}
+
+			err = createRoute(routeTable.RouteTableID, region, "0.0.0.0/0", internetGatewayId, "", dryRun)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Create a new route table and add to that, if specified
+		if cfg.AddInternetGatewayToNewRouteTable {
+			terminal.Notice("Creating a new Route Table...")
+
+			routeTableId, err := createRouteTable(namePrefix+"-"+name+"-route-table", vpc.VpcID, region, dryRun)
+
+			terminal.Notice("Associating Route Table to Subnet...")
+
+			err = associateRouteTable(routeTableId, subnetId, region, dryRun)
+			if err != nil {
+				return err
+			}
+
+			terminal.Notice("Adding Internet Gateway to New Route Table...")
+
+			err = createRoute(routeTableId, region, "0.0.0.0/0", internetGatewayId, "", dryRun)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if cfg.CreateNatGateway {
+
+		terminal.Notice("Creating a new NAT Gateway...")
+
+		// Create a new NAT Gateway
+		natGatewayId, err := CreateNatGateway(namePrefix+"-nat-gateway", "", subnetId, region, dryRun)
+		if err != nil {
+			return err
+		}
+
+		// Add to main route table, if specified
+		if cfg.AddNatGatewayToMainRouteTable {
+			terminal.Notice("Adding NAT Gateway to Main Route Table...")
+
+			routeTable, err := GetVpcMainRouteTable(vpc.VpcID, region)
+			if err != nil {
+				return err
+			}
+
+			err = createRoute(routeTable.RouteTableID, region, "0.0.0.0/0", "", natGatewayId, dryRun)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Create a new route table and add to that, if specified
+		if cfg.AddNatGatewayToNewRouteTable {
+			terminal.Notice("Creating a new Route Table...")
+
+			routeTableId, err := createRouteTable(namePrefix+"-"+name+"-route-table", vpc.VpcID, region, dryRun)
+
+			terminal.Notice("Associating Route Table to Subnet...")
+
+			err = associateRouteTable(routeTableId, subnetId, region, dryRun)
+			if err != nil {
+				return err
+			}
+
+			terminal.Notice("Adding NAT Gateway to New Route Table...")
+
+			err = createRoute(routeTableId, region, "0.0.0.0/0", "", natGatewayId, dryRun)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	terminal.Information("Done!")
