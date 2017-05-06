@@ -425,33 +425,7 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 		Monitoring: &ec2.RunInstancesMonitoringEnabled{
 			Enabled: aws.Bool(instanceCfg.Monitoring),
 		},
-		SecurityGroupIds: secGroupIds,
-		SubnetId:         aws.String(subnetID),
-		UserData:         aws.String(base64.StdEncoding.EncodeToString([]byte(parsedUserData))),
-		NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{ // only needed when we launch with a public ip. TODO
-			{
-			/*
-				AssociatePublicIpAddress: aws.Bool(instanceCfg.PublicIpAddress),
-				DeleteOnTermination:      aws.Bool(true),
-				//Description:              aws.String("String"),
-				DeviceIndex: aws.Int64(0),
-				Groups: []*string{
-					aws.String("String"), // Required
-				},
-
-					PrivateIpAddress:   aws.String("String"),
-					PrivateIpAddresses: []*ec2.PrivateIpAddressSpecification{
-						{ // Required
-							PrivateIpAddress: aws.String("String"), // Required
-							Primary:          aws.Bool(true),
-						},
-					},
-					SecondaryPrivateIpAddressCount: aws.Int64(1),
-
-					SubnetId:                       aws.String("String"),
-			*/
-			},
-		},
+		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(parsedUserData))),
 		/*
 			Placement: &ec2.Placement{ // havent played around with placements yet, TODO?
 				Affinity:         aws.String("String"),
@@ -460,10 +434,24 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 				HostId:           aws.String("String"),
 				Tenancy:          aws.String("Tenancy"),
 			},
+			PrivateIpAddress: aws.String("String"),
+			KernelId:         aws.String("String"),
+			RamdiskId:        aws.String("String"),
 		*/
-		// PrivateIpAddress: aws.String("String"),
-		//KernelId:         aws.String("String"),
-		//RamdiskId:        aws.String("String"),
+	}
+
+	if instanceCfg.PublicIPAddress {
+		params.SetNetworkInterfaces([]*ec2.InstanceNetworkInterfaceSpecification{
+			{
+				AssociatePublicIpAddress: aws.Bool(true),
+				DeleteOnTermination:      aws.Bool(true), // TODO link up to cfg
+				DeviceIndex:              aws.Int64(0),
+				SubnetId:                 aws.String(subnetID),
+				Groups:                   secGroupIds,
+			}})
+	} else {
+		params.SetSubnetId(subnetID)
+		params.SetSecurityGroupIds(secGroupIds)
 	}
 
 	if len(ebsVolumes) > 0 {

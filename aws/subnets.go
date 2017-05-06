@@ -301,8 +301,9 @@ func CreateSubnet(class, name, vpcSearch, ip, az string, dryRun bool) error {
 	}
 
 	subnetId := *createSubnetResp.Subnet.SubnetId
+	subnetAz := *createSubnetResp.Subnet.AvailabilityZone
 
-	terminal.Delta("Created Subnet [" + subnetId + "] named [" + name + "] in [" + region + "]!")
+	terminal.Delta("Created Subnet [" + subnetId + "] named [" + name + "] in [" + subnetAz + "]!")
 
 	terminal.Notice("Waiting to tag Subnet...")
 

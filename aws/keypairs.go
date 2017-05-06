@@ -197,7 +197,7 @@ func importKeyPair(region, name string, publicKey []byte, dryRun bool) error {
 		return err
 	}
 
-	terminal.Delta("Imported public key for [" + name + "] into [" + region + "]!")
+	terminal.Delta("Created public key named [" + name + "] in [" + region + "]!")
 
 	return nil
 }
