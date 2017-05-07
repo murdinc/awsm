@@ -42,7 +42,7 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				FromPort:   80,
 				ToPort:     80,
 				IPProtocol: "tcp",
-				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				CidrIPs:    []string{"0.0.0.0/0"},
 			},
 			SecurityGroupGrant{
 				Note:       "http port 443",
@@ -50,29 +50,7 @@ func DefaultSecurityGroupClasses() SecurityGroupClasses {
 				FromPort:   443,
 				ToPort:     443,
 				IPProtocol: "tcp",
-				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
-			},
-		},
-	}
-
-	defaultSecurityGroups["prod"] = SecurityGroupClass{
-		Description: "prod servers",
-		SecurityGroupGrants: []SecurityGroupGrant{
-			SecurityGroupGrant{
-				Note:       "http port 80",
-				Type:       "ingress",
-				FromPort:   80,
-				ToPort:     80,
-				IPProtocol: "tcp",
-				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
-			},
-			SecurityGroupGrant{
-				Note:       "http port 443",
-				Type:       "ingress",
-				FromPort:   443,
-				ToPort:     443,
-				IPProtocol: "tcp",
-				CidrIPs:    []string{"10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"},
+				CidrIPs:    []string{"0.0.0.0/0"},
 			},
 		},
 	}
