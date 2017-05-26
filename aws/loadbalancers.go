@@ -355,28 +355,28 @@ func CreateLoadBalancer(class, region string, dryRun bool) error {
 		},
 	}
 
-	// Add Subnets
-	if len(subnetIds) > 0 {
-		params.SetSubnets(subnetIds)
-	}
-
 	// Add Security Groups
 	if len(secGrpIds) > 0 {
 		params.SetSecurityGroups(secGrpIds)
 	}
 
-	// Add Availability Zones that are in this region
-	azs := []*string{}
-	regionAzs := new(regions.AZs)
-	regions.GetRegionAZs(region, regionAzs)
-	for _, az := range elbCfg.AvailabilityZones {
-		if regionAzs.ValidAZ(az) {
-			terminal.Information("Found Availability Zone [" + az + "]!")
-			azs = append(azs, aws.String(az))
+	// Add Subnets
+	if len(subnetIds) > 0 {
+		params.SetSubnets(subnetIds)
+	} else {
+		// Add Availability Zones that are in this region
+		azs := []*string{}
+		regionAzs := new(regions.AZs)
+		regions.GetRegionAZs(region, regionAzs)
+		for _, az := range elbCfg.AvailabilityZones {
+			if regionAzs.ValidAZ(az) {
+				terminal.Information("Found Availability Zone [" + az + "]!")
+				azs = append(azs, aws.String(az))
+			}
 		}
-	}
-	if len(azs) > 0 {
-		params.SetAvailabilityZones(azs)
+		if len(azs) > 0 {
+			params.SetAvailabilityZones(azs)
+		}
 	}
 
 	// Add Listeners
