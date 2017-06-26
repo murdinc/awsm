@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -189,6 +190,11 @@ func (l *LaunchConfigs) LockedImageIds() map[string]bool {
 // CreateLaunchConfigurations creates a new Launch Configuration of a given class
 func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
 	// Verify the launch config class input
 	cfg, err := config.LoadLaunchConfigurationClass(class)
 	if err != nil {
@@ -207,7 +213,13 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 	// Increment the version
 	terminal.Information(fmt.Sprintf("Previous version of launch configuration is [%d]", cfg.Version))
-	cfg.Increment(class)
+
+	if dryRun {
+		cfg.Version++
+	} else {
+		cfg.Increment(class)
+	}
+
 	terminal.Delta(fmt.Sprintf("New version of launch configuration is [%d]", cfg.Version))
 
 	params := &autoscaling.CreateLaunchConfigurationInput{
@@ -243,6 +255,8 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 		if !regions.ValidRegion(region) {
 			return errors.New("Region [" + region + "] is not valid!")
+		} else {
+			terminal.Delta("Building Launch Configuration for [" + region + "]...")
 		}
 
 		// EBS
@@ -369,7 +383,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 						Value: class,
 					},
 					"var.sequence": ast.Variable{
-						Type:  ast.TypeString,
+						Type:  ast.TypeInt,
 						Value: cfg.Version,
 					},
 					"var.locale": ast.Variable{
@@ -387,26 +401,28 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 
 		parsedUserData := result.Value.(string)
 
-		if dryRun {
-			terminal.Information("User Data:")
-			terminal.Information(parsedUserData)
-		}
-
-		params.UserData = aws.String(parsedUserData)
+		params.UserData = aws.String(base64.StdEncoding.EncodeToString([]byte(parsedUserData)))
 		params.SecurityGroups = secGroupIds
 
-		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
-		svc := autoscaling.New(sess)
+		if dryRun {
+			terminal.Notice("User Data:")
+			terminal.Notice(parsedUserData)
+		} else {
+			sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+			svc := autoscaling.New(sess)
 
-		_, err = svc.CreateLaunchConfiguration(params)
+			_, err = svc.CreateLaunchConfiguration(params)
 
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				return errors.New(awsErr.Message())
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					return errors.New(awsErr.Message())
+				}
+				return err
 			}
-			return err
-		}
 
+			terminal.Delta("Created Launch Configuration [" + class + "] in region [" + region + "]")
+
+		}
 	}
 
 	// Rotate out older launch configurations

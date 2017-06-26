@@ -753,6 +753,8 @@ func updateSecurityGroups(changes []SecurityGroupChange, dryRun bool) error {
 		}
 	}
 
+	terminal.Information("Done!")
+
 	return nil
 }
 

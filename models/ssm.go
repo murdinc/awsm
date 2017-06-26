@@ -29,6 +29,7 @@ type CommandPlugin struct {
 type Entity struct {
 	InstanceName    string    `json:"name" awsmTable:"Name"`
 	InstanceClass   string    `json:"class" awsmTable:"Class"`
+	InstanceID      string    `json:"instanceId"`
 	IpAddress       string    `json:"IP Address" awsmTable:"IP Address"`
 	EntityID        string    `json:"entityID" awsmTable:"Entity ID"`
 	ComputerName    string    `json:"computerName" awsmTable:"Computer Name"`

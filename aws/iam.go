@@ -783,7 +783,13 @@ func CreateIAMUser(username, path string) error {
 	if path != "" {
 		params.Path = aws.String(path)
 	}
-	_, err := svc.CreateUser(params)
+	resp, err := svc.CreateUser(params)
+
+	userName := aws.StringValue(resp.User.UserName)
+	userId := aws.StringValue(resp.User.UserId)
+
+	terminal.Delta("Created IAM User [" + userName + "] with User ID [" + userId + "]")
+
 	if err == nil {
 		terminal.Information("Done!")
 	}

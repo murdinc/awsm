@@ -168,7 +168,6 @@ func GetLoadBalancerTags(names []string, region string) (map[string][]*elb.Tag, 
 	resp, err := svc.DescribeTags(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			fmt.Println(awsErr)
 			return elbTags, errors.New(awsErr.Message())
 		}
 		return elbTags, err
@@ -194,6 +193,10 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 	subnetNames := subList.GetSubnetNames(aws.StringValueSlice(balancer.Subnets))
 	subnetNamesSorted := sort.StringSlice(subnetNames[0:])
 	subnetNamesSorted.Sort()
+
+	subnetClasses := subList.GetSubnetClasses(aws.StringValueSlice(balancer.Subnets))
+	subnetClassesSorted := sort.StringSlice(subnetClasses[0:])
+	subnetClassesSorted.Sort()
 
 	// attributes
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
@@ -225,6 +228,7 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 	l.Vpc = vpcList.GetVpcName(l.VpcID)
 	l.SubnetIDs = aws.StringValueSlice(balancer.Subnets)
 	l.Subnets = subnetNamesSorted
+	l.SubnetClasses = subnetClassesSorted
 	l.Scheme = aws.StringValue(balancer.Scheme)
 	l.SecurityGroups = secGroupNamesSorted
 	l.AvailabilityZones = aws.StringValueSlice(balancer.AvailabilityZones)
@@ -370,7 +374,8 @@ func CreateLoadBalancer(class, region string, dryRun bool) error {
 		regions.GetRegionAZs(region, regionAzs)
 		for _, az := range elbCfg.AvailabilityZones {
 			if regionAzs.ValidAZ(az) {
-				terminal.Information("Found Availability Zone [" + az + "]!")
+				terminal.Delta(fmt.Sprintf("[%s %s] - Enable -	[Load Balancer Availability Zones] [%s]", class, region, az))
+
 				azs = append(azs, aws.String(az))
 			}
 		}
@@ -392,14 +397,18 @@ func CreateLoadBalancer(class, region string, dryRun bool) error {
 				return errors.New("Load Balancer Port [" + fmt.Sprint(l.LoadBalancerPort) + "] is invalid!")
 			}
 
-			listeners = append(listeners, &elb.Listener{
+			listener := &elb.Listener{
 				InstancePort:     aws.Int64(int64(l.InstancePort)),
 				LoadBalancerPort: aws.Int64(int64(l.LoadBalancerPort)),
 				Protocol:         aws.String(l.Protocol),
 				InstanceProtocol: aws.String(l.InstanceProtocol),
 				//SSLCertificateId: aws.String("SSLCertificateId"),
-			},
-			)
+			}
+
+			listeners = append(listeners, listener)
+
+			terminal.Delta(fmt.Sprintf("[%s %s] - Add -	[%s:%d	-	%s:%d]", class, region, *listener.Protocol, *listener.LoadBalancerPort, *listener.InstanceProtocol, *listener.InstancePort))
+
 		}
 		params.SetListeners(listeners)
 	}
@@ -829,7 +838,7 @@ type LoadBalancerChange struct {
 
 func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 
-	terminal.Delta("Comparing awsm Load Balancer listeners...")
+	terminal.Delta("Comparing awsm Load Balancer configuration...")
 
 	changes := []LoadBalancerChange{}
 	listenerHashes := make([]map[uint64]config.LoadBalancerListener, len(s))
@@ -880,9 +889,9 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 		}
 
 		/////////////////
-		// SECURITY GROUPS / SUBNETS
+		// SECURITY GROUPS
 
-		if lb.VpcID != "" && !reflect.DeepEqual(lb.SecurityGroups, cfg.SecurityGroups) {
+		if !reflect.DeepEqual(lb.SecurityGroups, cfg.SecurityGroups) {
 			secGrps, err := GetSecurityGroupByTagMulti(lb.Region, "Class", cfg.SecurityGroups)
 			if err != nil {
 				return changes, err
@@ -896,7 +905,12 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 				SecurityGroups: secGrpIds,
 				LoadBalancer:   lb,
 			})
+		}
 
+		/////////////////
+		// SUBNETS
+
+		if lb.VpcID != "" {
 			for _, cSubnet := range cfg.Subnets {
 
 				configSubnetHash, err := hashstructure.Hash(cSubnet, nil)
@@ -905,7 +919,6 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 				}
 				subnetHashes[i][configSubnetHash] = cSubnet
 			}
-
 		}
 
 		/////////////////
@@ -967,25 +980,29 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 		/////////////////
 		// AZs
 
-		// cycle through existing azs and find ones to remove
-		for _, az := range lb.AvailabilityZones {
-			existingAzHash, err := hashstructure.Hash(az, nil)
-			if err != nil {
-				return changes, err
-			}
-			if _, ok := azHashes[i][existingAzHash]; !ok {
-				terminal.Delta(fmt.Sprintf("[%s %s] - Disable -	[Load Balancer Availability Zone] [%s]", lb.Name, lb.Region, az))
-				disableAz = append(disableAz, az)
-			} else {
-				//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
-				delete(azHashes[i], existingAzHash)
-			}
-		}
+		if lb.VpcID == "" {
 
-		// cycle through hashes and find ones to add
-		for _, az := range azHashes[i] {
-			terminal.Delta(fmt.Sprintf("[%s %s] - Enable -	[Load Balancer Availability Zones] [%s]", lb.Name, lb.Region, az))
-			enableAz = append(enableAz, az)
+			// cycle through existing azs and find ones to remove
+			for _, az := range lb.AvailabilityZones {
+				existingAzHash, err := hashstructure.Hash(az, nil)
+				if err != nil {
+					return changes, err
+				}
+				if _, ok := azHashes[i][existingAzHash]; !ok {
+					terminal.Delta(fmt.Sprintf("[%s %s] - Disable -	[Load Balancer Availability Zone] [%s]", lb.Name, lb.Region, az))
+					disableAz = append(disableAz, az)
+				} else {
+					//terminal.Notice(fmt.Sprintf("[%s %s] - Keeping -	[%s:%d	-	%s:%d]", lb.Name, lb.Region, listener.Protocol, listener.LoadBalancerPort, listener.InstanceProtocol, listener.InstancePort))
+					delete(azHashes[i], existingAzHash)
+				}
+			}
+
+			// cycle through hashes and find ones to add
+			for _, az := range azHashes[i] {
+				terminal.Delta(fmt.Sprintf("[%s %s] - Enable -	[Load Balancer Availability Zones] [%s]", lb.Name, lb.Region, az))
+				enableAz = append(enableAz, az)
+			}
+
 		}
 
 		/////////////////
@@ -993,7 +1010,7 @@ func (s LoadBalancers) Diff() ([]LoadBalancerChange, error) {
 
 		if lb.VpcID != "" {
 			// cycle through existing subnets and find ones to remove
-			for _, subnet := range lb.Subnets {
+			for _, subnet := range lb.SubnetClasses {
 				existingSubnetHash, err := hashstructure.Hash(subnet, nil)
 				if err != nil {
 					return changes, err

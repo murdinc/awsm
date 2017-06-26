@@ -18,6 +18,7 @@ type LoadBalancer struct {
 	Vpc                     string                         `json:"vpc" awsmTable:"VPC"`
 	VpcID                   string                         `json:"vpcID"`
 	Subnets                 []string                       `json:"subnets" awsmTable:"Subnets"`
+	SubnetClasses           []string                       `json:"subnetsClasses"`
 	SubnetIDs               []string                       `json:"subnetIDs"`
 	DNSName                 string                         `json:"dnsName"`
 	LoadBalancerListeners   []config.LoadBalancerListener  `json:"loadBalancerListeners"`

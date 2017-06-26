@@ -234,8 +234,8 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 		}
 
 		// Set the Termination Policies
-		for _, terminationPolicy := range cfg.LoadBalancerNames {
-			params.TerminationPolicies = append(params.TerminationPolicies, aws.String(terminationPolicy)) // ??
+		for _, terminationPolicy := range cfg.TerminationPolicies {
+			params.TerminationPolicies = append(params.TerminationPolicies, aws.String(terminationPolicy))
 		}
 
 		// Create it!
@@ -334,11 +334,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			svc := autoscaling.New(sess)
 
 			params := &autoscaling.UpdateAutoScalingGroupInput{
-				AutoScalingGroupName: aws.String(asg.Name),
-				AvailabilityZones: []*string{
-					aws.String("XmlStringMaxLen255"), // Required
-					// More values...
-				},
+				AutoScalingGroupName:    aws.String(asg.Name),
 				DefaultCooldown:         aws.Int64(int64(cfg.DefaultCooldown)),
 				DesiredCapacity:         aws.Int64(int64(cfg.DesiredCapacity)),
 				HealthCheckGracePeriod:  aws.Int64(int64(cfg.HealthCheckGracePeriod)),
@@ -381,7 +377,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			params.VPCZoneIdentifier = aws.String(strings.Join(vpcZones, ", "))
 
 			// Set the Termination Policies
-			for _, terminationPolicy := range cfg.LoadBalancerNames {
+			for _, terminationPolicy := range cfg.TerminationPolicies {
 				params.TerminationPolicies = append(params.TerminationPolicies, aws.String(terminationPolicy)) // ??
 			}
 

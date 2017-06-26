@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	humanize "github.com/dustin/go-humanize"
@@ -521,15 +520,18 @@ func deregisterInstances(invList *Inventory, dryRun bool) (err error) {
 			svc := ssm.New(sess)
 
 			params := &ssm.DeregisterManagedInstanceInput{
-				InstanceId: aws.String(entity.EntityID),
+				InstanceId: aws.String("m" + entity.EntityID),
 			}
 
 			_, err := svc.DeregisterManagedInstance(params)
 			if err != nil {
-				fmt.Println(err)
-				if awsErr, ok := err.(awserr.Error); ok {
-					return errors.New(awsErr.Message())
-				}
+				/*
+					// TODO Fix weird formatting issue with newlines
+					if awsErr, ok := err.(awserr.Error); ok {
+						fmt.Println(awsErr)
+						return errors.New(awsErr.Message())
+					}
+				*/
 				return err
 			}
 
@@ -615,6 +617,7 @@ func (e *Entity) Marshal(entity *ssm.InventoryResultEntity, region string, instL
 
 		if len(instanceInfo.Content) == 1 {
 			content := instanceInfo.Content[0]
+			e.InstanceID = aws.StringValue(content["InstanceId"])
 			e.ComputerName = aws.StringValue(content["ComputerName"])
 			e.IpAddress = aws.StringValue(content["IpAddress"])
 			e.PlatformName = aws.StringValue(content["PlatformName"])

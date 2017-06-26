@@ -263,7 +263,7 @@ func AttachInternetGateway(gatewaySearch, vpcSearch string, dryRun bool) error {
 
 	gateway := (*gatewayList)[0]
 
-	terminal.Information("Found Internet Gateway [" + gateway.InternetGatewayID + "] name [" + gateway.Name + "] in [" + gateway.Region + "]!")
+	terminal.Information("Found Internet Gateway [" + gateway.InternetGatewayID + "] named [" + gateway.Name + "] in [" + gateway.Region + "]!")
 
 	// Get the VPC
 
@@ -356,7 +356,7 @@ func AssociateRouteTable(routeTableSearch, subnetSearch string, dryRun bool) err
 
 	rt := (*rtList)[0]
 
-	terminal.Information("Found Route Table [" + rt.RouteTableID + "] name [" + rt.Name + "] in [" + rt.Region + "]!")
+	terminal.Information("Found Route Table [" + rt.RouteTableID + "] named[" + rt.Name + "] in [" + rt.Region + "]!")
 
 	// Confirm
 	if !terminal.PromptBool("Are you sure you want to associate this Route Table to this Subnet?") {
@@ -415,7 +415,7 @@ func DetachInternetGateway(gatewaySearch string, dryRun bool) error {
 
 	gateway := (*gatewayList)[0]
 
-	terminal.Information("Found Internet Gateway [" + gateway.InternetGatewayID + "] name [" + gateway.Name + "] attached to [" + gateway.Attachment + "] in [" + gateway.Region + "]!")
+	terminal.Information("Found Internet Gateway [" + gateway.InternetGatewayID + "] named [" + gateway.Name + "] attached to [" + gateway.Attachment + "] in [" + gateway.Region + "]!")
 
 	if gateway.Attachment == "" {
 		terminal.ErrorLine("This Internet Gateway does not appear to be attached to a VPC! Aborting.")
@@ -495,7 +495,7 @@ func DisassociateRouteTable(routeTableSearch, subnetSearch string, dryRun bool) 
 
 	rt := (*rtList)[0]
 
-	terminal.Information("Found Route Table [" + rt.RouteTableID + "] name [" + rt.Name + "] in [" + rt.Region + "]!")
+	terminal.Information("Found Route Table [" + rt.RouteTableID + "] named [" + rt.Name + "] in [" + rt.Region + "]!")
 
 	associationId := ""
 
@@ -567,7 +567,7 @@ func DeleteInternetGateway(gatewaySearch string, dryRun bool) error {
 
 	gateway := (*gatewayList)[0]
 
-	terminal.Information("Found Internet Gateway [" + gateway.InternetGatewayID + "] name [" + gateway.Name + "] in [" + gateway.Region + "]!")
+	terminal.Information("Found Internet Gateway [" + gateway.InternetGatewayID + "] named [" + gateway.Name + "] in [" + gateway.Region + "]!")
 
 	// Confirm
 	if !terminal.PromptBool("Are you sure you want to delete this Internet Gateway?") {
@@ -625,7 +625,7 @@ func DeleteRouteTable(routeTableSearch string, dryRun bool) error {
 
 	rt := (*rtList)[0]
 
-	terminal.Information("Found Route Table [" + rt.RouteTableID + "] name [" + rt.Name + "] in [" + rt.Region + "]!")
+	terminal.Information("Found Route Table [" + rt.RouteTableID + "] named [" + rt.Name + "] in [" + rt.Region + "]!")
 
 	// Confirm
 	if !terminal.PromptBool("Are you sure you want to delete this Route Table?") {
@@ -860,13 +860,13 @@ func GetRegionRouteTables(region string, rtList *RouteTables, search string) err
 	rts := make(RouteTables, len(result.RouteTables))
 	for i, rt := range result.RouteTables {
 		rts[i].Marshal(rt, region)
-
-		mainRt, err := GetVpcMainRouteTable(*rt.VpcId, region)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		fmt.Println(mainRt)
-
+		/*
+			mainRt, err := GetVpcMainRouteTable(*rt.VpcId, region)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			fmt.Println(mainRt)
+		*/
 	}
 
 	if search != "" {

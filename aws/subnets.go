@@ -41,6 +41,21 @@ func (s *Subnets) GetSubnetNames(ids []string) []string {
 	return names
 }
 
+// GetSubnetClasses returns a slice of Subnet Classes given their ID's
+func (s *Subnets) GetSubnetClasses(ids []string) []string {
+	classes := make([]string, len(ids))
+	for i, id := range ids {
+		for _, sub := range *s {
+			if sub.SubnetID == id && sub.Class != "" {
+				classes[i] = sub.Class
+			} else if sub.SubnetID == id {
+				classes[i] = sub.SubnetID
+			}
+		}
+	}
+	return classes
+}
+
 // GetSubnetByTag returns a single Subnet given the provided region and Tag key/value
 func GetSubnetByTag(region, key, value string) (Subnet, error) {
 
