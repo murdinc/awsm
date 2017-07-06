@@ -31,29 +31,29 @@ func StartAPI(withDashboard bool) error {
 			r.Route("/widgets", func(r chi.Router) {
 				r.Get("/", getWidgets)
 				r.Get("/events", getEvents)
-				r.Get("/feed/:feedName", getFeed)
+				r.Get("/feed/{feedName}", getFeed)
 				r.Get("/options", getWidgetOptions)
 				r.Get("/names", getWidgetNames)
-				r.Get("/name/:widgetName", getWidgetByName)
-				r.Put("/name/:widgetName", putWidget)
-				r.Delete("/name/:widgetName", deleteWidget)
+				r.Get("/name/{widgetName}", getWidgetByName)
+				r.Put("/name/{widgetName}", putWidget)
+				r.Delete("/name/{widgetName}", deleteWidget)
 			})
 		})
 		r.Route("/assets", func(r chi.Router) {
-			r.Route("/:assetType", func(r chi.Router) {
+			r.Route("/{assetType}", func(r chi.Router) {
 				r.Get("/", getAssets)
 			})
 		})
 		r.Route("/classes", func(r chi.Router) {
 			r.Get("/export", exportClasses)
 			//r.Get("/import", importClasses) // TODO
-			r.Route("/:classType", func(r chi.Router) {
+			r.Route("/{classType}", func(r chi.Router) {
 				r.Get("/", getClasses)
 				r.Get("/options", getClassOptions)
 				r.Get("/names", getClassNames)
-				r.Get("/name/:className", getClassByName)
-				r.Put("/name/:className", putClass)
-				r.Delete("/name/:className", deleteClass)
+				r.Get("/name/{className}", getClassByName)
+				r.Put("/name/{className}", putClass)
+				r.Delete("/name/{className}", deleteClass)
 			})
 		})
 	})
