@@ -466,7 +466,7 @@ func waitForImage(imageID, region string, dryRun bool) error {
 	return err
 }
 
-// createImage is the private function without terminal prompts
+// private function without terminal prompts
 func createImage(instanceID, name, region string, dryRun bool) (*ec2.CreateImageOutput, error) {
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))

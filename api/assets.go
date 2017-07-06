@@ -23,7 +23,7 @@ func getAssets(w http.ResponseWriter, r *http.Request) {
 		resp, errs = aws.GetAddresses("", false)
 
 	case "alarms":
-		resp, errs = aws.GetAlarms()
+		resp, errs = aws.GetAlarms("")
 
 	case "autoscalegroups":
 		resp, errs = aws.GetAutoScaleGroups("")
@@ -59,7 +59,7 @@ func getAssets(w http.ResponseWriter, r *http.Request) {
 		resp, errs = aws.GetLoadBalancers("")
 
 	case "scalingpolicies":
-		resp, errs = aws.GetScalingPolicies()
+		resp, errs = aws.GetScalingPolicies("")
 
 	case "securitygroups":
 		resp, errs = aws.GetSecurityGroups("")

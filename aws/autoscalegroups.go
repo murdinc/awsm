@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
@@ -60,7 +61,6 @@ func GetRegionAutoScaleGroups(region string, asgList *AutoScaleGroups, search st
 	svc := autoscaling.New(sess)
 
 	result, err := svc.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
-
 	if err != nil {
 		return err
 	}
@@ -259,6 +259,105 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 
 	return nil
 
+}
+
+// CreateAutoScaleAlarm creates a new CloudWatch Alarm given the provided class
+func CreateAutoScaleAlarms(class string, asgSearch string, dryRun bool) error {
+
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// Verify the alarm class input
+	cfg, err := config.LoadAlarmClass(class)
+	if err != nil {
+		return err
+	}
+	terminal.Information("Found CloudWatch Alarm class configuration for [" + class + "]")
+
+	asgList, errs := GetAutoScaleGroups("")
+	if errs != nil {
+		return errors.New("Error while retrieving the list of AutoScale Groups!")
+	}
+
+	if len(*asgList) > 0 {
+		// Print the table
+		asgList.PrintTable()
+	} else {
+		return errors.New("No AutoScaling Groups found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to create this alarm in these AutoScaling Groups?") {
+		return errors.New("Aborting!")
+	}
+
+	return createAutoScaleAlarms(class, cfg, asgList, dryRun)
+}
+
+// private function with no terminal prompts
+func createAutoScaleAlarms(name string, cfg config.AlarmClass, asgList *AutoScaleGroups, dryRun bool) (err error) {
+
+	for _, asg := range *asgList {
+
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(asg.Region)}))
+		svc := cloudwatch.New(sess)
+
+		// Create the alarm
+		params := &cloudwatch.PutMetricAlarmInput{
+			AlarmName:          aws.String(name),
+			ComparisonOperator: aws.String(cfg.ComparisonOperator),
+			EvaluationPeriods:  aws.Int64(int64(cfg.EvaluationPeriods)),
+			MetricName:         aws.String(cfg.MetricName),
+			Namespace:          aws.String(cfg.Namespace),
+			Period:             aws.Int64(int64(cfg.Period)),
+			Statistic:          aws.String(cfg.Statistic),
+			Threshold:          aws.Float64(cfg.Threshold),
+			ActionsEnabled:     aws.Bool(cfg.ActionsEnabled),
+			AlarmDescription:   aws.String(cfg.AlarmDescription),
+			Unit:               aws.String(cfg.Unit),
+			Dimensions: []*cloudwatch.Dimension{
+				&cloudwatch.Dimension{
+					Name:  aws.String("AutoScalingGroupName"),
+					Value: aws.String(asg.Name),
+				},
+			},
+		}
+
+		// Set the Alarm Actions
+		for _, action := range cfg.AlarmActions {
+			params.AlarmActions = append(params.AlarmActions, aws.String(action))
+		}
+
+		// Set the Alarm OKActions
+		for _, action := range cfg.OKActions {
+			params.OKActions = append(params.OKActions, aws.String(action))
+		}
+
+		// Set the Alarm InsufficientDataActions
+		for _, action := range cfg.InsufficientDataActions {
+			params.InsufficientDataActions = append(params.InsufficientDataActions, aws.String(action))
+		}
+
+		if !dryRun {
+			_, err = svc.PutMetricAlarm(params)
+
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					return errors.New(awsErr.Message())
+				}
+				return err
+			}
+
+			terminal.Delta("Created AutoScale Alarm named [" + name + "] in [" + asg.Region + "]")
+		}
+
+	}
+
+	terminal.Information("Done!")
+
+	return nil
 }
 
 // UpdateAutoScaleGroups updates existing AutoScale Groups that match the given search term to the provided version of Launch Configuration

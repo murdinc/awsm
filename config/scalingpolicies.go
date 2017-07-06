@@ -13,10 +13,9 @@ type ScalingPolicyClasses map[string]ScalingPolicyClass
 
 // ScalingPolicyClass is a single Scaling Policy Class
 type ScalingPolicyClass struct {
-	ScalingAdjustment int      `json:"scalingAdjustment" awsmClass:"Scaling Adjustment"`
-	AdjustmentType    string   `json:"adjustmentType" awsmClass:"Adjustment Type"`
-	Cooldown          int      `json:"cooldown" awsmClass:"Cooldown"`
-	Alarms            []string `json:"alarms" awsmClass:"Alarms"`
+	ScalingAdjustment int    `json:"scalingAdjustment" awsmClass:"Scaling Adjustment"`
+	AdjustmentType    string `json:"adjustmentType" awsmClass:"Adjustment Type"`
+	Cooldown          int    `json:"cooldown" awsmClass:"Cooldown"`
 }
 
 // DefaultScalingPolicyClasses returns the defauly Scaling Policy Classes
@@ -27,14 +26,12 @@ func DefaultScalingPolicyClasses() ScalingPolicyClasses {
 		ScalingAdjustment: 1,
 		AdjustmentType:    "ChangeInCapacity",
 		Cooldown:          300,
-		Alarms:            []string{"cpuHigh"},
 	}
 
 	defaultScalingPolicies["scaleDown"] = ScalingPolicyClass{
 		ScalingAdjustment: -1,
 		AdjustmentType:    "ChangeInCapacity",
 		Cooldown:          300,
-		Alarms:            []string{"cpuHigh"},
 	}
 
 	return defaultScalingPolicies
@@ -94,9 +91,6 @@ func (c ScalingPolicyClasses) Marshal(items []*simpledb.Item) {
 
 			case "Cooldown":
 				cfg.Cooldown, _ = strconv.Atoi(val)
-
-			case "Alarms":
-				cfg.Alarms = append(cfg.Alarms, val)
 
 			}
 		}

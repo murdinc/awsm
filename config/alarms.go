@@ -34,6 +34,7 @@ func DefaultAlarms() AlarmClasses {
 
 	defaultAlarms["cpuHigh"] = AlarmClass{
 		AlarmDescription:   "Scale-up based on CPU",
+		AlarmActions:       []string{"scaleUp"},
 		OKActions:          []string{},
 		MetricName:         "CPUUtilization",
 		Namespace:          "AWS/EC2",
@@ -47,6 +48,7 @@ func DefaultAlarms() AlarmClasses {
 
 	defaultAlarms["cpuLow"] = AlarmClass{
 		AlarmDescription:   "Scale-down based on CPU",
+		AlarmActions:       []string{"scaleDown"},
 		OKActions:          []string{},
 		MetricName:         "CPUUtilization",
 		Namespace:          "AWS/EC2",

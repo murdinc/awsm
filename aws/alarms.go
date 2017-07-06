@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -25,8 +27,8 @@ type Alarms []Alarm
 // Alarm represents a single CloudWatch Alarm
 type Alarm models.Alarm
 
-// GetAlarms returns a slice of CloudWatch Alarms
-func GetAlarms() (*Alarms, []error) {
+// GetAlarms returns a slice of CloudWatch Alarms based on the given search term
+func GetAlarms(search string) (*Alarms, []error) {
 	var wg sync.WaitGroup
 	var errs []error
 
@@ -38,7 +40,7 @@ func GetAlarms() (*Alarms, []error) {
 
 		go func(region *ec2.Region) {
 			defer wg.Done()
-			err := GetRegionAlarms(*region.RegionName, alList)
+			err := GetRegionAlarms(*region.RegionName, alList, search)
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering alarm list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
@@ -51,7 +53,7 @@ func GetAlarms() (*Alarms, []error) {
 }
 
 // GetRegionAlarms returns a list of CloudWatch Alarms for the given region into the provided Alarms slice
-func GetRegionAlarms(region string, alList *Alarms) error {
+func GetRegionAlarms(region string, alList *Alarms, search string) error {
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 	svc := cloudwatch.New(sess)
 
@@ -64,7 +66,25 @@ func GetRegionAlarms(region string, alList *Alarms) error {
 	for i, alarm := range result.MetricAlarms {
 		al[i].Marshal(alarm, region)
 	}
-	*alList = append(*alList, al[:]...)
+
+	if search != "" {
+		term := regexp.MustCompile(search)
+	Loop:
+		for i, g := range al {
+			rAsg := reflect.ValueOf(g)
+
+			for k := 0; k < rAsg.NumField(); k++ {
+				sVal := rAsg.Field(k).String()
+
+				if term.MatchString(sVal) {
+					*alList = append(*alList, al[i])
+					continue Loop
+				}
+			}
+		}
+	} else {
+		*alList = append(*alList, al[:]...)
+	}
 
 	return nil
 }
@@ -121,8 +141,8 @@ func (a *Alarm) Marshal(alarm *cloudwatch.MetricAlarm, region string) {
 	a.Region = region
 }
 
-// CreateAlarm creates a new CloudWatch Alarm given the provided class, region, and dimensions of that Alarm
-func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool) error {
+// CreateAlarm creates a new CloudWatch Alarm given the provided class and region
+func CreateAlarm(class string, region string, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
@@ -141,12 +161,18 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 	}
 	terminal.Information("Found CloudWatch Alarm class configuration for [" + class + "]")
 
+	return createAlarm(class, cfg, region, dryRun)
+}
+
+// private function with no terminal prompts
+func createAlarm(name string, cfg config.AlarmClass, region string, dryRun bool) (err error) {
+
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 	svc := cloudwatch.New(sess)
 
 	// Create the alarm
 	params := &cloudwatch.PutMetricAlarmInput{
-		AlarmName:          aws.String(class),
+		AlarmName:          aws.String(name),
 		ComparisonOperator: aws.String(cfg.ComparisonOperator),
 		EvaluationPeriods:  aws.Int64(int64(cfg.EvaluationPeriods)),
 		MetricName:         aws.String(cfg.MetricName),
@@ -164,12 +190,9 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 		params.AlarmActions = append(params.AlarmActions, aws.String(action))
 	}
 
-	// Set the Alarm Dimensions
-	for name, value := range dimensions {
-		params.Dimensions = append(params.Dimensions, &cloudwatch.Dimension{
-			Name:  aws.String(name),
-			Value: aws.String(value),
-		})
+	// Set the Alarm OKActions
+	for _, action := range cfg.OKActions {
+		params.OKActions = append(params.OKActions, aws.String(action))
 	}
 
 	// Set the Alarm InsufficientDataActions
@@ -177,10 +200,15 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 		params.InsufficientDataActions = append(params.InsufficientDataActions, aws.String(action))
 	}
 
-	// Set the Alarm OKActions
-	for _, action := range cfg.OKActions {
-		params.OKActions = append(params.OKActions, aws.String(action))
-	}
+	/*
+		// Set the Alarm Dimensions
+		for name, value := range dimensions {
+			params.Dimensions = append(params.Dimensions, &cloudwatch.Dimension{
+				Name:  aws.String(name),
+				Value: aws.String(value),
+			})
+		}
+	*/
 
 	if !dryRun {
 		_, err = svc.PutMetricAlarm(params)
@@ -191,7 +219,12 @@ func CreateAlarm(class, region string, dimensions map[string]string, dryRun bool
 			}
 			return err
 		}
+
+		terminal.Delta("Created Alarm named [" + name + "] in [" + region + "]")
+
 	}
+
+	terminal.Information("Done!")
 
 	return nil
 }

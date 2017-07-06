@@ -255,6 +255,30 @@ func main() {
 			},
 		},
 		{
+			Name:  "createAutoScaleAlarms",
+			Usage: "Create a AutoScaling Alarms",
+			Arguments: []cli.Argument{
+				{
+					Name:        "class",
+					Description: "The class of the autoscaling groups to create",
+					Optional:    false,
+				},
+				{
+					Name:        "search",
+					Description: "The AutoScale Groups to create this alarm in",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.CreateAutoScaleAlarms(c.NamedArg("class"), c.NamedArg("search"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "createAutoScaleGroups",
 			Usage: "Create an AutoScaling Groups",
 			Arguments: []cli.Argument{
@@ -507,6 +531,30 @@ func main() {
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
 				_, err := aws.CreateRouteTable(c.NamedArg("name"), c.NamedArg("vpc"), dryRun)
+				if err != nil {
+					terminal.ErrorLine(err.Error())
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "createScalingPolicies",
+			Usage: "Create Scaling Policies",
+			Arguments: []cli.Argument{
+				{
+					Name:        "class",
+					Description: "The class of security group to create",
+					Optional:    false,
+				},
+				{
+					Name:        "search",
+					Description: "The search term for the autoscaling groups to create scaling policies in",
+					Optional:    false,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.CreateScalingPolicy(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -1479,11 +1527,18 @@ func main() {
 			},
 		},
 		{
-			Name:   "listAlarms",
-			Usage:  "List CloudWatch Alarms",
+			Name:  "listAlarms",
+			Usage: "List CloudWatch Alarms",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				alarms, errs := aws.GetAlarms()
+				alarms, errs := aws.GetAlarms(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Alarms!", 1)
 				}
@@ -1841,11 +1896,18 @@ func main() {
 			},
 		},
 		{
-			Name:   "listScalingPolicies",
-			Usage:  "List Scaling Policies",
+			Name:  "listScalingPolicies",
+			Usage: "List Scaling Policies",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The keyword to search for",
+					Optional:    true,
+				},
+			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				policies, errs := aws.GetScalingPolicies()
+				policies, errs := aws.GetScalingPolicies(c.NamedArg("search"))
 				if errs != nil {
 					return cli.NewExitError("Error Listing Auto Scaling Policies!", 1)
 				}

@@ -51,7 +51,24 @@ func ExtractAwsmClass(in interface{}) (keys, values []string) {
 						direction = "<"
 					}
 
-					sVal += fmt.Sprintf("%s:%d%s:%d\n\n", grant.IPProtocol, grant.FromPort, direction, grant.ToPort)
+					ipProtocol := grant.IPProtocol
+					if grant.IPProtocol == "-1" {
+						ipProtocol = "all"
+					} else if grant.IPProtocol == "58" {
+						ipProtocol = "icmpv6"
+					}
+
+					fromPort := fmt.Sprint(grant.FromPort)
+					if grant.FromPort == -1 {
+						fromPort = "all"
+					}
+
+					toPort := fmt.Sprint(grant.ToPort)
+					if grant.ToPort == -1 {
+						toPort = "all"
+					}
+
+					sVal += fmt.Sprintf("%s:%s%s:%s\n\n", ipProtocol, fromPort, direction, toPort)
 				}
 
 			case "[]config.LoadBalancerListener":

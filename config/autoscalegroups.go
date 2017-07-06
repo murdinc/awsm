@@ -25,7 +25,6 @@ type AutoscaleGroupClass struct {
 	HealthCheckType          string   `json:"healthCheckType" awsmClass:"Health Check Type"`
 	HealthCheckGracePeriod   int      `json:"healthCheckGracePeriod" awsmClass:"Health Check Grace Period"`
 	TerminationPolicies      []string `json:"terminationPolicies" awsmClass:"Termination Policies"`
-	ScalingPolicies          []string `json:"scalingPolicies" awsmClass:"Scaling Policies"`
 	LoadBalancerNames        []string `json:"loadBalancerNames" awsmClass:"Load Balancer Names"`
 	Alarms                   []string `json:"alarms" awsmClass:"Alarms"`
 }
@@ -47,7 +46,6 @@ func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
 		HealthCheckType:          "ELB",
 		HealthCheckGracePeriod:   360,
 		TerminationPolicies:      []string{"OldestInstance"},
-		ScalingPolicies:          []string{"scaleUp", "scaleDown"},
 		LoadBalancerNames:        []string{"prod"},
 		Alarms:                   []string{"cpuHigh", "cpuLow"},
 	}
@@ -136,9 +134,6 @@ func (c AutoscaleGroupClasses) Marshal(items []*simpledb.Item) {
 
 			case "TerminationPolicies":
 				cfg.TerminationPolicies = append(cfg.TerminationPolicies, val)
-
-			case "ScalingPolicies":
-				cfg.ScalingPolicies = append(cfg.ScalingPolicies, val)
 
 			case "LoadBalancerNames":
 				cfg.LoadBalancerNames = append(cfg.LoadBalancerNames, val)
