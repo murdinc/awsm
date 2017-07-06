@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/SlyMarbo/rss"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
 	"github.com/murdinc/awsm/aws"
 	"github.com/murdinc/awsm/config"
-	"github.com/pressly/chi"
-	"github.com/pressly/chi/render"
 )
 
 func getWidgets(w http.ResponseWriter, r *http.Request) {

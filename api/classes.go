@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
 	"github.com/murdinc/awsm/config"
-	"github.com/pressly/chi"
-	"github.com/pressly/chi/render"
 )
 
 func exportClasses(w http.ResponseWriter, r *http.Request) {

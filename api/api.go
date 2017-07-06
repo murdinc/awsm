@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/goware/cors"
 	"github.com/murdinc/terminal"
-	"github.com/pressly/chi"
-	"github.com/pressly/chi/middleware"
 	"github.com/skratchdot/open-golang/open"
 )
 

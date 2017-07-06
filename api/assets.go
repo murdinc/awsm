@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
 	"github.com/murdinc/awsm/aws"
-	"github.com/pressly/chi"
-	"github.com/pressly/chi/render"
 )
 
 func getAssets(w http.ResponseWriter, r *http.Request) {
