@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -24,7 +25,10 @@ func StartAPI(withDashboard bool) error {
 	r.Use(cors.Handler)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.StripSlashes)
-	//r.Use(middleware.Logger)
+	r.Use(middleware.URLFormat)
+	if !withDashboard {
+		r.Use(middleware.Logger)
+	}
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/dashboard", func(r chi.Router) {
@@ -48,6 +52,7 @@ func StartAPI(withDashboard bool) error {
 			r.Get("/export", exportClasses)
 			//r.Get("/import", importClasses) // TODO
 			r.Route("/{classType}", func(r chi.Router) {
+				r.Use(ClassCtx)
 				r.Get("/", getClasses)
 				r.Get("/options", getClassOptions)
 				r.Get("/names", getClassNames)
@@ -90,4 +95,12 @@ func StartAPI(withDashboard bool) error {
 	}
 
 	return http.ListenAndServe(":8081", r)
+}
+
+func ClassCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		classType := chi.URLParam(r, "classType")
+		ctx := context.WithValue(r.Context(), "classType", classType)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

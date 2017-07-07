@@ -22,7 +22,7 @@ func exportClasses(w http.ResponseWriter, r *http.Request) {
 }
 
 func getClasses(w http.ResponseWriter, r *http.Request) {
-	classType := chi.URLParam(r, "classType")
+	classType := r.Context().Value("classType").(string)
 	resp, err := config.LoadAllClasses(classType)
 
 	if err != nil {
@@ -34,7 +34,7 @@ func getClasses(w http.ResponseWriter, r *http.Request) {
 }
 
 func getClassOptions(w http.ResponseWriter, r *http.Request) {
-	classType := chi.URLParam(r, "classType")
+	classType := r.Context().Value("classType").(string)
 	resp, err := config.LoadAllClassOptions(classType)
 
 	if err != nil {
@@ -46,7 +46,7 @@ func getClassOptions(w http.ResponseWriter, r *http.Request) {
 }
 
 func getClassNames(w http.ResponseWriter, r *http.Request) {
-	classType := chi.URLParam(r, "classType")
+	classType := r.Context().Value("classType").(string)
 	resp, err := config.LoadAllClassNames(classType)
 
 	if err != nil {
@@ -58,8 +58,9 @@ func getClassNames(w http.ResponseWriter, r *http.Request) {
 }
 
 func getClassByName(w http.ResponseWriter, r *http.Request) {
-	classType := chi.URLParam(r, "classType")
+	classType := r.Context().Value("classType").(string)
 	className := chi.URLParam(r, "className")
+
 	resp, err := config.LoadClassByName(classType, className)
 
 	if err != nil {
@@ -71,7 +72,7 @@ func getClassByName(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteClass(w http.ResponseWriter, r *http.Request) {
-	classType := chi.URLParam(r, "classType")
+	classType := r.Context().Value("classType").(string)
 	className := chi.URLParam(r, "className")
 
 	err := config.DeleteClass(classType, className)
@@ -84,7 +85,7 @@ func deleteClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func putClass(w http.ResponseWriter, r *http.Request) {
-	classType := chi.URLParam(r, "classType")
+	classType := r.Context().Value("classType").(string)
 	className := chi.URLParam(r, "className")
 
 	data, err := ioutil.ReadAll(r.Body)
