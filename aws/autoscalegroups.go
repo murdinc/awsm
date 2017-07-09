@@ -154,7 +154,14 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 		return errors.New("Error gathering region list")
 	}
 
+	asgList := new(AutoScaleGroups)
+
 	for region, regionAZs := range azs.GetRegionMap(cfg.AvailabilityZones) {
+
+		*asgList = append(*asgList, AutoScaleGroup{
+			Name:   class,
+			Region: region,
+		})
 
 		// Verify that the latest Launch Configuration is available in this region
 		lcName := GetLaunchConfigurationName(region, cfg.LaunchConfigurationClass, launchConfigurationCfg.Version)
@@ -175,9 +182,11 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 			HealthCheckGracePeriod:  aws.Int64(int64(cfg.HealthCheckGracePeriod)),
 			HealthCheckType:         aws.String(cfg.HealthCheckType),
 			LaunchConfigurationName: aws.String(lcName),
-			// InstanceId:                       aws.String("XmlStringMaxLen19"),  // TODO ?
-			// NewInstancesProtectedFromScaleIn: aws.Bool(true),                   // TODO ?
-			// PlacementGroup:                   aws.String("XmlStringMaxLen255"), // TODO ?
+
+			// TODO ?
+			// InstanceId:                       aws.String("XmlStringMaxLen19"),
+			// NewInstancesProtectedFromScaleIn: aws.Bool(true),
+			// PlacementGroup:                   aws.String("XmlStringMaxLen255"),
 			Tags: []*autoscaling.Tag{
 				{
 					// Name
@@ -252,9 +261,29 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 
 			terminal.Information("Done!")
 		} else {
-			fmt.Println(params)
+			terminal.Notice("Params:")
+			fmt.Println(params.String())
 		}
+	}
 
+	// Create the Alarms and Scaling Policies
+	if len(cfg.Alarms) > 0 {
+
+		terminal.Delta("Creating CloudWatch Alarms.")
+
+		for _, alarm := range cfg.Alarms {
+
+			alarmCfg, err := config.LoadAlarmClass(alarm)
+			if err != nil {
+				return err
+			}
+			terminal.Information("Found CloudWatch Alarm class configuration for [" + alarm + "]")
+
+			err = createAutoScaleAlarms(alarm, alarmCfg, asgList, dryRun)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -276,7 +305,7 @@ func CreateAutoScaleAlarms(class string, asgSearch string, dryRun bool) error {
 	}
 	terminal.Information("Found CloudWatch Alarm class configuration for [" + class + "]")
 
-	asgList, errs := GetAutoScaleGroups("")
+	asgList, errs := GetAutoScaleGroups(asgSearch)
 	if errs != nil {
 		return errors.New("Error while retrieving the list of AutoScale Groups!")
 	}
@@ -293,13 +322,22 @@ func CreateAutoScaleAlarms(class string, asgSearch string, dryRun bool) error {
 		return errors.New("Aborting!")
 	}
 
-	return createAutoScaleAlarms(class, cfg, asgList, dryRun)
+	err = createAutoScaleAlarms(class, cfg, asgList, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
 }
 
 // private function with no terminal prompts
 func createAutoScaleAlarms(name string, cfg config.AlarmClass, asgList *AutoScaleGroups, dryRun bool) (err error) {
 
 	for _, asg := range *asgList {
+
+		terminal.Delta("Adding Alarm [" + name + "] to AutoScale Group [" + asg.Name + "] in [" + asg.Region + "]")
 
 		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(asg.Region)}))
 		svc := cloudwatch.New(sess)
@@ -327,7 +365,18 @@ func createAutoScaleAlarms(name string, cfg config.AlarmClass, asgList *AutoScal
 
 		// Set the Alarm Actions
 		for _, action := range cfg.AlarmActions {
-			params.AlarmActions = append(params.AlarmActions, aws.String(action))
+
+			// Create the Scaling Policies
+			actionCfg, err := config.LoadScalingPolicyClass(action)
+			if err == nil {
+				terminal.Information("Found Scaling Policy class configuration for [" + action + "]")
+
+				alarmArn, err := createScalingPolicy(name, actionCfg, &AutoScaleGroups{asg}, dryRun)
+				if err != nil {
+					return err
+				}
+				params.AlarmActions = append(params.AlarmActions, aws.String(alarmArn))
+			}
 		}
 
 		// Set the Alarm OKActions
@@ -351,11 +400,12 @@ func createAutoScaleAlarms(name string, cfg config.AlarmClass, asgList *AutoScal
 			}
 
 			terminal.Delta("Created AutoScale Alarm named [" + name + "] in [" + asg.Region + "]")
+		} else {
+			terminal.Notice("Params:")
+			fmt.Println(params.String())
 		}
 
 	}
-
-	terminal.Information("Done!")
 
 	return nil
 }
@@ -382,7 +432,7 @@ func UpdateAutoScaleGroups(name, version string, double, dryRun bool) (err error
 		return errors.New("Aborting!")
 	}
 
-	// Delete 'Em
+	// Update 'Em
 	err = updateAutoScaleGroups(asgList, version, double, dryRun)
 	if err == nil {
 		terminal.Information("Done!")
@@ -495,7 +545,31 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			} else {
 				fmt.Println(params)
 			}
+		}
 
+		// Create the Alarms and Scaling Policies
+		if len(cfg.Alarms) > 0 {
+
+			asgList := &AutoScaleGroups{
+				AutoScaleGroup{
+					Name:   asg.Name,
+					Region: asg.Region,
+				},
+			}
+
+			for _, alarm := range cfg.Alarms {
+
+				alarmCfg, err := config.LoadAlarmClass(alarm)
+				if err != nil {
+					return err
+				}
+				terminal.Information("Found CloudWatch Alarm class configuration for [" + alarm + "]")
+
+				err = createAutoScaleAlarms(alarm, alarmCfg, asgList, dryRun)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 	}

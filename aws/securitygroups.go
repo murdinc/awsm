@@ -517,8 +517,6 @@ func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
 		return err
 	}
 
-	terminal.Information("Done!")
-
 	return nil
 }
 

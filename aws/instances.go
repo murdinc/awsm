@@ -464,7 +464,6 @@ func LaunchInstance(class, sequence, az string, dryRun bool) error {
 	if dryRun {
 		terminal.Notice("Params:")
 		fmt.Println(params.String())
-
 	}
 
 	launchInstanceResp, err := svc.RunInstances(params)

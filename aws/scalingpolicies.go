@@ -146,7 +146,7 @@ func CreateScalingPolicy(class, asgSearch string, dryRun bool) error {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
 	}
 
-	// Verify the alarm class input
+	// Verify the scaling policy class input
 	cfg, err := config.LoadScalingPolicyClass(class)
 	if err != nil {
 		return err
@@ -167,14 +167,23 @@ func CreateScalingPolicy(class, asgSearch string, dryRun bool) error {
 		return errors.New("Aborting!")
 	}
 
-	return createScalingPolicy(class, cfg, asgList, dryRun)
+	_, err = createScalingPolicy(class, cfg, asgList, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+	return nil
 
 }
 
 // private function without terminal prompts
-func createScalingPolicy(name string, cfg config.ScalingPolicyClass, asgList *AutoScaleGroups, dryRun bool) (err error) {
+func createScalingPolicy(name string, cfg config.ScalingPolicyClass, asgList *AutoScaleGroups, dryRun bool) (arn string, err error) {
 
 	for _, asg := range *asgList {
+
+		terminal.Delta("Adding Scaling Policy [" + name + "] to AutoScale Group [" + asg.Name + "] in [" + asg.Region + "]")
+
 		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(asg.Region)}))
 		svc := autoscaling.New(sess)
 
@@ -192,18 +201,21 @@ func createScalingPolicy(name string, cfg config.ScalingPolicyClass, asgList *Au
 
 			if err != nil {
 				if awsErr, ok := err.(awserr.Error); ok {
-					return errors.New(awsErr.Message())
+					return arn, errors.New(awsErr.Message())
 				}
-				return err
+				return arn, err
 			}
 
-			terminal.Delta("Created Scaling Policy  [" + name + "] with allocation Id [" + *resp.PolicyARN + "] in [" + asg.Region + "]!")
+			arn = aws.StringValue(resp.PolicyARN)
+
+			terminal.Delta("Created Scaling Policy  [" + name + "] with ARN [" + arn + "] in [" + asg.Region + "]!")
+		} else {
+			terminal.Notice("Params:")
+			fmt.Println(params.String())
 		}
 	}
 
-	terminal.Information("Done!")
-
-	return nil
+	return arn, nil
 }
 
 // DeleteScalingPolicies deletes one or more Scaling Policies that match the provided name and optionally the provided region
