@@ -14,7 +14,6 @@ type AutoscaleGroupClasses map[string]AutoscaleGroupClass
 // AutoscaleGroupClass is a single Autoscale Group Class
 type AutoscaleGroupClass struct {
 	LaunchConfigurationClass string   `json:"launchConfigurationClass" awsmClass:"Launch Configuration Class"`
-	Retain                   int      `json:"retain" awsmClass:"Retain"`
 	AvailabilityZones        []string `json:"availabilityZones" awsmClass:"Availability Zone"`
 	DesiredCapacity          int      `json:"desiredCapacity" awsmClass:"Desired Capacity"`
 	MinSize                  int      `json:"minSize" awsmClass:"Min Size"`
@@ -34,18 +33,17 @@ func DefaultAutoscaleGroupClasses() AutoscaleGroupClasses {
 
 	defaultASGs["prod"] = AutoscaleGroupClass{
 		LaunchConfigurationClass: "prod",
-		Retain:                 5,
-		AvailabilityZones:      []string{"us-west-2a", "us-east-1a"},
-		DesiredCapacity:        2,
-		MinSize:                1,
-		MaxSize:                4,
-		DefaultCooldown:        60,
-		SubnetClass:            "private",
-		HealthCheckType:        "ELB",
-		HealthCheckGracePeriod: 360,
-		TerminationPolicies:    []string{"OldestInstance"},
-		LoadBalancerNames:      []string{"prod"},
-		Alarms:                 []string{"cpuHigh", "cpuLow"},
+		AvailabilityZones:        []string{"us-west-2a", "us-east-1a"},
+		DesiredCapacity:          2,
+		MinSize:                  1,
+		MaxSize:                  4,
+		DefaultCooldown:          60,
+		SubnetClass:              "private",
+		HealthCheckType:          "ELB",
+		HealthCheckGracePeriod:   360,
+		TerminationPolicies:      []string{"OldestInstance"},
+		LoadBalancerNames:        []string{"prod"},
+		Alarms:                   []string{"cpuHigh", "cpuLow"},
 	}
 
 	return defaultASGs
@@ -99,9 +97,6 @@ func (c AutoscaleGroupClasses) Marshal(items []*simpledb.Item) {
 
 			case "LaunchConfigurationClass":
 				cfg.LaunchConfigurationClass = val
-
-			case "Retain":
-				cfg.Retain, _ = strconv.Atoi(val)
 
 			case "AvailabilityZones":
 				cfg.AvailabilityZones = append(cfg.AvailabilityZones, val)
