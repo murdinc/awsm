@@ -378,9 +378,9 @@ func CreateSecurityGroup(class, region, vpc string, dryRun bool) error {
 			return errors.New("Please limit your Vpc search term to result in only one VPC, Aborting!")
 		}
 
-		vpc := (*vpcList)[0]
-		terminal.Information("Found VPC [" + vpc.VpcID + "] named [" + vpc.Name + "] in [" + region + "]")
-		params.VpcId = aws.String(vpc.VpcID)
+		theVpc := (*vpcList)[0]
+		terminal.Information("Found VPC [" + theVpc.VpcID + "] named [" + theVpc.Name + "] in [" + region + "]")
+		params.VpcId = aws.String(theVpc.VpcID)
 	}
 
 	// Create the security group
@@ -406,6 +406,20 @@ func CreateSecurityGroup(class, region, vpc string, dryRun bool) error {
 		Class:   class,
 		Name:    class,
 		Region:  region,
+		VpcID:   aws.StringValue(params.VpcId),
+	}
+
+	if vpc != "" {
+		defaultGrants := []config.SecurityGroupGrant{
+			config.SecurityGroupGrant{
+				Type:       "egress",
+				CidrIPs:    []string{"0.0.0.0/0"},
+				IPProtocol: "-1",
+				FromPort:   0,
+				ToPort:     0,
+			},
+		}
+		group.SecurityGroupGrants = defaultGrants
 	}
 
 	groupSlice := make(SecurityGroups, 1)
@@ -639,7 +653,7 @@ func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 			sGrant := grant
 
 			// Skip egress rules on non vpc security groups
-			if secGrp.Vpc == "" && grant.Type == "egress" {
+			if secGrp.VpcID == "" && grant.Type == "egress" {
 				terminal.Notice(fmt.Sprintf("[%s %s] - Skip - [%s]	[%s :%d-%d]	Egress rules can only be applied to VPC Security Groups", secGrp.Name, secGrp.Region, sGrant.Type, sGrant.IPProtocol, sGrant.FromPort, sGrant.ToPort))
 				continue
 			}
