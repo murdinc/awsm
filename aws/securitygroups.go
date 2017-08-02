@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -213,6 +214,11 @@ func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 
 // GetRegionSecurityGroups returns a regions Security Groups into the provided SecurityGroups slice
 func GetRegionSecurityGroups(region string, secGrpList *SecurityGroups, search string) error {
+
+	// Validate the destination region
+	if !regions.ValidRegion(region) {
+		return errors.New("Region [" + region + "] is Invalid!")
+	}
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 	svc := ec2.New(sess)
@@ -450,7 +456,7 @@ func DeleteSecurityGroups(search, region string, dryRun bool) (err error) {
 	}
 
 	if err != nil {
-		return errors.New("Error gathering Security Groups list")
+		return err
 	}
 
 	if len(*secGrpList) > 0 {
@@ -497,7 +503,7 @@ func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
 	}
 
 	if err != nil {
-		return errors.New("Error gathering Security Groups list")
+		return err
 	}
 
 	if len(*secGrpList) > 0 {
@@ -533,6 +539,8 @@ func UpdateSecurityGroups(search, region string, dryRun bool) (err error) {
 
 	return nil
 }
+
+type SecurityGroupChanges []SecurityGroupChange
 
 type SecurityGroupChange struct {
 	Group  SecurityGroup
@@ -729,18 +737,40 @@ func (s SecurityGroups) Diff() ([]SecurityGroupChange, error) {
 
 }
 
+// Len sort func for SecurityGroupChanges
+func (c SecurityGroupChanges) Len() int {
+	return len(c)
+}
+
+// Less sort func for SecurityGroupChanges
+func (c SecurityGroupChanges) Less(i, j int) bool {
+	return c[i].Revoke
+}
+
+// Swap sort func for SecurityGroupChanges
+func (c SecurityGroupChanges) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
+}
+
 // private function without terminal prompts
-func updateSecurityGroups(changes []SecurityGroupChange, dryRun bool) error {
+func updateSecurityGroups(changes SecurityGroupChanges, dryRun bool) error {
+
+	// Sort so that we can revoke first
+	sort.Sort(changes)
 
 	for _, change := range changes {
 		if change.Type == "ingress" {
 			if change.Revoke {
+				fmt.Println("revoke " + change.Type)
+				fmt.Println(change.Grants)
 				// revoke
 				err := revokeIngress(change.Group, change.Grants, dryRun)
 				if err != nil {
 					return err
 				}
 			} else {
+				fmt.Println("authorize " + change.Type)
+				fmt.Println(change.Grants)
 				// authorize
 				err := authorizeIngress(change.Group, change.Grants, dryRun)
 				if err != nil {
