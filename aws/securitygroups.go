@@ -761,16 +761,12 @@ func updateSecurityGroups(changes SecurityGroupChanges, dryRun bool) error {
 	for _, change := range changes {
 		if change.Type == "ingress" {
 			if change.Revoke {
-				fmt.Println("revoke " + change.Type)
-				fmt.Println(change.Grants)
 				// revoke
 				err := revokeIngress(change.Group, change.Grants, dryRun)
 				if err != nil {
 					return err
 				}
 			} else {
-				fmt.Println("authorize " + change.Type)
-				fmt.Println(change.Grants)
 				// authorize
 				err := authorizeIngress(change.Group, change.Grants, dryRun)
 				if err != nil {
