@@ -24,6 +24,7 @@ func main() {
 	var force bool
 	var double bool  // optional flag when updating an auto-scale group
 	var details bool // optional flag when listing command invocations
+	var private bool // optional flag when creating resource records
 
 	app := cli.NewApp()
 	app.Name = "awsm"
@@ -503,10 +504,15 @@ func main() {
 					Destination: &force,
 					Usage:       "force (UPSERT, no prompt)",
 				},
+				cli.BoolFlag{
+					Name:        "private",
+					Destination: &private,
+					Usage:       "Use the Private IP, even if a Public IP is available.",
+				},
 			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				err := aws.CreateResourceRecord(c.NamedArg("record"), c.NamedArg("value"), c.NamedArg("ttl"), force, dryRun)
+				err := aws.CreateResourceRecord(c.NamedArg("record"), c.NamedArg("value"), c.NamedArg("ttl"), force, private, dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}

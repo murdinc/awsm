@@ -103,7 +103,7 @@ func (h *HostedZone) GetResourceRecords(search string) (*ResourceRecords, error)
 }
 
 // CreateResourceRecord creates an AWS Route53 Resource Record
-func CreateResourceRecord(name, value string, ttl string, force, dryRun bool) error {
+func CreateResourceRecord(name, value string, ttl string, force, private, dryRun bool) error {
 
 	// If we were not passed a value, try to get it from the ec2metadata instead
 	if value == "" {
@@ -111,10 +111,8 @@ func CreateResourceRecord(name, value string, ttl string, force, dryRun bool) er
 		sess := session.Must(session.NewSession())
 		svc := ec2metadata.New(sess)
 
-		terminal.Information("Trying to fine a Public IP Address...")
-		publicIp, err := svc.GetMetadata("public-ipv4")
-		if publicIp == "" || err != nil {
-			terminal.Notice("Unable to find a Public IPv4 Address, looking for a Local IPv4 Address...")
+		if private {
+			// Forced private ip
 			localIp, err := svc.GetMetadata("local-ipv4")
 			if localIp == "" || err != nil {
 				terminal.Notice("Unable to find a Local IPv4 Address, please provide a value instead. Aborting!")
@@ -122,9 +120,22 @@ func CreateResourceRecord(name, value string, ttl string, force, dryRun bool) er
 			}
 			value = localIp
 		} else {
-			value = publicIp
+			// prefer public ip
+			terminal.Information("Trying to fine a Public IP Address...")
+			publicIp, err := svc.GetMetadata("public-ipv4")
+			if publicIp == "" || err != nil {
+				terminal.Notice("Unable to find a Public IPv4 Address, looking for a Local IPv4 Address...")
+				localIp, err := svc.GetMetadata("local-ipv4")
+				if localIp == "" || err != nil {
+					terminal.Notice("Unable to find a Local IPv4 Address, please provide a value instead. Aborting!")
+					return err
+				}
+				value = localIp
+			} else {
+				value = publicIp
+			}
+			terminal.Delta("Using IP Address: " + value)
 		}
-		terminal.Delta("Using IP Address: " + value)
 	}
 
 	// --dry-run flag
