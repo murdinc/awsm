@@ -354,13 +354,16 @@ func createAutoScaleAlarms(name string, cfg config.AlarmClass, asgList *AutoScal
 			Threshold:          aws.Float64(cfg.Threshold),
 			ActionsEnabled:     aws.Bool(cfg.ActionsEnabled),
 			AlarmDescription:   aws.String(cfg.AlarmDescription),
-			Unit:               aws.String(cfg.Unit),
 			Dimensions: []*cloudwatch.Dimension{
 				&cloudwatch.Dimension{
 					Name:  aws.String("AutoScalingGroupName"),
 					Value: aws.String(asg.Name),
 				},
 			},
+		}
+
+		if cfg.Unit != "" {
+			params.SetUnit(cfg.Unit)
 		}
 
 		// Set the Alarm Actions
@@ -371,7 +374,7 @@ func createAutoScaleAlarms(name string, cfg config.AlarmClass, asgList *AutoScal
 			if err == nil {
 				terminal.Information("Found Scaling Policy class configuration for [" + action + "]")
 
-				alarmArn, err := createScalingPolicy(name, actionCfg, &AutoScaleGroups{asg}, dryRun)
+				alarmArn, err := createScalingPolicy(action, actionCfg, &AutoScaleGroups{asg}, dryRun)
 				if err != nil {
 					return err
 				}
@@ -411,7 +414,7 @@ func createAutoScaleAlarms(name string, cfg config.AlarmClass, asgList *AutoScal
 }
 
 // UpdateAutoScaleGroups updates existing AutoScale Groups that match the given search term to the provided version of Launch Configuration
-func UpdateAutoScaleGroups(name, version string, double, dryRun bool) (err error) {
+func UpdateAutoScaleGroups(name, version string, double, forceYes, dryRun bool) (err error) {
 
 	// --dry-run flag
 	if dryRun {
@@ -428,7 +431,7 @@ func UpdateAutoScaleGroups(name, version string, double, dryRun bool) (err error
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to update these AutoScaling Groups?") {
+	if !forceYes && !terminal.PromptBool("Are you sure you want to update these AutoScaling Groups?") {
 		return errors.New("Aborting!")
 	}
 
@@ -543,6 +546,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 				terminal.Delta("Updated AutoScaling Group [" + asg.Name + "] in [" + region + "]!")
 
 			} else {
+				terminal.Notice("Params:")
 				fmt.Println(params)
 			}
 		}
@@ -646,6 +650,7 @@ func deleteAutoScaleGroups(asgList *AutoScaleGroups, force, dryRun bool) (err er
 			terminal.Delta("Deleted AutoScaling Group [" + asg.Name + "] in [" + asg.Region + "]!")
 
 		} else {
+			terminal.Notice("Params:")
 			fmt.Println(params)
 		}
 

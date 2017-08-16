@@ -275,11 +275,16 @@ func copySnapshot(snapshot Snapshot, region string, dryRun bool) (string, error)
 }
 
 // CreateSnapshot creates a new EBS Snapshot
-func CreateSnapshot(class, search string, dryRun bool) error {
+func CreateSnapshot(class, search string, waitFlag, forceYes, dryRun bool) error {
 
 	// --dry-run flag
 	if dryRun {
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// --wait flag
+	if waitFlag {
+		terminal.Information("--wait flag is set!")
 	}
 
 	// Class Config
@@ -320,13 +325,13 @@ func CreateSnapshot(class, search string, dryRun bool) error {
 		volTable.PrintTable()
 
 		// Save into config prompt
-		if terminal.PromptBool("Do you want to set volume [" + volume.VolumeID + "] named [" + volume.Name + "] as the new default for the " + class + " snapshot class?") {
+		if forceYes || terminal.PromptBool("Do you want to set volume ["+volume.VolumeID+"] named ["+volume.Name+"] as the new default for the "+class+" snapshot class?") {
 			snapCfg.SetVolume(class, volume.VolumeID)
 		}
 	}
 
 	// Confirm
-	if !terminal.PromptBool("Are you sure you want to create this Snapshot?") {
+	if !forceYes && !terminal.PromptBool("Are you sure you want to create this Snapshot?") {
 		return errors.New("Aborting!")
 	}
 
@@ -416,6 +421,16 @@ func CreateSnapshot(class, search string, dryRun bool) error {
 
 					}
 
+					if waitFlag {
+						// Wait for the snapshot to complete.
+						terminal.Notice(fmt.Sprintf("Waiting for snapshot [%s] to complete...", newSnapshotId))
+						err = waitForSnapshot(newSnapshotId, propRegion, dryRun)
+						if err != nil {
+							errs = append(errs, err)
+						}
+						terminal.Delta(fmt.Sprintf("Snapshot [%s] in [%s] has completed!", newSnapshotId, propRegion))
+					}
+
 				}(propRegion)
 			}
 		}
@@ -425,6 +440,15 @@ func CreateSnapshot(class, search string, dryRun bool) error {
 		if errs != nil {
 			return errors.New("Error propagating snapshot to other regions!")
 		}
+
+	} else if waitFlag {
+		// Wait for the snapshot to complete here otherwise, maybe
+		terminal.Notice(fmt.Sprintf("Waiting for snapshot [%s] to complete...", newSnapshotId))
+		err = waitForSnapshot(newSnapshotId, region, dryRun)
+		if err != nil {
+			return err
+		}
+		terminal.Delta(fmt.Sprintf("Snapshot [%s] completed!", newSnapshotId))
 	}
 
 	// Rotate out older snapshots

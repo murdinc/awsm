@@ -22,9 +22,11 @@ func main() {
 
 	var dryRun bool
 	var force bool
-	var double bool  // optional flag when updating an auto-scale group
-	var details bool // optional flag when listing command invocations
-	var private bool // optional flag when creating resource records
+	var double bool   // optional flag when updating an auto-scale group
+	var details bool  // optional flag when listing command invocations
+	var private bool  // optional flag when creating resource records
+	var previous bool // optional flag when getting autoscale version
+	var wait bool     // optional flag when creating snapshots
 
 	app := cli.NewApp()
 	app.Name = "awsm"
@@ -635,9 +637,21 @@ func main() {
 					Optional:    true,
 				},
 			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "wait",
+					Destination: &wait,
+					Usage:       "wait (Wait for snapshots to complete)",
+				},
+				cli.BoolFlag{
+					Name:        "force-yes",
+					Destination: &force,
+					Usage:       "force-yes (Default to 'yes' on prompts)",
+				},
+			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				err := aws.CreateSnapshot(c.NamedArg("class"), c.NamedArg("search"), dryRun)
+				err := aws.CreateSnapshot(c.NamedArg("class"), c.NamedArg("search"), wait, force, dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
@@ -1248,6 +1262,35 @@ func main() {
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}
+				return nil
+			},
+		},
+		{
+			Name:  "getLaunchConfigurationVersion",
+			Usage: "Get the current version of a launch configuration",
+			Arguments: []cli.Argument{
+				{
+					Name:        "class",
+					Description: "The class of the launch configuration",
+					Optional:    false,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "previous",
+					Destination: &previous,
+					Usage:       "previous (Returns the previous version of a launch configuration)",
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				version, err := aws.GetLaunchConfigurationVersion(c.NamedArg("class"), previous)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(version)
+
 				return nil
 			},
 		},
@@ -2164,10 +2207,15 @@ func main() {
 					Destination: &double,
 					Usage:       "double (Doubles the desired-capacity and max-capacity)",
 				},
+				cli.BoolFlag{
+					Name:        "force-yes",
+					Destination: &force,
+					Usage:       "force-yes (Default to 'yes' on prompts)",
+				},
 			},
 			Before: setupCheck,
 			Action: func(c *cli.Context) error {
-				err := aws.UpdateAutoScaleGroups(c.NamedArg("search"), c.NamedArg("version"), double, dryRun)
+				err := aws.UpdateAutoScaleGroups(c.NamedArg("search"), c.NamedArg("version"), double, force, dryRun)
 				if err != nil {
 					terminal.ErrorLine(err.Error())
 				}

@@ -182,7 +182,10 @@ func createAlarm(name string, cfg config.AlarmClass, region string, dryRun bool)
 		Threshold:          aws.Float64(cfg.Threshold),
 		ActionsEnabled:     aws.Bool(cfg.ActionsEnabled),
 		AlarmDescription:   aws.String(cfg.AlarmDescription),
-		Unit:               aws.String(cfg.Unit),
+	}
+
+	if cfg.Unit != "" {
+		params.SetUnit(cfg.Unit)
 	}
 
 	// Set the Alarm Actions

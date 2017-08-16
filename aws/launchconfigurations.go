@@ -43,6 +43,22 @@ func GetLaunchConfigurationName(region, class string, version int) string {
 	return name
 }
 
+// GetLaunchConfigurationVersion returns the current or previous version of a Launch Configuration that matches the provided class
+func GetLaunchConfigurationVersion(class string, previous bool) (int, error) {
+
+	// Verify the launch config class input
+	cfg, err := config.LoadLaunchConfigurationClass(class)
+	if err != nil {
+		return -1, err
+	}
+
+	if previous && cfg.Version > 0 {
+		cfg.Version--
+	}
+
+	return cfg.Version, nil
+}
+
 // GetLaunchConfigurationsByName returns a slice of Launch Configurations for a given region and name
 func GetLaunchConfigurationsByName(region, name string) (LaunchConfigs, error) {
 
