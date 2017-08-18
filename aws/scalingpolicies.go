@@ -138,6 +138,97 @@ func (s *ScalingPolicy) Marshal(policy *autoscaling.ScalingPolicy, region string
 	s.Region = region
 }
 
+// UpdateScalingPolicies
+func UpdateScalingPolicies(search, region string, dryRun bool) (err error) {
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	spList := new(ScalingPolicies)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionScalingPolicies(region, spList, search)
+	} else {
+		spList, _ = GetScalingPolicies(search)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Scaling Policies list")
+	}
+
+	if len(*spList) > 0 {
+		// Print the table
+		spList.PrintTable()
+	} else {
+		return errors.New("No Scaling Policies found, Aborting!")
+	}
+
+	// Confirm
+	if !terminal.PromptBool("Are you sure you want to update these Scaling Policies?") {
+		return errors.New("Aborting!")
+	}
+
+	// Update 'Em
+
+	_, err = updateScalingPolicies(spList, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func updateScalingPolicies(spList *ScalingPolicies, dryRun bool) (arn string, err error) {
+	for _, sp := range *spList {
+
+		terminal.Delta("Updating Scaling Policy [" + sp.Name + "] in AutoScale Group [" + sp.AutoScaleGroupName + "] in [" + sp.Region + "]")
+
+		// Verify the scaling policy class input
+		cfg, err := config.LoadScalingPolicyClass(sp.Name)
+		if err != nil {
+			return arn, err
+		}
+		terminal.Information("Found Scaling Policy class configuration for [" + sp.Name + "]")
+
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(sp.Region)}))
+		svc := autoscaling.New(sess)
+
+		// Create the scaling policy
+		params := &autoscaling.PutScalingPolicyInput{
+			AdjustmentType:       aws.String(cfg.AdjustmentType),
+			AutoScalingGroupName: aws.String(sp.AutoScaleGroupName),
+			PolicyName:           aws.String(sp.Name),
+			ScalingAdjustment:    aws.Int64(int64(cfg.ScalingAdjustment)),
+			Cooldown:             aws.Int64(int64(cfg.Cooldown)),
+		}
+
+		if !dryRun {
+			resp, err := svc.PutScalingPolicy(params)
+
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					return arn, errors.New(awsErr.Message())
+				}
+				return arn, err
+			}
+
+			arn = aws.StringValue(resp.PolicyARN)
+
+			terminal.Delta("Updated Scaling Policy  [" + sp.Name + "] with ARN [" + arn + "] in [" + sp.Region + "]!")
+		} else {
+			terminal.Notice("Params:")
+			fmt.Println(params.String())
+		}
+	}
+
+	return arn, nil
+}
+
 // CreateScalingPolicy creates a new Scaling Policy given the provided class, and region
 func CreateScalingPolicy(class, asgSearch string, dryRun bool) error {
 
@@ -218,8 +309,8 @@ func createScalingPolicy(name string, cfg config.ScalingPolicyClass, asgList *Au
 	return arn, nil
 }
 
-// DeleteScalingPolicies deletes one or more Scaling Policies that match the provided name and optionally the provided region
-func DeleteScalingPolicies(name, region string, force, dryRun bool) (err error) {
+// DeleteScalingPolicies deletes one or more Scaling Policies that match the provided search term and optionally the provided region
+func DeleteScalingPolicies(search, region string, dryRun bool) (err error) {
 
 	// --dry-run flag
 	if dryRun {
@@ -230,13 +321,13 @@ func DeleteScalingPolicies(name, region string, force, dryRun bool) (err error) 
 
 	// Check if we were given a region or not
 	if region != "" {
-		err = GetRegionScalingPolicies(region, spList, name)
+		err = GetRegionScalingPolicies(region, spList, search)
 	} else {
-		spList, _ = GetScalingPolicies(name)
+		spList, _ = GetScalingPolicies(search)
 	}
 
 	if err != nil {
-		return errors.New("Error gathering Scaling Policies Groups list")
+		return errors.New("Error gathering Scaling Policies list")
 	}
 
 	if len(*spList) > 0 {
@@ -253,7 +344,7 @@ func DeleteScalingPolicies(name, region string, force, dryRun bool) (err error) 
 
 	// Delete 'Em
 
-	err = deleteScalingPolicies(spList, force, dryRun)
+	err = deleteScalingPolicies(spList, dryRun)
 	if err != nil {
 		return err
 	}
@@ -264,7 +355,7 @@ func DeleteScalingPolicies(name, region string, force, dryRun bool) (err error) 
 }
 
 // Private function without the confirmation terminal prompts
-func deleteScalingPolicies(spList *ScalingPolicies, force, dryRun bool) (err error) {
+func deleteScalingPolicies(spList *ScalingPolicies, dryRun bool) (err error) {
 	for _, policy := range *spList {
 		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(policy.Region)}))
 		svc := autoscaling.New(sess)
@@ -293,6 +384,91 @@ func deleteScalingPolicies(spList *ScalingPolicies, force, dryRun bool) (err err
 	}
 
 	return nil
+}
+
+// ExecuteScalingPolicies
+func ExecuteScalingPolicies(search, region string, force, dryRun bool) (err error) {
+	// --dry-run flag
+	if dryRun {
+		terminal.Information("--dry-run flag is set, not making any actual changes!")
+	}
+
+	// --force flag
+	if dryRun {
+		terminal.Information("--force flag is set, not honoring cooldown!")
+	}
+
+	spList := new(ScalingPolicies)
+
+	// Check if we were given a region or not
+	if region != "" {
+		err = GetRegionScalingPolicies(region, spList, search)
+	} else {
+		spList, _ = GetScalingPolicies(search)
+	}
+
+	if err != nil {
+		return errors.New("Error gathering Scaling Policies list")
+	}
+
+	if len(*spList) > 0 {
+		// Print the table
+		spList.PrintTable()
+	} else {
+		return errors.New("No Scaling Policies found, Aborting!")
+	}
+
+	// Confirm
+	if !force && !terminal.PromptBool("Are you sure you want to execute these Scaling Policies?") {
+		return errors.New("Aborting!")
+	}
+
+	// Execute 'Em
+
+	_, err = executeScalingPolicies(spList, force, dryRun)
+	if err != nil {
+		return err
+	}
+
+	terminal.Information("Done!")
+
+	return nil
+}
+
+// Private function without the confirmation terminal prompts
+func executeScalingPolicies(spList *ScalingPolicies, force, dryRun bool) (arn string, err error) {
+	for _, sp := range *spList {
+
+		terminal.Delta("Executing Scaling Policy [" + sp.Name + "] on AutoScale Group [" + sp.AutoScaleGroupName + "] in [" + sp.Region + "]")
+
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(sp.Region)}))
+		svc := autoscaling.New(sess)
+
+		// Create the scaling policy
+		params := &autoscaling.ExecutePolicyInput{
+			AutoScalingGroupName: aws.String(sp.AutoScaleGroupName),
+			HonorCooldown:        aws.Bool(!force),
+			PolicyName:           aws.String(sp.Name),
+		}
+
+		if !dryRun {
+			_, err := svc.ExecutePolicy(params)
+
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					return arn, errors.New(awsErr.Message())
+				}
+				return arn, err
+			}
+
+			terminal.Delta("Executed Scaling Policy  [" + sp.Name + "] on AutoScale Group [" + sp.AutoScaleGroupName + "] in [" + sp.Region + "]!")
+		} else {
+			terminal.Notice("Params:")
+			fmt.Println(params.String())
+		}
+	}
+
+	return arn, nil
 }
 
 // PrintTable Prints an ascii table of the list of Scaling Policies

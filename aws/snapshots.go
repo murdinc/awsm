@@ -287,6 +287,11 @@ func CreateSnapshot(class, search string, waitFlag, forceYes, dryRun bool) error
 		terminal.Information("--wait flag is set!")
 	}
 
+	// --force-yes flag
+	if forceYes {
+		terminal.Information("--force-yes flag is set!")
+	}
+
 	// Class Config
 	snapCfg, err := config.LoadSnapshotClass(class)
 	if err != nil {
@@ -545,7 +550,11 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 			for i, snap := range snapshots {
 				if excludedSnaps[snap.SnapshotID] {
 					terminal.Notice("Snapshot [" + snap.Name + "] named [" + snap.SnapshotID + "] is being used in a launch configuration, skipping!")
-					snapshots = append(snapshots[:i], snapshots[i+1:]...)
+					if i+1 > len(snapshots) {
+						snapshots = snapshots[:i]
+					} else {
+						snapshots = append(snapshots[:i], snapshots[i+1:]...)
+					}
 				}
 			}
 

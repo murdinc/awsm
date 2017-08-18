@@ -204,6 +204,7 @@ func (l *LoadBalancer) Marshal(balancer *elb.LoadBalancerDescription, region str
 	params := &elb.DescribeLoadBalancerAttributesInput{
 		LoadBalancerName: balancer.LoadBalancerName,
 	}
+
 	attributesResp, _ := svc.DescribeLoadBalancerAttributes(params)
 
 	l.LoadBalancerHealthCheck.HealthCheckTarget = aws.StringValue(balancer.HealthCheck.Target)

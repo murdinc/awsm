@@ -29,6 +29,12 @@ type AutoScaleGroups []AutoScaleGroup
 // AutoScaleGroup represents a single AutoScale Group
 type AutoScaleGroup models.AutoScaleGroup
 
+// AutoScaleGroups represents a slice of AutoScale Groups
+type ScalingActivities []ScalingActivity
+
+// AutoScaleGroup represents a single AutoScale Group
+type ScalingActivity models.ScalingActivity
+
 // GetAutoScaleGroups returns a slice of AutoScale Groups based on the given search term
 func GetAutoScaleGroups(search string) (*AutoScaleGroups, []error) {
 	var wg sync.WaitGroup
@@ -95,6 +101,70 @@ func GetRegionAutoScaleGroups(region string, asgList *AutoScaleGroups, search st
 	return nil
 }
 
+// GetScalingActivities
+func GetScalingActivities(search string, latest bool) (ScalingActivities, error) {
+
+	asgList, errs := GetAutoScaleGroups(search)
+	if errs != nil {
+		return nil, errors.New("Error while retrieving the list of AutoScale Groups!")
+	}
+
+	if len(*asgList) > 0 {
+		// Print the table
+		asgList.PrintTable()
+	} else {
+		return nil, errors.New("No AutoScaling Groups found, Aborting!")
+	}
+
+	activities, err := getScalingActivities(asgList, latest)
+	if err != nil {
+		return nil, err
+	}
+
+	terminal.Information("Done!")
+
+	return activities, nil
+}
+
+// private function with no terminal prompts
+func getScalingActivities(asgList *AutoScaleGroups, latest bool) (activities ScalingActivities, err error) {
+
+	for _, asg := range *asgList {
+
+		terminal.Delta("Gathering Scaling Activities for AutoScale Group [" + asg.Name + "] in [" + asg.Region + "]")
+
+		sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(asg.Region)}))
+		svc := autoscaling.New(sess)
+
+		// Gather the activities
+		params := &autoscaling.DescribeScalingActivitiesInput{
+			AutoScalingGroupName: aws.String(asg.Name),
+		}
+
+		if latest {
+			params.SetMaxRecords(1)
+		}
+
+		result, err := svc.DescribeScalingActivities(params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return activities, errors.New(awsErr.Message())
+			}
+			return activities, err
+		}
+
+		asgActivities := make(ScalingActivities, len(result.Activities))
+		for i, activity := range result.Activities {
+			asgActivities[i].Marshal(activity, &asg)
+		}
+
+		activities = append(activities, asgActivities...)
+
+	}
+
+	return activities, nil
+}
+
 // Marshal parses the response from the aws sdk into an awsm AutoScale Group
 func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region string, subList *Subnets) {
 	a.Name = aws.StringValue(autoscalegroup.AutoScalingGroupName)
@@ -114,6 +184,21 @@ func (a *AutoScaleGroup) Marshal(autoscalegroup *autoscaling.Group, region strin
 	a.VpcID = subList.GetVpcIDBySubnetID(a.SubnetID)
 	a.VpcName = subList.GetVpcNameBySubnetID(a.SubnetID)
 	a.Region = region
+}
+
+// Marshal parses the response from the aws sdk into an awsm AutoScale Group
+func (a *ScalingActivity) Marshal(activity *autoscaling.Activity, asg *AutoScaleGroup) {
+
+	a.ActivityId = aws.StringValue(activity.ActivityId)
+	a.AutoScalingGroupName = aws.StringValue(activity.AutoScalingGroupName)
+	a.Cause = aws.StringValue(activity.Cause)
+	a.Description = aws.StringValue(activity.Description)
+	a.Details = aws.StringValue(activity.Details)
+	a.EndTime = aws.TimeValue(activity.EndTime)
+	a.Progress = int(aws.Int64Value(activity.Progress))
+	a.StartTime = aws.TimeValue(activity.StartTime)
+	a.StatusCode = aws.StringValue(activity.StatusCode)
+	a.Region = asg.Region
 }
 
 // LockedLaunchConfigurations returns a map of Launch Configurations that are locked (currently being used in an AutoScale Group)
@@ -202,7 +287,7 @@ func CreateAutoScaleGroups(class string, dryRun bool) (err error) {
 					PropagateAtLaunch: aws.Bool(true),
 					ResourceId:        aws.String(class),
 					ResourceType:      aws.String("auto-scaling-group"),
-					Value:             aws.String(class),
+					Value:             aws.String(cfg.LaunchConfigurationClass),
 				},
 			},
 		}
@@ -421,6 +506,11 @@ func UpdateAutoScaleGroups(name, version string, double, forceYes, dryRun bool) 
 		terminal.Information("--dry-run flag is set, not making any actual changes!")
 	}
 
+	// --double flag
+	if double {
+		terminal.Information("--double flag is set, doubling desired and max counts!")
+	}
+
 	asgList, _ := GetAutoScaleGroups(name)
 
 	if len(*asgList) > 0 {
@@ -453,6 +543,12 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 		cfg, err := config.LoadAutoscalingGroupClass(asg.Class)
 		if err != nil {
 			return err
+		}
+
+		// --double flag
+		if double {
+			cfg.DesiredCapacity = asg.DesiredCapacity * 2
+			cfg.MaxSize = asg.MaxSize * 2
 		}
 
 		terminal.Information("Found Autoscaling group class configuration for [" + asg.Class + "]")
@@ -492,8 +588,8 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 				HealthCheckGracePeriod:  aws.Int64(int64(cfg.HealthCheckGracePeriod)),
 				HealthCheckType:         aws.String(cfg.HealthCheckType),
 				LaunchConfigurationName: aws.String(lcName),
-				MaxSize:                 aws.Int64(int64(asg.MaxSize)),
-				MinSize:                 aws.Int64(int64(asg.MinSize)),
+				MaxSize:                 aws.Int64(int64(cfg.MaxSize)),
+				MinSize:                 aws.Int64(int64(cfg.MinSize)),
 				//NewInstancesProtectedFromScaleIn: aws.Bool(true), // TODO?
 				//PlacementGroup:                   aws.String("XmlStringMaxLen255"), // TODO
 			}
@@ -536,6 +632,36 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			// Update it!
 			if !dryRun {
 				_, err := svc.UpdateAutoScalingGroup(params)
+				if err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						return errors.New(awsErr.Message())
+					}
+					return err
+				}
+
+				// Update Tags
+				tagParams := &autoscaling.CreateOrUpdateTagsInput{
+					Tags: []*autoscaling.Tag{
+						{
+							// Name
+							Key:               aws.String("Name"),
+							PropagateAtLaunch: aws.Bool(true),
+							ResourceId:        aws.String(asg.Name),
+							ResourceType:      aws.String("auto-scaling-group"),
+							Value:             aws.String(lcName),
+						},
+						{
+							// Class
+							Key:               aws.String("Class"),
+							PropagateAtLaunch: aws.Bool(true),
+							ResourceId:        aws.String(asg.Name),
+							ResourceType:      aws.String("auto-scaling-group"),
+							Value:             aws.String(cfg.LaunchConfigurationClass),
+						},
+					},
+				}
+
+				_, err = svc.CreateOrUpdateTags(tagParams)
 				if err != nil {
 					if awsErr, ok := err.(awserr.Error); ok {
 						return errors.New(awsErr.Message())
@@ -808,6 +934,26 @@ func (a *AutoScaleGroups) PrintTable() {
 	rows := make([][]string, len(*a))
 
 	for index, asg := range *a {
+		models.ExtractAwsmTable(index, asg, &header, &rows)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(header)
+	table.AppendBulk(rows)
+	table.Render()
+}
+
+// PrintTable Prints an ascii table of the list of AutoScaling Groups
+func (s *ScalingActivities) PrintTable() {
+	if len(*s) == 0 {
+		terminal.ShowErrorMessage("Warning", "No Autoscale Activities Found!")
+		return
+	}
+
+	var header []string
+	rows := make([][]string, len(*s))
+
+	for index, asg := range *s {
 		models.ExtractAwsmTable(index, asg, &header, &rows)
 	}
 

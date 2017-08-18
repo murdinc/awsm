@@ -299,7 +299,7 @@ func CreateLaunchConfigurations(class string, dryRun bool) (err error) {
 					SnapshotId:          aws.String(latestSnapshot.SnapshotID),
 					VolumeSize:          aws.Int64(int64(volCfg.VolumeSize)),
 					VolumeType:          aws.String(volCfg.VolumeType),
-					Encrypted:           aws.Bool(volCfg.Encrypted),
+					//Encrypted:           aws.Bool(volCfg.Encrypted),
 				},
 				//NoDevice:    aws.String("String"),
 				//VirtualName: aws.String("String"),

@@ -26,6 +26,7 @@ func main() {
 	var details bool  // optional flag when listing command invocations
 	var private bool  // optional flag when creating resource records
 	var previous bool // optional flag when getting autoscale version
+	var latest bool   // optional flag when getting scaling activities
 	var wait bool     // optional flag when creating snapshots
 
 	app := cli.NewApp()
@@ -89,7 +90,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.AssociateRouteTable(c.NamedArg("routetable"), c.NamedArg("subnet"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -113,7 +114,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.AttachIAMRolePolicy(c.NamedArg("role"), c.NamedArg("policy"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -137,7 +138,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.AttachInternetGateway(c.NamedArg("gateway"), c.NamedArg("vpc"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -161,7 +162,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.AttachVolume(c.NamedArg("volume"), c.NamedArg("instance"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -180,7 +181,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.InstallKeyPair(c.NamedArg("class"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -204,7 +205,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CopyImage(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -228,7 +229,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CopySnapshot(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -252,7 +253,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				_, err := aws.CreateAddress(c.NamedArg("region"), c.NamedArg("domain"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -276,7 +277,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateAutoScaleAlarms(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -295,7 +296,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateAutoScaleGroups(c.NamedArg("class"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -319,7 +320,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateIAMUser(c.NamedArg("username"), c.NamedArg("path"))
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -354,13 +355,12 @@ func main() {
 
 				doc, err := ioutil.ReadFile(c.NamedArg("document"))
 				if err != nil {
-					terminal.ErrorLine(err.Error())
 					return err
 				}
 
 				_, err = aws.CreateIAMPolicy(c.NamedArg("name"), string(doc), c.NamedArg("path"), c.NamedArg("description"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -384,7 +384,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				_, err := aws.CreateInternetGateway(c.NamedArg("name"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -408,7 +408,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateImage(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -427,9 +427,9 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateLaunchConfigurations(c.NamedArg("class"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
-				return nil
+				return err
 			},
 		},
 		{
@@ -451,7 +451,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateLoadBalancer(c.NamedArg("class"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -475,7 +475,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateKeyPair(c.NamedArg("class"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -516,7 +516,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateResourceRecord(c.NamedArg("record"), c.NamedArg("value"), c.NamedArg("ttl"), force, private, dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -540,7 +540,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				_, err := aws.CreateRouteTable(c.NamedArg("name"), c.NamedArg("vpc"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -564,7 +564,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateScalingPolicy(c.NamedArg("class"), c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -593,7 +593,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSecurityGroup(c.NamedArg("class"), c.NamedArg("region"), c.NamedArg("vpc"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -617,7 +617,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSimpleDBDomain(c.NamedArg("domain"), c.NamedArg("region"))
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -653,9 +653,9 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSnapshot(c.NamedArg("class"), c.NamedArg("search"), wait, force, dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
-				return nil
+				return err
 			},
 		},
 		{
@@ -682,7 +682,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateVolume(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("az"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -716,7 +716,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateVpc(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("ip"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -755,7 +755,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.CreateSubnet(c.NamedArg("class"), c.NamedArg("name"), c.NamedArg("vpc"), c.NamedArg("ip"), c.NamedArg("az"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -779,7 +779,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteAddresses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -810,7 +810,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteAutoScaleGroups(c.NamedArg("search"), c.NamedArg("region"), force, dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -829,7 +829,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMInstanceProfiles(c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -848,7 +848,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMPolicies(c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -867,7 +867,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMRoles(c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -886,7 +886,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteIAMUsers(c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -905,7 +905,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteInternetGateway(c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -929,7 +929,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteImages(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -973,7 +973,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteLaunchConfigurations(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -997,7 +997,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteLoadBalancers(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1016,7 +1016,31 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteResourceRecords(c.NamedArg("search"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "deleteScalingPolicies",
+			Usage: "Delete Scaling Policies",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term for the scaling policies to delete",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region to delete the scaling policies from",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.DeleteScalingPolicies(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					return err
 				}
 				return nil
 			},
@@ -1040,7 +1064,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSecurityGroups(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1064,7 +1088,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSnapshots(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1088,7 +1112,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSimpleDBDomains(c.NamedArg("search"), c.NamedArg("region"))
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1113,7 +1137,7 @@ func main() {
 
 				err := aws.DeleteVolumes(c.NamedArg("volume"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1137,7 +1161,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteSubnets(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1161,7 +1185,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeleteVpcs(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1185,7 +1209,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DeregisterInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1204,7 +1228,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DetachInternetGateway(c.NamedArg("gateway"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1236,7 +1260,7 @@ func main() {
 
 				err := aws.DetachVolume(c.NamedArg("volume"), c.NamedArg("instance"), force, dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1260,9 +1284,40 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.DisassociateRouteTable(c.NamedArg("routetable"), c.NamedArg("subnet"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
+			},
+		},
+		{
+			Name:  "executeScalingPolicies",
+			Usage: "Execute Scaling Policies",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term of the Scaling Policy to execute",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region to execute the policy in (optional)",
+					Optional:    true,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "force",
+					Destination: &force,
+					Usage:       "force (Force deletes all instances and lifecycle actions)",
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.ExecuteScalingPolicies(c.NamedArg("search"), c.NamedArg("region"), force, dryRun)
+				if err != nil {
+					return err
+				}
+				return err
 			},
 		},
 		{
@@ -1309,7 +1364,7 @@ func main() {
 				instanceProfile, err := aws.GetIAMInstanceProfile(c.NamedArg("search"))
 
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 
 				instProfilesSlice := aws.IAMInstanceProfiles{instanceProfile}
@@ -1338,7 +1393,7 @@ func main() {
 				policyDocument, err := aws.GetIAMPolicyDocument(c.NamedArg("search"), c.NamedArg("version"))
 
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 
 				// TODO specify output file and write to that instead?
@@ -1361,7 +1416,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				iam, err := aws.GetIAMUser(c.NamedArg("search"))
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 					return err
 				}
 
@@ -1418,7 +1473,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.StopInstances(c.NamedArg("search"), c.NamedArg("region"), force, dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1442,7 +1497,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.StartInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1466,7 +1521,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.RebootInstances(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1497,7 +1552,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.RefreshVolume(c.NamedArg("volume"), c.NamedArg("instance"), force, dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1521,7 +1576,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.TerminateInstances(c.NamedArg("name"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1550,7 +1605,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.LaunchInstance(c.NamedArg("class"), c.NamedArg("sequence"), c.NamedArg("az"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -1945,6 +2000,34 @@ func main() {
 			},
 		},
 		{
+			Name:  "listScalingActivities",
+			Usage: "List Scaling Activities",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The autoscale groups to search for",
+					Optional:    false,
+				},
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "latest",
+					Destination: &latest,
+					Usage:       "latest (Only return the latest activity)",
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				activities, err := aws.GetScalingActivities(c.NamedArg("search"), latest)
+				if err != nil {
+					return err
+				}
+				activities.PrintTable()
+
+				return nil
+			},
+		},
+		{
 			Name:  "listScalingPolicies",
 			Usage: "List Scaling Policies",
 			Arguments: []cli.Argument{
@@ -2131,9 +2214,9 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.ResumeProcesses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
-				return nil
+				return err
 			},
 		},
 		{
@@ -2155,11 +2238,11 @@ func main() {
 			Action: func(c *cli.Context) error {
 				cmdInvocations, err := aws.RunCommand(c.NamedArg("search"), c.NamedArg("command"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				} else {
 					cmdInvocations.PrintOutput()
 				}
-				return nil
+				return err
 			},
 		},
 		{
@@ -2181,7 +2264,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.SuspendProcesses(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -2217,9 +2300,9 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.UpdateAutoScaleGroups(c.NamedArg("search"), c.NamedArg("version"), double, force, dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
-				return nil
+				return err
 			},
 		},
 		{
@@ -2241,7 +2324,31 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.UpdateLoadBalancers(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "updateScalingPolicies",
+			Usage: "Update Scaling Policies",
+			Arguments: []cli.Argument{
+				{
+					Name:        "search",
+					Description: "The search term of the scaling policies to update",
+					Optional:    false,
+				},
+				{
+					Name:        "region",
+					Description: "The region to update the scaling policies in (optional)",
+					Optional:    true,
+				},
+			},
+			Before: setupCheck,
+			Action: func(c *cli.Context) error {
+				err := aws.UpdateScalingPolicies(c.NamedArg("search"), c.NamedArg("region"), dryRun)
+				if err != nil {
+					return err
 				}
 				return nil
 			},
@@ -2265,7 +2372,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := aws.UpdateSecurityGroups(c.NamedArg("search"), c.NamedArg("region"), dryRun)
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -2276,7 +2383,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := installAutocomplete()
 				if err != nil {
-					terminal.ErrorLine(err.Error())
+					return err
 				}
 				return nil
 			},
@@ -2324,7 +2431,7 @@ func installAutocomplete() error {
 
 	bashrcFile, err := ioutil.ReadFile(bashrcPath)
 	if err != nil {
-		terminal.ErrorLine(err.Error())
+		return err
 	}
 
 	term := regexp.MustCompile("\n" + autcompleteLine)

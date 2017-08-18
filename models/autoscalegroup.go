@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // AutoScaleGroup represents and AutoScale Group
 type AutoScaleGroup struct {
 	Name                   string   `json:"name" awsmTable:"Name"`
@@ -20,4 +22,17 @@ type AutoScaleGroup struct {
 	LoadBalancers          []string `json:"loadBalancers" awsmTable:"Load Balancers"`
 	AvailabilityZones      []string `json:"availabilityZones" awsmTable:"Availability Zones"`
 	//Instances         string
+}
+
+type ScalingActivity struct {
+	ActivityId           string    `json:"activityId"`
+	AutoScalingGroupName string    `json:"autoScalingGroupName" awsmTable:"AutoScale Group Name"`
+	StatusCode           string    `json:"statusCode" awsmTable:"StatusCode"`
+	StartTime            time.Time `json:"startTime" awsmTable:"StartTime"`
+	EndTime              time.Time `json:"endTime" awsmTable:"End Time"`
+	Progress             int       `json:"progress" awsmTable:"Progress"`
+	Cause                string    `json:"cause" awsmTable:"Cause"`
+	Description          string    `json:"description" awsmTable:"Description"`
+	Details              string    `json:"details"`
+	Region               string    `json:"region" awsmTable:"Region"`
 }

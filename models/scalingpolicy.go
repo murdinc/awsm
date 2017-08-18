@@ -4,7 +4,7 @@ package models
 type ScalingPolicy struct {
 	Name               string   `json:"name" awsmTable:"Name"`
 	Arn                string   `json:"arn"`
-	AdjustmentType     string   `json:"adjustmentType"`
+	AdjustmentType     string   `json:"adjustmentType" awsmTable:"Adjustment Type"`
 	Adjustment         int      `json:"adjustment"`
 	AdjustmentStr      string   `json:"adjustmentStr" awsmTable:"Adjustment"`
 	Cooldown           string   `json:"cooldown" awsmTable:"Cooldown"`
