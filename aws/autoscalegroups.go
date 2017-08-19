@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -559,6 +560,16 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			return err
 		}
 
+		// Set passed version early
+		if version != "" {
+			lcVer, err := strconv.Atoi(version)
+			if err != nil {
+				return err
+			}
+			launchConfigurationCfg.Version = lcVer
+			terminal.Information(fmt.Sprint("Using Launch Configuration version [%d] passed in as an argument.", launchConfigurationCfg.Version))
+		}
+
 		terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")
 
 		// Get the AZs
@@ -576,7 +587,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 			if lcName == "" {
 				return fmt.Errorf("Launch Configuration [%s] version [%d] is not available in [%s]!", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, region)
 			}
-			terminal.Information(fmt.Sprintf("Found latest Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, asg.Region))
+			terminal.Information(fmt.Sprintf("Found Launch Configuration [%s] version [%d] in [%s]", cfg.LaunchConfigurationClass, launchConfigurationCfg.Version, asg.Region))
 
 			sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 			svc := autoscaling.New(sess)
