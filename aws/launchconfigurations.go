@@ -121,22 +121,41 @@ func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
 // GetRegionLaunchConfigurations returns a slice of Launch Configurations into the provided LaunchConfigs slice that match the region and search term
 func GetRegionLaunchConfigurations(region string, lcList *LaunchConfigs, search string) error {
 
+	var launchConfigurations []*autoscaling.LaunchConfiguration
+
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 	svc := autoscaling.New(sess)
 
-	result, err := svc.DescribeLaunchConfigurations(&autoscaling.DescribeLaunchConfigurationsInput{})
-	if err != nil || len(result.LaunchConfigurations) == 0 {
-		return err
+	params := &autoscaling.DescribeLaunchConfigurationsInput{}
+	more := true
+	for more == true {
+		result, err := svc.DescribeLaunchConfigurations(params)
+		if err != nil {
+			return err
+		}
+		launchConfigurations = append(launchConfigurations, result.LaunchConfigurations...)
+		if aws.StringValue(result.NextToken) == "" {
+			more = false
+		} else {
+			params.NextToken = result.NextToken
+		}
+	}
+
+	if len(launchConfigurations) == 0 {
+		return nil
 	}
 
 	secGrpList := new(SecurityGroups)
-	err = GetRegionSecurityGroups(region, secGrpList, "")
+	err := GetRegionSecurityGroups(region, secGrpList, "")
+	if err != nil {
+		return nil
+	}
 
 	imgList := new(Images)
 	GetRegionImages(region, imgList, "", false)
 
-	lc := make(LaunchConfigs, len(result.LaunchConfigurations))
-	for i, config := range result.LaunchConfigurations {
+	lc := make(LaunchConfigs, len(launchConfigurations))
+	for i, config := range launchConfigurations {
 		lc[i].Marshal(config, region, secGrpList, imgList)
 	}
 
