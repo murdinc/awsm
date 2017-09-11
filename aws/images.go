@@ -422,7 +422,12 @@ func rotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 			for i, image := range images {
 				if excludedImages[image.ImageID] {
 					terminal.Information("Image [" + image.Name + "] named [" + image.ImageID + "] is being used in a launch configuration, skipping!")
-					images = append(images[:i], images[i+1:]...)
+					if len(images) > 1 {
+						images[i] = images[len(images)-1]
+						images = images[:len(images)-1]
+					} else {
+						images = Images{}
+					}
 				}
 			}
 
