@@ -567,7 +567,7 @@ func updateAutoScaleGroups(asgList *AutoScaleGroups, version string, double, dry
 				return err
 			}
 			launchConfigurationCfg.Version = lcVer
-			terminal.Information(fmt.Sprint("Using Launch Configuration version [%d] passed in as an argument.", launchConfigurationCfg.Version))
+			terminal.Information(fmt.Sprintf("Using Launch Configuration version [%d] passed in as an argument.", launchConfigurationCfg.Version))
 		}
 
 		terminal.Information("Found Launch Configuration class configuration for [" + cfg.LaunchConfigurationClass + "]")

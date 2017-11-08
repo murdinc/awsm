@@ -401,7 +401,7 @@ func rotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 	if err != nil {
 		return errors.New("Error while retrieving the list of assets to exclude from rotation!")
 	}
-	excludedImages := launchConfigs.LockedImageIds()
+	lockedImages := launchConfigs.LockedImageIds()
 
 	regions := regions.GetRegionList()
 
@@ -418,23 +418,21 @@ func rotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 				errs = append(errs, err)
 			}
 
+			var unlockedImages Images
+
 			// Exclude the images being used in Launch Configurations
-			for i, image := range images {
-				if excludedImages[image.ImageID] {
+			for _, image := range images {
+				if lockedImages[image.ImageID] {
 					terminal.Information("Image [" + image.Name + "] named [" + image.ImageID + "] is being used in a launch configuration, skipping!")
-					if len(images) > 1 {
-						images[i] = images[len(images)-1]
-						images = images[:len(images)-1]
-					} else {
-						images = Images{}
-					}
+				} else {
+					unlockedImages = append(unlockedImages, image)
 				}
 			}
 
 			// Delete the oldest ones if we have more than the retention number
-			if len(images) > cfg.Retain {
-				sort.Sort(images) // important!
-				di := images[cfg.Retain:]
+			if len(unlockedImages) > cfg.Retain {
+				sort.Sort(unlockedImages) // important!
+				di := unlockedImages[cfg.Retain:]
 				deleteImages(&di, dryRun)
 			}
 

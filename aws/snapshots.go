@@ -529,7 +529,7 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 	if err != nil {
 		return errors.New("Error while retrieving the list of assets to exclude from rotation!")
 	}
-	excludedSnaps := launchConfigs.LockedSnapshotIds()
+	lockedSnapshots := launchConfigs.LockedSnapshotIds()
 
 	regions := regions.GetRegionList()
 
@@ -546,22 +546,21 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 				errs = append(errs, err)
 			}
 
+			var unlockedSnapshots Snapshots
+
 			// Exclude the snapshots being used in Launch Configurations
-			for i, snap := range snapshots {
-				if excludedSnaps[snap.SnapshotID] {
-					terminal.Notice("Snapshot [" + snap.Name + "] named [" + snap.SnapshotID + "] is being used in a launch configuration, skipping!")
-					if i+1 > len(snapshots) {
-						snapshots = snapshots[:i]
-					} else {
-						snapshots = append(snapshots[:i], snapshots[i+1:]...)
-					}
+			for _, snap := range snapshots {
+				if lockedSnapshots[snap.SnapshotID] {
+					terminal.Notice("Snapshot [" + snap.SnapshotID + "] in [" + *region.RegionName + "] named [" + snap.Name + "] is being used in a launch configuration, skipping!")
+				} else {
+					unlockedSnapshots = append(unlockedSnapshots, snap)
 				}
 			}
 
 			// Delete the oldest ones if we have more than the retention number
-			if len(snapshots) > cfg.Retain {
-				sort.Sort(snapshots) // important!
-				ds := snapshots[cfg.Retain:]
+			if len(unlockedSnapshots) > cfg.Retain {
+				sort.Sort(unlockedSnapshots) // important!
+				ds := unlockedSnapshots[cfg.Retain:]
 				deleteSnapshots(&ds, dryRun)
 			}
 
