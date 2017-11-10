@@ -205,11 +205,11 @@ func (a *ScalingActivity) Marshal(activity *autoscaling.Activity, asg *AutoScale
 // LockedLaunchConfigurations returns a map of Launch Configurations that are locked (currently being used in an AutoScale Group)
 func (a *AutoScaleGroups) LockedLaunchConfigurations() map[string]bool {
 
-	ids := make(map[string]bool, len(*a))
+	names := make(map[string]bool, len(*a))
 	for _, asg := range *a {
-		ids[asg.LaunchConfig] = true
+		names[asg.LaunchConfig] = true
 	}
-	return ids
+	return names
 }
 
 // CreateAutoScaleGroups creates a new AutoScale Group of the given class

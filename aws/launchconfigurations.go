@@ -477,7 +477,7 @@ func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClas
 	var wg sync.WaitGroup
 	var errs []error
 
-	autoScaleGroups, err := GetAutoScaleGroups("")
+	autoScaleGroups, err := GetAutoScaleGroups(class)
 	if err != nil {
 		return errors.New("Error while retrieving the list of launch configurations to exclude from rotation!")
 	}
@@ -492,24 +492,29 @@ func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClas
 			defer wg.Done()
 
 			// Get all the launch configs of this class in this region
-			launchConfigs, err := GetLaunchConfigurationsByName(*region.RegionName, class)
+			launchConfigs := new(LaunchConfigs)
+			err := GetRegionLaunchConfigurations(*region.RegionName, launchConfigs, class+"-v")
+
 			if err != nil {
 				terminal.ShowErrorMessage(fmt.Sprintf("Error gathering launch configuration list for region [%s]", *region.RegionName), err.Error())
 				errs = append(errs, err)
 			}
 
+			var unlockedLaunchConfigs LaunchConfigs
+
 			// Exclude the launch configs being used in Autoscale Groups
-			for i, lc := range launchConfigs {
+			for _, lc := range *launchConfigs {
 				if excludedConfigs[lc.Name] {
-					terminal.Notice("Launch Configuration [" + lc.Name + ") ] is being used in an autoscale group, skipping!")
-					launchConfigs = append(launchConfigs[:i], launchConfigs[i+1:]...)
+					terminal.Notice("Launch Configuration [" + lc.Name + "] is being used in an autoscale group, skipping!")
+				} else {
+					unlockedLaunchConfigs = append(unlockedLaunchConfigs, lc)
 				}
 			}
 
 			// Delete the oldest ones if we have more than the retention number
-			if len(launchConfigs) > cfg.Retain {
-				sort.Sort(launchConfigs) // important!
-				ds := launchConfigs[cfg.Retain:]
+			if len(unlockedLaunchConfigs) > cfg.Retain {
+				sort.Sort(unlockedLaunchConfigs) // important!
+				ds := unlockedLaunchConfigs[cfg.Retain:]
 				deleteLaunchConfigurations(&ds, dryRun)
 			}
 
