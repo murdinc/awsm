@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -26,7 +25,7 @@ type Bucket models.Bucket
 func GetBuckets(search string) (*Buckets, error) {
 
 	bucketList := new(Buckets)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	rand.Seed(time.Now().UnixNano())
 	region := regions[rand.Intn(len(regions))] // pick a random region

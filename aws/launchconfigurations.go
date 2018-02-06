@@ -99,7 +99,7 @@ func GetLaunchConfigurations(search string) (*LaunchConfigs, []error) {
 	var errs []error
 
 	lcList := new(LaunchConfigs)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -483,7 +483,7 @@ func RotateLaunchConfigurations(class string, cfg config.LaunchConfigurationClas
 	}
 	excludedConfigs := autoScaleGroups.LockedLaunchConfigurations()
 
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

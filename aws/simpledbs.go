@@ -30,7 +30,7 @@ func GetSimpleDBDomains(search string) (*SimpleDBDomains, []error) {
 	var errs []error
 
 	domainList := new(SimpleDBDomains)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

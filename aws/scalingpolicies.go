@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/config"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
@@ -33,7 +32,7 @@ func GetScalingPolicies(search string) (*ScalingPolicies, []error) {
 	var errs []error
 
 	spList := new(ScalingPolicies)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

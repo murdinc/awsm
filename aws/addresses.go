@@ -31,7 +31,7 @@ func GetAddresses(search string, available bool) (*Addresses, []error) {
 	var errs []error
 
 	ipList := new(Addresses)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

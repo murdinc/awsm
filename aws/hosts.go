@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/route53"
-	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/awsm/models"
 	"github.com/murdinc/terminal"
 	"github.com/olekukonko/tablewriter"
@@ -84,7 +83,7 @@ func DeleteResourceRecords(search string, dryRun bool) error {
 }
 
 func (h *HostedZone) GetResourceRecords(search string) (*ResourceRecords, error) {
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 	rand.Seed(time.Now().UnixNano())
 	region := regions[rand.Intn(len(regions))] // pick a random region
 
@@ -304,7 +303,7 @@ func changeResourceRecord(changeSet map[string][]ResourceRecordChange, dryRun bo
 		params.SetChangeBatch(changeBatch)
 
 		if !dryRun {
-			regions := regions.GetRegionList()
+			regions := GetRegionListWithoutIgnored()
 
 			rand.Seed(time.Now().UnixNano())
 			region := regions[rand.Intn(len(regions))] // pick a random region
@@ -337,7 +336,7 @@ func GetResourceRecords(search string) (*ResourceRecords, error) {
 		return resourceRecordList, err
 	}
 
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	rand.Seed(time.Now().UnixNano())
 	region := regions[rand.Intn(len(regions))] // pick a random region
@@ -413,7 +412,7 @@ ListLoop:
 func GetHostedZones(search string) (*HostedZones, error) {
 
 	hostedZoneList := new(HostedZones)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	rand.Seed(time.Now().UnixNano())
 	region := regions[rand.Intn(len(regions))] // pick a random region

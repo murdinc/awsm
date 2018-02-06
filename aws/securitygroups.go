@@ -193,7 +193,7 @@ func GetSecurityGroups(search string) (*SecurityGroups, []error) {
 	var errs []error
 
 	secGrpList := new(SecurityGroups)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

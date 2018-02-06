@@ -123,7 +123,7 @@ func GetImages(search string, available bool) (*Images, []error) {
 	var errs []error
 
 	imgList := new(Images)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -403,7 +403,7 @@ func rotateImages(class string, cfg config.ImageClass, dryRun bool) error {
 	}
 	lockedImages := launchConfigs.LockedImageIds()
 
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

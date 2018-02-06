@@ -221,7 +221,7 @@ func GetVpcs(search string) (*Vpcs, []error) {
 	var errs []error
 
 	vpcList := new(Vpcs)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -666,7 +666,7 @@ func GetInternetGateways(search string, available bool) (*InternetGateways, []er
 	var errs []error
 
 	igList := new(InternetGateways)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -826,7 +826,7 @@ func GetRouteTables(search string) (*RouteTables, []error) {
 	var errs []error
 
 	rtList := new(RouteTables)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

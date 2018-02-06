@@ -42,7 +42,7 @@ func GetAutoScaleGroups(search string) (*AutoScaleGroups, []error) {
 	var errs []error
 
 	asgList := new(AutoScaleGroups)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

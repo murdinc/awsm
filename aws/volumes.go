@@ -208,7 +208,7 @@ func GetVolumes(search string, available bool) (*Volumes, []error) {
 	var errs []error
 
 	volList := new(Volumes)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

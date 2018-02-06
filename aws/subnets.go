@@ -102,7 +102,7 @@ func GetSubnets(search string) (*Subnets, []error) {
 	var errs []error
 
 	subList := new(Subnets)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

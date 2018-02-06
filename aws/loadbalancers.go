@@ -36,7 +36,7 @@ func GetLoadBalancers(search string) (*LoadBalancers, []error) {
 	var errs []error
 
 	lbList := new(LoadBalancers)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

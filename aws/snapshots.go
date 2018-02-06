@@ -106,7 +106,7 @@ func GetSnapshots(search string, completed bool) (*Snapshots, []error) {
 	var errs []error
 
 	snapList := new(Snapshots)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)
@@ -531,7 +531,7 @@ func rotateSnapshots(class string, cfg config.SnapshotClass, dryRun bool) error 
 	}
 	lockedSnapshots := launchConfigs.LockedSnapshotIds()
 
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

@@ -33,7 +33,7 @@ func GetAlarms(search string) (*Alarms, []error) {
 	var errs []error
 
 	alList := new(Alarms)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

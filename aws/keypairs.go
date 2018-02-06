@@ -67,7 +67,7 @@ func GetKeyPairs(search string) (*KeyPairs, []error) {
 	var errs []error
 
 	keyList := new(KeyPairs)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)

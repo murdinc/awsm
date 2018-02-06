@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/awsm/aws/regions"
 	"github.com/murdinc/terminal"
 	"gopkg.in/ini.v1"
 )
@@ -18,9 +20,10 @@ type awsmCreds struct {
 
 // Profile represents a single AWS profile (an access key id and secret access key)
 type Profile struct {
-	Name            string `ini:"-"` // considered Sections in config file
-	AccessKeyID     string `ini:"aws_access_key_id"`
-	SecretAccessKey string `ini:"aws_secret_access_key"`
+	Name            string   `ini:"-"` // considered Sections in config file
+	AccessKeyID     string   `ini:"aws_access_key_id"`
+	SecretAccessKey string   `ini:"aws_secret_access_key"`
+	IgnoreRegions   []string `ini:"ignore_regions"`
 }
 
 // CheckCreds Runs before everything, verifying we have proper authentication or asking us to set some up
@@ -51,6 +54,8 @@ func CheckCreds() (bool, string) {
 
 		return CheckCreds()
 	}
+
+	GetRegionListWithoutIgnored()
 
 	return true, id
 }
@@ -147,6 +152,42 @@ func readCreds() (*awsmCreds, error) {
 	}
 
 	return config, err
+}
+
+func GetRegionListWithoutIgnored() []*ec2.Region {
+
+	var ignoredRegions []string
+
+	// Try to read the config file
+	cfg, err := readCreds()
+	if err != nil || len(cfg.Profiles) == 0 {
+		return []*ec2.Region{}
+	}
+
+	for _, profile := range cfg.Profiles {
+		ignoredRegions = append(profile.IgnoreRegions, ignoredRegions...)
+	}
+
+	regions := regions.GetRegionList()
+
+	if len(ignoredRegions) == 0 {
+		return regions
+	}
+
+	var adjustedRegions []*ec2.Region
+
+Loop:
+	for _, region := range regions {
+		for _, ignoredRegion := range ignoredRegions {
+			if ignoredRegion == *region.RegionName {
+				terminal.Information("Region [" + *region.RegionName + "] is being ignored...")
+				continue Loop
+			}
+		}
+		adjustedRegions = append(adjustedRegions, region)
+	}
+
+	return adjustedRegions
 }
 
 // SaveCreds Saves our list of profiles into the config file

@@ -17,7 +17,11 @@ func GetRegionList() []*ec2.Region {
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")}))
 	svc := ec2.New(sess)
 
-	resp, err := svc.DescribeRegions(nil)
+	// Create a context with a timeout that will abort the request if it takes too long
+	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancelFn()
+
+	resp, err := svc.DescribeRegionsWithContext(ctx, nil)
 
 	if err != nil {
 		fmt.Println(err.Error())

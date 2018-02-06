@@ -36,7 +36,7 @@ func GetInstances(search string, running bool) (*Instances, []error) {
 	var errs []error
 
 	instList := new(Instances)
-	regions := regions.GetRegionList()
+	regions := GetRegionListWithoutIgnored()
 
 	for _, region := range regions {
 		wg.Add(1)
