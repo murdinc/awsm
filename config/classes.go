@@ -105,7 +105,7 @@ func Insert(classType string, classInterface interface{}) error {
 
 			// Load Balancer Listeners
 			for _, listener := range config.LoadBalancerListeners {
-				itemName = classType + "/" + class + "/listeners/" + uuid.NewV4().String()
+				itemName = classType + "/" + class + "/listeners/" + uuid.Must(uuid.NewV4()).String()
 				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(listener, classType+"/"+class+"/listeners")...)
 			}
 		}
@@ -132,7 +132,7 @@ func Insert(classType string, classInterface interface{}) error {
 
 			// Security Group Grants
 			for _, grant := range config.SecurityGroupGrants {
-				itemName = classType + "/" + class + "/grants/" + uuid.NewV4().String()
+				itemName = classType + "/" + class + "/grants/" + uuid.Must(uuid.NewV4()).String()
 				itemsMap[itemName] = append(itemsMap[itemName], BuildAttributes(grant, classType+"/"+class+"/grants")...)
 			}
 		}
