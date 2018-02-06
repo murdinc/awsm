@@ -100,7 +100,7 @@ func GetRegionAZs(region string, azList *AZs) error {
 	svc := ec2.New(sess)
 
 	// Create a context with a timeout that will abort the request if it takes too long
-	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancelFn()
 
 	result, err := svc.DescribeAvailabilityZonesWithContext(ctx, nil)
