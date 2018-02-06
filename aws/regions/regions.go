@@ -1,12 +1,15 @@
 package regions
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/murdinc/terminal"
 )
 
 // GetRegionList returns a list of AWS Regions as a slice of *ec2.Region
@@ -96,10 +99,15 @@ func GetRegionAZs(region string, azList *AZs) error {
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 	svc := ec2.New(sess)
 
-	result, err := svc.DescribeAvailabilityZones(nil)
+	// Create a context with a timeout that will abort the request if it takes too long
+	ctx, cancelFn := context.WithTimeout(context.Background(), time.Second)
+	defer cancelFn()
+
+	result, err := svc.DescribeAvailabilityZonesWithContext(ctx, nil)
 
 	if err != nil {
-		return err
+		terminal.ErrorLine("Region AZ request timeout in [" + region + "], skipping...")
+		return nil
 	}
 
 	azs := make(AZs, len(result.AvailabilityZones))
