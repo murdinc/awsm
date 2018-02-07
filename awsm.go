@@ -32,7 +32,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "awsm"
 	app.Usage = "AWS Interface"
-	app.Version = "1.0.0"
+	app.Version = "1.0.1"
 	app.Author = "Ahmad A"
 	app.Email = "send@ahmad.pizza"
 	app.EnableBashCompletion = true

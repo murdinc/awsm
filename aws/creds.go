@@ -180,7 +180,7 @@ Loop:
 	for _, region := range regions {
 		for _, ignoredRegion := range ignoredRegions {
 			if ignoredRegion == *region.RegionName {
-				terminal.Information("Region [" + *region.RegionName + "] is being ignored...")
+				/*terminal.Information("Region [" + *region.RegionName + "] is being ignored...")*/
 				continue Loop
 			}
 		}
