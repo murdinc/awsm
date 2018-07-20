@@ -1,16 +1,10 @@
 package config
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/simpledb"
-	"github.com/murdinc/terminal"
-	"golang.org/x/crypto/ssh"
 )
 
 // KeyPairClasses is a map of Image classes
@@ -27,31 +21,12 @@ type KeyPairClass struct {
 	PrivateKey  string `json:"privateKey" awsm:"ignore"`
 }
 
-// DefaultKeyPairClasses returns the default Image classes
-func DefaultKeyPairClasses(generateAwsmKeyPair bool) KeyPairClasses {
+// DefaultKeyPairClasses returns the default KeyPair classes
+func DefaultKeyPairClasses() KeyPairClasses {
 	defaultKeyPairs := make(KeyPairClasses)
 
-	if generateAwsmKeyPair {
-		publicKey, privateKey, err := GenerateKeyPair()
-		if err != nil {
-			terminal.ErrorLine("Error while generating awsm keypair")
-		}
-		privateKeyLen := len(privateKey) / 4
-
-		defaultKeyPairs["awsm"] = KeyPairClass{
-			Description: "Default awsm Key Pair",
-			PublicKey:   publicKey,
-			PrivateKey1: privateKey[:privateKeyLen],
-			PrivateKey2: privateKey[privateKeyLen : privateKeyLen*2],
-			PrivateKey3: privateKey[privateKeyLen*2 : privateKeyLen*3],
-			PrivateKey4: privateKey[privateKeyLen*3:],
-		}
-
-	} else {
-
-		defaultKeyPairs["awsm"] = KeyPairClass{
-			Description: "Default awsm Key Pair",
-		}
+	defaultKeyPairs["awsm"] = KeyPairClass{
+		Description: "Default awsm Key Pair",
 	}
 
 	return defaultKeyPairs
@@ -65,11 +40,11 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 	}
 
 	// Generate the keys if needed.
-	if class.PrivateKey == "" && class.PublicKey == "" {
+	/*if class.PrivateKey == "" && class.PublicKey == "" {
 		var publicKey, privateKey string
 		publicKey, privateKey, err = GenerateKeyPair()
 		if err != nil {
-			terminal.ErrorLine("Error while generating keypair class: " + className)
+			// terminal.ErrorLine("Error while generating keypair class: " + className)
 			return
 		}
 
@@ -79,15 +54,15 @@ func SaveKeyPairClass(className string, data []byte) (class KeyPairClass, err er
 		class.PrivateKey2 = privateKey[privateKeyLen : privateKeyLen*2]
 		class.PrivateKey3 = privateKey[privateKeyLen*2 : privateKeyLen*3]
 		class.PrivateKey4 = privateKey[privateKeyLen*3:]
-	} else {
-		privateKey := class.PrivateKey
-		privateKeyLen := len(privateKey) / 4
+	} else {*/
+	privateKey := class.PrivateKey
+	privateKeyLen := len(privateKey) / 4
 
-		class.PrivateKey1 = privateKey[:privateKeyLen]
-		class.PrivateKey2 = privateKey[privateKeyLen : privateKeyLen*2]
-		class.PrivateKey3 = privateKey[privateKeyLen*2 : privateKeyLen*3]
-		class.PrivateKey4 = privateKey[privateKeyLen*3:]
-	}
+	class.PrivateKey1 = privateKey[:privateKeyLen]
+	class.PrivateKey2 = privateKey[privateKeyLen : privateKeyLen*2]
+	class.PrivateKey3 = privateKey[privateKeyLen*2 : privateKeyLen*3]
+	class.PrivateKey4 = privateKey[privateKeyLen*3:]
+	/*}*/
 
 	err = Insert("keypairs", KeyPairClasses{className: class})
 
@@ -154,25 +129,4 @@ func (c KeyPairClasses) Marshal(items []*simpledb.Item) {
 		}
 		c[name] = *cfg
 	}
-}
-
-// GenerateKeyPair creates an ssh keypair
-func GenerateKeyPair() (publicKeyEncoded string, privateKeyEncoded string, err error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return
-	}
-
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	privateKeyEncoded = string(pem.EncodeToMemory(privateKeyPEM))
-
-	// Generate and write public key
-	pub, err := ssh.NewPublicKey(&privateKey.PublicKey)
-	if err != nil {
-		return
-	}
-
-	publicKeyEncoded = string(ssh.MarshalAuthorizedKey(pub))
-
-	return
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/simpledb"
-	"github.com/murdinc/terminal"
 )
 
 // Widgets is a map of Widgets
@@ -92,13 +91,13 @@ func DeleteWidget(widgetName string) error {
 		ItemName:   aws.String(itemName),
 	}
 
-	terminal.Delta("Deleting Widget item [" + itemName + "]...")
+	/*terminal.Delta("Deleting Widget item [" + itemName + "]...")*/
 	_, err := svc.DeleteAttributes(params)
 	if err != nil {
 		return err
 	}
 
-	terminal.Information("Done!")
+	/*terminal.Information("Done!")*/
 
 	return nil
 }

@@ -120,7 +120,7 @@ func DeleteItemsByType(classType string) error {
 }
 
 // CreateAwsmDatabase creates an awsm SimpleDB Domain
-func CreateAwsmDatabase(generateAwsmKeyPair bool) error {
+func CreateAwsmDatabase() error {
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})) // TODO handle default region preference
 	svc := simpledb.New(sess)
@@ -147,7 +147,7 @@ func CreateAwsmDatabase(generateAwsmKeyPair bool) error {
 	Insert("volumes", DefaultVolumeClasses())
 	Insert("snapshots", DefaultSnapshotClasses())
 	Insert("autoscalegroups", DefaultAutoscaleGroupClasses())
-	Insert("keypairs", DefaultKeyPairClasses(generateAwsmKeyPair))
+	Insert("keypairs", DefaultKeyPairClasses())
 	Insert("widgets", DefaultWidgets())
 
 	return nil
