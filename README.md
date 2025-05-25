@@ -20,12 +20,6 @@
 **Retention** (also optional) is the number of previous versions of assets to retain. Older EBS Snapshots, AMI's, and Launch Configurations can be rotated out as new ones are created, automating the task of clearing them out. EBS Snapshots and AMI's that are referenced in existing Launch Configurations are never touched.
 
 
-## Installation
-To install awsm, simply copy/paste the following command into your terminal:
-```
-curl -s http://dl.sudoba.sh/get/awsm | sh
-```
-
 
 ## Configuration
 The first time you run awsm on a machine, it will ask you to provide an AWS Access ID and Secret Key. Once those are saved, it will create a simpleDB Domain named `awsm` if one does not already exist, and load the default starter awsm classes.
